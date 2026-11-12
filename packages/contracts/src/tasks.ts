@@ -12,7 +12,7 @@ export function motionPrice(seconds: number): number {
 /** Số giây Trim tối thiểu của Motion Control. */
 export const MOTION_MIN_TRIM_SECONDS = 3;
 
-export const TASK_PIPELINES = ['face_swap', 'body_retouch', 'motion_control'] as const;
+export const TASK_PIPELINES = ['face_swap', 'body_retouch', 'motion_control', 'character_replace'] as const;
 export type TaskPipeline = (typeof TASK_PIPELINES)[number];
 export const TaskPipelineSchema = z.enum(TASK_PIPELINES);
 
@@ -93,6 +93,10 @@ export const REASON_CODE_PIPELINE_OVERRIDES_VI: Readonly<
   },
   motion_control: {
     NO_POSE: 'Không nhận diện được chuyển động cơ thể trong video mẫu',
+    NO_FACE: 'Không nhận diện được nhân vật trong ảnh. Vui lòng chọn ảnh toàn thân rõ người.',
+  },
+  character_replace: {
+    NO_POSE: 'Không nhận diện được nhân vật trong video gốc',
     NO_FACE: 'Không nhận diện được nhân vật trong ảnh. Vui lòng chọn ảnh toàn thân rõ người.',
   },
 };
@@ -302,6 +306,39 @@ export const MotionCreateResponseSchema = TaskBaseSchema.extend({
   }
 });
 export type MotionCreateResponse = z.infer<typeof MotionCreateResponseSchema>;
+
+/** POST /tasks/character-replace — thay nhân vật trong video; giá = motionPrice(số giây sau cắt), do server tính. */
+export const CharacterReplaceCreateRequestSchema = z
+  .object({
+    characterKey: ConfirmedUploadKeySchema,
+    videoKey: ConfirmedUploadKeySchema,
+    trimStart: TrimSecondSchema('Điểm bắt đầu cắt'),
+    trimEnd: TrimSecondSchema('Điểm kết thúc cắt'),
+    prompt: z
+      .string()
+      .trim()
+      .min(1, 'Vui lòng nhập mô tả hành vi.')
+      .max(MOTION_PROMPT_MAX_LENGTH, `Prompt tối đa ${MOTION_PROMPT_MAX_LENGTH} ký tự.`),
+  })
+  .strict();
+export type CharacterReplaceCreateRequest = z.input<typeof CharacterReplaceCreateRequestSchema>;
+export const CharacterReplaceCreateResponseSchema = TaskBaseSchema.extend({
+  pipeline: z.literal('character_replace'),
+  price: z.number().int().positive(),
+}).superRefine((t, ctx) => {
+  refineTask(t, ctx);
+  if (t.price !== t.creditCost) {
+    ctx.addIssue({ code: z.ZodIssueCode.custom, path: ['price'], message: 'price phải bằng creditCost' });
+  }
+  if (t.price % motionPrice(1) !== 0) {
+    ctx.addIssue({
+      code: z.ZodIssueCode.custom,
+      path: ['price'],
+      message: 'price phải là bội của giá mỗi giây',
+    });
+  }
+});
+export type CharacterReplaceCreateResponse = z.infer<typeof CharacterReplaceCreateResponseSchema>;
 
 /** `details.reason` của VALIDATION_FAILED cho video/Trim. */
 export const VALIDATION_REASONS = [

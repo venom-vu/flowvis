@@ -87,7 +87,8 @@ const resultAsync = useAsyncData<TaskResultResponse | null>(
 const isVideoResult = computed<boolean>(
   () =>
     resultAsync.data.value?.mediaType === 'video' ||
-    currentTask.value?.pipeline === 'motion_control',
+    currentTask.value?.pipeline === 'motion_control' ||
+    currentTask.value?.pipeline === 'character_replace',
 );
 
 // Trạng thái chia sẻ
@@ -306,6 +307,7 @@ function handleGoBack(): void {
 function getPipelineRoute(pipeline?: string): string {
   if (pipeline === 'body_retouch') return '/body-retouch';
   if (pipeline === 'motion_control') return '/motion-control';
+  if (pipeline === 'character_replace') return '/';
   return '/face-swap';
 }
 
@@ -522,7 +524,7 @@ function handleCreateNewTask(): void {
         Kết Quả Đã Hết Hạn Lưu Trữ
       </h2>
       <p class="mt-2 max-w-md text-sm text-cyber-muted">
-        {{ currentTask?.pipeline === 'motion_control' ? 'Video' : 'Ảnh' }} kết quả đã quá thời hạn lưu trữ 30 ngày và đã được dọn dẹp tự động khỏi máy chủ theo chính sách bảo mật của hệ thống.
+        {{ (currentTask?.pipeline === 'motion_control' || currentTask?.pipeline === 'character_replace') ? 'Video' : 'Ảnh' }} kết quả đã quá thời hạn lưu trữ 30 ngày và đã được dọn dẹp tự động khỏi máy chủ theo chính sách bảo mật của hệ thống.
       </p>
       <NuxtLink
         :to="getPipelineRoute(currentTask?.pipeline)"

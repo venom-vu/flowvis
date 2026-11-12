@@ -141,7 +141,7 @@ describe('Story 6.6: [BE] Thống kê vận hành và nhật ký Admin', () => {
   it('khoảng rỗng trả null/0', async () => {
     const r = await call(admin, '/admin/stats?from=2031-01-01T00:00:00.000Z&to=2031-01-02T00:00:00.000Z');
     const j = AdminStatsResponseSchema.parse(await r.json());
-    assert.equal(j.pipelines.length, 3);
+    assert.equal(j.pipelines.length, 4);
     for (const p of j.pipelines) {
       assert.deepEqual(Object.values(p.taskCounts), [0, 0, 0, 0, 0, 0]);
       assert.equal(p.successRate, null);
@@ -168,6 +168,7 @@ describe('Story 6.6: [BE] Thống kê vận hành và nhật ký Admin', () => {
     await mkTask(u.id, 'face_swap', 'timed_out', { reason: 'RH_TIMEOUT', gpu: 40 });
     await mkTask(u.id, 'face_swap', 'timed_out', { reason: 'FREE_WAIT_EXPIRED', gpu: 10 });
     await mkTask(u.id, 'motion_control', 'succeeded', { gpu: 900, secs: 5, proc: 60 });
+    await mkTask(u.id, 'character_replace', 'succeeded', { gpu: 450, secs: 5, proc: 60 });
     await mkTask(bench.id, 'face_swap', 'succeeded', { gpu: 360, proc: 5 });
     await mkTopup(u.id, `ST${runId}1`, '2030-01-12T00:00:00Z');
     await mkTopup(bench.id, `ST${runId}B`, '2030-01-13T00:00:00Z');
@@ -201,11 +202,14 @@ describe('Story 6.6: [BE] Thống kê vận hành và nhật ký Admin', () => {
     const mm = real.margins.find((x) => x.pipeline === 'motion_control' && x.pack === 'pro' && x.scenario === 'standardPack');
     assert.ok(Math.abs(mm.revenueVnd - 825 * 0.5) < 1e-6);
     assert.ok(Math.abs(mm.costVnd - (180 / 3600) * 25000) < 1e-6);
+    const cm = real.margins.find((x) => x.pipeline === 'character_replace' && x.pack === 'pro' && x.scenario === 'standardPack');
+    assert.ok(Math.abs(cm.revenueVnd - 825 * 0.5) < 1e-6, 'tính theo 50 credit/giây như Motion');
+    assert.ok(Math.abs(cm.costVnd - (90 / 3600) * 25000) < 1e-6);
     // approved trong khoảng: u, noTask, late(02-05 ngoài khoảng, loại) => 2; bench bị loại khỏi real
     assert.equal(real.successMetrics.approvedTopups, 2);
     // cohort real có Task: u (nạp 12/01 trong 30 ngày), noTopup, late (nạp sau 30 ngày); noTask không Task => 1/3
     assert.equal(real.successMetrics.conversionRate, 1 / 3);
-    assert.ok(Math.abs(real.successMetrics.gpuCostUsd - 1420 / 1800) < 1e-9);
+    assert.ok(Math.abs(real.successMetrics.gpuCostUsd - 1870 / 1800) < 1e-9);
 
     const b = await stats('&scope=benchmark');
     const bf = b.pipelines.find((p) => p.pipeline === 'face_swap');

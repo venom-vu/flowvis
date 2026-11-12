@@ -353,3 +353,7 @@
 - source_spec: `_bmad-output/implementation-artifacts/spec-6-11-ops-cong-truoc-khi-bat-vietqr-thuong-mai.md`
   summary: Gắn fixture `/admin/stats` trong `scripts/prelaunch/lib.test.mjs` với `AdminStatsResponseSchema` của `@flowvis/contracts` để đổi tên `pack`/`scenario` không làm cổng benchmark fail âm thầm.
   evidence: `evaluateBenchmark` lọc chuỗi `'creator'`/`'retail'` cố định; fixture viết tay, không parse qua contracts. Thất bại kiểu fail-closed nên chưa chặn.
+
+- source_spec: `_bmad-output/implementation-artifacts/spec-video-character-replacement.md`
+  summary: Hủy hoặc bỏ qua kết quả submit đang bay khi đóng dialog hoặc đổi tính năng (Character Replacement, mẫu giống Motion Control).
+  evidence: Chưa xác minh (maybe-false, mức medium): `clearState()` không đặt lại `isSubmitting` hay vô hiệu hóa promise; cần thử thủ công đóng dialog giữa lúc gửi để xem task cũ có xuất hiện sai ngữ cảnh không.

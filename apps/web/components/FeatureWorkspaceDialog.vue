@@ -1,10 +1,11 @@
 <script setup lang="ts">
 import { computed, onBeforeUnmount, onMounted, ref, watch } from 'vue';
-import type { AccountTier, Task } from '@flowvis/contracts';
+import { MOTION_PROMPT_MAX_LENGTH, type AccountTier, type Task } from '@flowvis/contracts';
 import ImageUploader from '~/components/ImageUploader.vue';
 import TaskProgressCard from '~/components/TaskProgressCard.vue';
 import { useApiClient } from '~/composables/useApiClient';
 import { useAuthDialog } from '~/composables/useAuthDialog';
+import { useCharacterReplace } from '~/composables/useCharacterReplace';
 import { useMotionControl } from '~/composables/useMotionControl';
 import { usePricingConfig } from '~/composables/usePricingConfig';
 import {
@@ -73,6 +74,21 @@ function resetMotionState(): void {
 }
 const onMotionTrimChange = motion.onTrimChange;
 
+const replace = useCharacterReplace();
+const replaceCharacterKey = replace.characterKey;
+const replaceCapSeconds = replace.capSeconds;
+const replaceSeconds = replace.seconds;
+const replaceInsufficientNoteVi = replace.insufficientNoteVi;
+const replaceSubmitErrorVi = replace.submitErrorVi;
+const replaceIsSubmitting = replace.isSubmitting;
+const replacePrompt = replace.prompt;
+const replaceKey = ref<number>(0);
+function resetReplaceState(): void {
+  replace.clearState();
+  replaceKey.value += 1;
+}
+const onReplaceTrimChange = replace.onTrimChange;
+
 const compareSplitPercent = ref<number>(50);
 const selectedSeconds = ref<number>(1);
 const intensity = ref<number>(INTENSITY_DEFAULT);
@@ -102,6 +118,7 @@ watch(
     activeTask.value = null;
     submitErrorVi.value = null;
     resetMotionState();
+    resetReplaceState();
     if (nextFeature?.tierCapSeconds) {
       selectedSeconds.value = Math.min(3, nextFeature.tierCapSeconds);
     } else {
@@ -125,6 +142,7 @@ watch(
       activeTask.value = null;
       submitErrorVi.value = null;
       resetMotionState();
+      resetReplaceState();
     }
   },
   { immediate: true },
@@ -145,12 +163,17 @@ const isAuthenticated = computed<boolean>(() => {
 
 const isMotion = computed<boolean>(() => props.feature?.id === 'motion-control');
 
+const isReplace = computed<boolean>(() => props.feature?.id === 'character-replace');
+
 const estimatedCredits = computed<number>(() => {
   if (!props.feature) {
     return 0;
   }
   if (isMotion.value) {
     return motion.price.value ?? 0;
+  }
+  if (isReplace.value) {
+    return replace.price.value ?? 0;
   }
   return calculateFeatureEstimatedCredits(
     props.feature,
@@ -159,6 +182,13 @@ const estimatedCredits = computed<number>(() => {
 });
 
 const hasEnoughBalance = computed<boolean>(() => {
+  if (isReplace.value) {
+    return (
+      isAuthenticated.value &&
+      replace.isAuthenticated.value &&
+      replace.hasEnoughBalance.value
+    );
+  }
   if (isMotion.value) {
     return (
       isAuthenticated.value &&
@@ -173,6 +203,14 @@ const hasEnoughBalance = computed<boolean>(() => {
 });
 
 const canSubmit = computed<boolean>(() => {
+  if (isReplace.value) {
+    return (
+      isAuthenticated.value &&
+      replace.isAuthenticated.value &&
+      !replaceIsSubmitting.value &&
+      replace.canSubmit.value
+    );
+  }
   if (isMotion.value) {
     return (
       isAuthenticated.value &&
@@ -206,6 +244,22 @@ async function handleSubmit(): Promise<void> {
   }
 
   if (!canSubmit.value) {
+    return;
+  }
+
+  if (isReplace.value) {
+    const seconds = replace.seconds.value;
+    const credits = replace.price.value ?? 0;
+    const task = await replace.submit();
+    if (task) {
+      activeTask.value = task;
+      emit('submit', {
+        featureId: props.feature.id,
+        seconds,
+        estimatedCredits: credits,
+        uploadedKey: replace.characterKey.value,
+      });
+    }
     return;
   }
 
@@ -284,6 +338,7 @@ async function handleSubmit(): Promise<void> {
 function handleRetry(): void {
   activeTask.value = null;
   if (isMotion.value) resetMotionState();
+  if (isReplace.value) resetReplaceState();
 }
 
 function handleKeydown(event: KeyboardEvent): void {
@@ -381,7 +436,9 @@ onBeforeUnmount(() => {
               ? 'Chỉnh sửa vóc dáng'
               : feature.id === 'motion-control'
                 ? 'Điều khiển chuyển động'
-                : 'Hoán đổi khuôn mặt'
+                : feature.id === 'character-replace'
+                  ? 'Thay nhân vật video'
+                  : 'Hoán đổi khuôn mặt'
           "
           @update:task="activeTask = $event"
           @retry="handleRetry"
@@ -462,7 +519,15 @@ onBeforeUnmount(() => {
             </div>
 
             <ImageUploader
-              v-if="feature.id === 'motion-control'"
+              v-if="feature.id === 'character-replace'"
+              :key="`replace-char-${replaceKey}`"
+              v-model="replaceCharacterKey"
+              id-prefix="workspace-replace-character"
+              label-vi="Chọn ảnh nhân vật"
+              description-vi="Ảnh nhân vật rõ người, JPG/PNG/WebP ≤ 10 MB"
+            />
+            <ImageUploader
+              v-else-if="feature.id === 'motion-control'"
               :key="`motion-char-${motionKey}`"
               v-model="motionCharacterKey"
               id-prefix="workspace-motion-character"
@@ -547,13 +612,62 @@ onBeforeUnmount(() => {
 
           <!-- Banner lỗi nếu có -->
           <div
-            v-if="submitErrorVi || motionSubmitErrorVi"
+            v-if="submitErrorVi || motionSubmitErrorVi || replaceSubmitErrorVi"
             data-testid="workspace-submit-error-banner"
             role="alert"
             aria-live="assertive"
             class="rounded-xl border border-cyber-danger/40 bg-cyber-danger/10 p-3 text-xs text-cyber-danger"
           >
-            {{ submitErrorVi || motionSubmitErrorVi }}
+            {{ submitErrorVi || motionSubmitErrorVi || replaceSubmitErrorVi }}
+          </div>
+
+          <!-- Thay Nhân Vật Video: video gốc, thanh cắt và prompt bắt buộc -->
+          <div
+            v-if="isReplace"
+            data-testid="workspace-replace-section"
+            class="min-w-0 space-y-2.5 rounded-xl border border-cyber-border bg-cyber-bg/60 p-3 sm:p-3.5"
+          >
+            <p class="flex items-center gap-2 text-xs font-semibold text-cyber-text sm:text-sm">
+              <Icon name="lucide:scissors" class="h-4 w-4 text-cyber-cyan" />
+              <span>Video gốc và đoạn cắt (bước 1 giây)</span>
+            </p>
+            <VideoTrimmer
+              :key="`replace-video-${replaceKey}`"
+              id-prefix="workspace-replace-video"
+              :cap-seconds="replaceCapSeconds"
+              :tier-name="userTier"
+              @change="onReplaceTrimChange"
+            />
+            <div class="space-y-1.5">
+              <label for="workspace-replace-prompt" class="text-xs font-semibold text-cyber-text sm:text-sm">
+                Mô tả hành vi (bắt buộc)
+              </label>
+              <textarea
+                id="workspace-replace-prompt"
+                v-model="replacePrompt"
+                :maxlength="MOTION_PROMPT_MAX_LENGTH"
+                :disabled="replaceIsSubmitting"
+                rows="3"
+                data-testid="workspace-replace-prompt"
+                placeholder="Mô tả hành vi của nhân vật trong video"
+                class="w-full rounded-xl border border-cyber-border bg-cyber-bg p-3 text-sm text-cyber-text placeholder:text-cyber-muted focus:border-cyber-cyan focus:outline-none"
+              />
+              <p class="text-right font-mono text-[11px] text-cyber-muted">{{ replacePrompt.length }}/{{ MOTION_PROMPT_MAX_LENGTH }}</p>
+            </div>
+            <p
+              v-if="replaceSeconds > 0"
+              data-testid="workspace-replace-seconds"
+              class="font-mono text-xs text-cyber-muted"
+            >
+              Đoạn đã chọn: {{ replaceSeconds }} giây
+            </p>
+            <p
+              v-if="replaceInsufficientNoteVi"
+              data-testid="workspace-replace-insufficient-note"
+              class="text-xs font-semibold text-cyber-warning"
+            >
+              {{ replaceInsufficientNoteVi }}
+            </p>
           </div>
 
           <!-- Bộ cắt video bước 1 giây (VideoTrimmer, chỉ với Motion Control) -->
@@ -730,14 +844,14 @@ onBeforeUnmount(() => {
             @click="handleSubmit"
           >
             <Icon
-              v-if="isSubmitting || (isMotion && motionIsSubmitting)"
+              v-if="isSubmitting || (isMotion && motionIsSubmitting) || (isReplace && replaceIsSubmitting)"
               name="lucide:loader-2"
               class="h-4 w-4 animate-spin"
             />
             <Icon v-else name="lucide:play" class="h-4 w-4" />
             <span>
               {{
-                isSubmitting || (isMotion && motionIsSubmitting)
+                isSubmitting || (isMotion && motionIsSubmitting) || (isReplace && replaceIsSubmitting)
                   ? 'Đang gửi yêu cầu...'
                   : `Tạo Tác Vụ AI (${formatNumberVi(estimatedCredits)} CR)`
               }}

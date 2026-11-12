@@ -99,7 +99,7 @@ export class AdminStatsService {
 
       // Biên gộp: chỉ khi có chi phí để tính (Task succeeded).
       if (!hasSucceeded) continue;
-      const isMotion = pipeline === 'motion_control';
+      const isMotion = pipeline === 'motion_control' || pipeline === 'character_replace';
       let unitCoins: number;
       let unitCredits: number;
       if (isMotion) {

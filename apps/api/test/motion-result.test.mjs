@@ -220,6 +220,18 @@ describe('Story 5.6: [BE] Nhập kết quả video, ảnh bìa và chia sẻ', (
     assert.deepEqual(leftovers(), []);
   });
 
+  it('pipeline character_replace: cùng nhánh video, succeeded, CAPTURED, .mp4 + .jpg', async () => {
+    const u = await newUser();
+    const t = await runningTask(u);
+    await ingestor.ingest({ id: t.id, userId: t.userId, pipeline: 'character_replace' }, RH_URL, 3.6, new AbortController().signal);
+    const r = await row(t.id);
+    assert.equal(r.status, 'succeeded');
+    assert.match(r.result_key, OUT_MP4);
+    assert.equal((await ledger(t.id, 'CAPTURED')).length, 1);
+    assert.equal(store.get(r.result_key).contentType, 'video/mp4');
+    assert.equal(store.get(r.result_key.replace(/\.mp4$/, '.jpg')).contentType, 'image/jpeg');
+  });
+
   it('lệch độ dài: vẫn succeeded, CAPTURED', async () => {
     const u = await newUser();
     const t = await runningTask(u);

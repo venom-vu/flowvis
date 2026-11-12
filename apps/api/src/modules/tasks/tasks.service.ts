@@ -15,12 +15,15 @@ import {
   getApiErrorMessageVi,
   getValidationReasonMessageVi,
   type MotionCreateResponse,
+  type CharacterReplaceCreateRequest,
+  type CharacterReplaceCreateResponse,
   BodyRetouchCreateRequestSchema,
   type BodyRetouchCreateRequest,
   type FaceSwapCreateRequest,
   type MotionCreateRequest,
   type ValidationReason,
   MOTION_MIN_TRIM_SECONDS,
+  MOTION_PROMPT_MAX_LENGTH,
   MOTION_ASPECT_RATIO_DEFAULT,
   getMotionAspectRatio,
   CONTENT_REMOVED_MESSAGE_VI,
@@ -604,10 +607,52 @@ export class TasksService {
     return { ...task, pipeline: 'motion_control', price } as MotionCreateResponse;
   }
 
+  async createCharacterReplace(
+    userId: string,
+    req: CharacterReplaceCreateRequest,
+  ): Promise<CharacterReplaceCreateResponse> {
+    const { characterKey, videoKey, trimStart, trimEnd } = req;
+    const prompt = (req.prompt ?? '').trim();
+    const invalid = () =>
+      new BadRequestException({
+        code: ApiErrorCode.VALIDATION_FAILED,
+        message: getApiErrorMessageVi(ApiErrorCode.VALIDATION_FAILED),
+      });
+    if (!Number.isInteger(trimStart) || !Number.isInteger(trimEnd)) {
+      throw this.trimError('TRIM_NOT_WHOLE_SECOND');
+    }
+    if (prompt.length < 1 || prompt.length > MOTION_PROMPT_MAX_LENGTH) throw invalid();
+    if (characterKey === videoKey) throw invalid();
+    const [imageOk, durationSeconds] = await Promise.all([
+      this.uploads.areConfirmedKeysOwnedBy(userId, [characterKey], 'image'),
+      this.uploads.getConfirmedVideoDuration(userId, videoKey),
+    ]);
+    if (!imageOk || durationSeconds === null) throw invalid();
+    if (trimStart < 0 || trimEnd > durationSeconds) throw this.trimError('TRIM_OUT_OF_VIDEO');
+    const seconds = trimEnd - trimStart;
+    if (seconds < MOTION_MIN_TRIM_SECONDS) throw this.trimError('TRIM_TOO_SHORT');
+    const price = motionPrice(seconds);
+    const task = await this.createPipelineTask(userId, {
+      pipeline: 'character_replace',
+      amount: price,
+      inputKeys: { characterKey, videoKey },
+      params: { trimStart, trimEnd, seconds, price, prompt },
+      keysVerified: true,
+      postHold: (snapshot) => {
+        const cap = snapshot.maxVideoSeconds;
+        if (!Number.isFinite(cap) || cap < MOTION_MIN_TRIM_SECONDS) {
+          throw new Error(`Cap Tier Snapshot không hợp lệ: ${String(cap)}`);
+        }
+        if (seconds > cap) throw this.trimError('TRIM_EXCEEDS_CAP', snapshot.maxVideoSeconds);
+      },
+    });
+    return { ...task, pipeline: 'character_replace', price } as CharacterReplaceCreateResponse;
+  }
+
   private async createPipelineTask(
     userId: string,
     spec: {
-      pipeline: 'face_swap' | 'body_retouch' | 'motion_control';
+      pipeline: 'face_swap' | 'body_retouch' | 'motion_control' | 'character_replace';
       amount: number;
       inputKeys: Record<string, string>;
       params: Record<string, unknown>;

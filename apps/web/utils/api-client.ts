@@ -54,6 +54,8 @@ import {
   MeResponseSchema,
   MotionCreateRequestSchema,
   MotionCreateResponseSchema,
+  CharacterReplaceCreateRequestSchema,
+  CharacterReplaceCreateResponseSchema,
   PricingConfigResponseSchema,
   ShareInfoResponseSchema,
   TaskIdParamsSchema,
@@ -125,6 +127,8 @@ import {
   type MeResponse,
   type MotionCreateRequest,
   type MotionCreateResponse,
+  type CharacterReplaceCreateRequest,
+  type CharacterReplaceCreateResponse,
   type PricingConfigResponse,
   type ReasonCode,
   type ShareInfoResponse,
@@ -170,6 +174,8 @@ export {
   motionPrice,
   MotionCreateRequestSchema,
   MotionCreateResponseSchema,
+  CharacterReplaceCreateRequestSchema,
+  CharacterReplaceCreateResponseSchema,
   ShareInfoResponseSchema,
   type AdminAdjustRequest,
   type AdminAdjustResponse,
@@ -200,6 +206,8 @@ export {
   type AdminTopupReturnToPendingResponse,
   type MotionCreateRequest,
   type MotionCreateResponse,
+  type CharacterReplaceCreateRequest,
+  type CharacterReplaceCreateResponse,
   type ShareInfoResponse,
   type BodyRetouchCreateRequest,
   type BodyRetouchCreateResponse,
@@ -729,6 +737,23 @@ export function createMotionApiClient(options: MotionApiClientOptions = {}) {
           signal: options?.signal,
         },
         (payload) => MotionCreateResponseSchema.parse(payload),
+      );
+    },
+
+    async createCharacterReplaceTask(
+      rawRequest: CharacterReplaceCreateRequest,
+      options?: { signal?: AbortSignal },
+    ): Promise<CharacterReplaceCreateResponse> {
+      const data = CharacterReplaceCreateRequestSchema.parse(rawRequest);
+      return requestLive(
+        '/tasks/character-replace',
+        {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(data),
+          signal: options?.signal,
+        },
+        (payload) => CharacterReplaceCreateResponseSchema.parse(payload),
       );
     },
 

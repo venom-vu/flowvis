@@ -32,6 +32,9 @@ const emit = defineEmits<{
 const { client } = useApiClient();
 
 const localTask = ref<Task | null>(props.task);
+const isVideoPipeline = computed<boolean>(
+  () => localTask.value?.pipeline === 'motion_control' || localTask.value?.pipeline === 'character_replace',
+);
 const isCancelling = ref<boolean>(false);
 const isFetching = ref<boolean>(false);
 const actionErrorVi = ref<string | null>(null);
@@ -230,7 +233,7 @@ onBeforeUnmount(() => {
         ngầm và lưu trong mục Lịch Sử.
       </p>
       <p
-        v-if="localTask.pipeline === 'motion_control'"
+        v-if="isVideoPipeline"
         data-testid="video-duration-note"
         class="text-xs font-semibold text-cyber-cyan"
       >
@@ -342,7 +345,7 @@ onBeforeUnmount(() => {
               {{ pipelineLabelVi }} thành công!
             </h3>
             <p class="text-xs text-cyber-muted">
-              {{ localTask.pipeline === 'motion_control' ? 'Video đã sẵn sàng' : 'Hình ảnh chất lượng cao đã sẵn sàng' }}
+              {{ isVideoPipeline ? 'Video đã sẵn sàng' : 'Hình ảnh chất lượng cao đã sẵn sàng' }}
             </p>
           </div>
         </div>
@@ -369,7 +372,7 @@ onBeforeUnmount(() => {
           @click="handleRetry"
         >
           <Icon name="lucide:plus" class="h-4 w-4 text-cyber-cyan" />
-          <span>{{ localTask?.pipeline === 'motion_control' ? 'Tạo video mới' : 'Tạo ảnh mới' }}</span>
+          <span>{{ isVideoPipeline ? 'Tạo video mới' : 'Tạo ảnh mới' }}</span>
         </button>
 
         <NuxtLink
