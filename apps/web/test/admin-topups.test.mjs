@@ -23,7 +23,7 @@ import {
   isOverdue,
 } from '../utils/topup.ts';
 import { formatNumberVi, formatVndVi } from '../utils/catalog.ts';
-import { compileSsr, renderAdminPage, staticPager } from './admin-sfc-helpers.mjs';
+import { compileSsr, renderAdminPage, shadcnStubs, staticPager } from './admin-sfc-helpers.mjs';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -613,26 +613,25 @@ export const useApiClient = () => ({
       'utf8',
     );
 
-    it('AdminTopupActionModal tuân thủ Centered Dialog, không dùng Drawer/Bottom Sheet, vùng chạm >= 48px và không có emoji', () => {
-      assert.match(rawModalVue, /role="dialog"/);
-      assert.match(rawModalVue, /aria-modal="true"/);
-      assert.match(rawModalVue, /fixed inset-0.*justify-center/);
+    it('AdminTopupActionModal dùng shadcn Dialog (Centered), không dùng Drawer/Bottom Sheet, nút 48px và không có emoji', () => {
+      assert.match(rawModalVue, /<Dialog\b/);
+      assert.match(rawModalVue, /<DialogContent\b/);
+      assert.match(rawModalVue, /<DialogTitle\b/);
+      assert.doesNotMatch(rawModalVue, /<button\b/, 'Nút trong modal phải dùng shadcn Button');
 
-      // Tuyệt đối không dùng Drawer hoặc Bottom Sheet
+      // DialogContent của shadcn căn giữa màn hình bằng top-1/2 left-1/2
+      const rawDialogContent = fs.readFileSync(path.join(webRoot, 'components/ui/dialog/DialogContent.vue'), 'utf8');
+      assert.match(rawDialogContent, /left-1\/2 top-1\/2/);
+
       assert.equal(
         /drawer|bottom-sheet/i.test(rawModalVue),
         false,
         'AdminTopupActionModal không được sử dụng Drawer hay Bottom Sheet',
       );
 
-      // Kiểm tra vùng chạm min-h-[48px] và min-w-[48px]
-      const touchMatches = rawModalVue.match(/min-h-\[48px\]\s+min-w-\[48px\]/g);
-      assert.ok(
-        touchMatches && touchMatches.length >= 2,
-        'Các nút bấm trong modal phải có vùng chạm tối thiểu 48px',
-      );
+      const rawButtonVariants = fs.readFileSync(path.join(webRoot, 'components/ui/button/index.ts'), 'utf8');
+      assert.match(rawButtonVariants, /"default": "h-12 min-w-12/);
 
-      // Không chứa emoji trong UI chrome
       const emojiRegex =
         /[\u{1F300}-\u{1F5FF}\u{1F600}-\u{1F64F}\u{1F680}-\u{1F6FF}\u{2600}-\u{26FF}\u{2700}-\u{27BF}]/u;
       assert.equal(
@@ -684,20 +683,7 @@ export const useApiClient = () => ({
             _push('<span class="mock-lucide-icon"></span>');
           },
         });
-        app.component('BaseInput', {
-          inheritAttrs: false,
-          ssrRender(ctx, push) {
-            const testid = ctx.$attrs['data-testid'] ? ` data-testid="${ctx.$attrs['data-testid']}"` : '';
-            push(`<input${testid} />`);
-          },
-        });
-        app.component('BaseTextarea', {
-          inheritAttrs: false,
-          ssrRender(ctx, push) {
-            const testid = ctx.$attrs['data-testid'] ? ` data-testid="${ctx.$attrs['data-testid']}"` : '';
-            push(`<textarea${testid}></textarea>`);
-          },
-        });
+        for (const [n, d] of Object.entries(shadcnStubs())) app.component(n, d);
         return await renderToString(app);
       } finally {
         if (fs.existsSync(tmpFile)) {
@@ -789,7 +775,8 @@ export const useApiClient = () => ({
 
     it('kiểm thử toàn diện script setup của AdminTopupActionModal: validate dữ liệu, autofocus, escape và focus trap', async () => {
       const { descriptor } = parse(rawModalVue);
-      let scriptContent = compileScript(descriptor, { id: `test-modal-script-${Date.now()}` }).content;
+      let scriptContent = compileScript(descriptor, { id: `test-modal-script-${Date.now()}` }).content
+        .replace(/^import .*from '@\/components\/ui\/[^']*';?\s*$/gm, '');
       scriptContent = scriptContent.replace("from '~/utils/catalog'", "from '../utils/catalog.ts'");
       const tmpScriptFile = path.join(
         webRoot,
@@ -955,41 +942,30 @@ export const useApiClient = () => ({
         assert.equal(emittedClose.length, 1);
         assert.equal(emittedClose[0].evt, 'close');
 
-        // 5. Focus trap: handleKeydownTab
-        const firstElement = { focusCalled: false, focus() { this.focusCalled = true; } };
-        const lastElement = { focusCalled: false, focus() { this.focusCalled = true; } };
-        approveState.dialogRef.value = {
-          querySelectorAll: () => [firstElement, lastElement],
-        };
+        // 5. onOpenChange(false) từ Dialog (Esc, bấm nền) đi qua handleClose và bị khóa khi đang submit
+        const emittedDialog = [];
+        const dialogState = setupFn(
+          { open: true, topup: { ...MOCK_ADMIN_TOPUPS_BY_STATUS.pending }, actionType: 'approve', isSubmitting: false, errorMessageVi: null },
+          { emit: (evt, payload) => emittedDialog.push({ evt, payload }), expose: () => {} },
+        );
+        dialogState.onOpenChange(true);
+        assert.equal(emittedDialog.length, 0, 'Mở dialog không phát sự kiện đóng');
+        dialogState.onOpenChange(false);
+        assert.deepEqual(emittedDialog.map((e) => e.evt), ['close']);
 
-        // Tab ngược (Shift + Tab) từ phần tử đầu tiên -> vòng về phần tử cuối
-        let prevented = false;
-        globalThis.document = { activeElement: firstElement };
-        approveState.handleKeydownTab({
-          shiftKey: true,
-          preventDefault: () => { prevented = true; },
-        });
-        assert.equal(lastElement.focusCalled, true);
-        assert.equal(prevented, true);
+        // 6. focusInputField hỗ trợ cả instance có focus() lẫn $el, không ném TypeError khi thiếu focus()
+        let directFocusCount = 0;
+        let domFocusCount = 0;
+        dialogState.inputFieldRef.value = { focus: () => { directFocusCount += 1; } };
+        dialogState.focusInputField();
+        assert.equal(directFocusCount, 1);
 
-        // Tab xuôi (không Shift) từ phần tử cuối -> vòng về phần tử đầu
-        prevented = false;
-        globalThis.document = { activeElement: lastElement };
-        approveState.handleKeydownTab({
-          shiftKey: false,
-          preventDefault: () => { prevented = true; },
-        });
-        assert.equal(firstElement.focusCalled, true);
-        assert.equal(prevented, true);
+        dialogState.inputFieldRef.value = { $el: { focus: () => { domFocusCount += 1; } } };
+        dialogState.focusInputField();
+        assert.equal(domFocusCount, 1);
 
-        // Tab khi không có phần tử nào focus được (ví dụ lúc isSubmitting disable toàn bộ)
-        prevented = false;
-        approveState.dialogRef.value = { querySelectorAll: () => [] };
-        approveState.handleKeydownTab({
-          shiftKey: false,
-          preventDefault: () => { prevented = true; },
-        });
-        assert.equal(prevented, true, 'Phải preventDefault khi !focusable.length để không thoát modal');
+        dialogState.inputFieldRef.value = {};
+        assert.doesNotThrow(() => dialogState.focusInputField());
       } finally {
         delete globalThis.document;
         if (fs.existsSync(tmpScriptFile)) {
@@ -998,9 +974,16 @@ export const useApiClient = () => ({
       }
     });
 
-    it('AdminTopupActionModal lắng nghe sự kiện phím Esc (@keydown.esc) và Tab (@keydown.tab)', () => {
-      assert.match(rawModalVue, /@keydown\.esc="handleClose"/);
-      assert.match(rawModalVue, /@keydown\.tab="handleKeydownTab"/);
+    it('shadcn Input và Textarea expose focus() cho modal ref', () => {
+      const inputVue = fs.readFileSync(path.join(webRoot, 'components/ui/input/Input.vue'), 'utf8');
+      const textareaVue = fs.readFileSync(path.join(webRoot, 'components/ui/textarea/Textarea.vue'), 'utf8');
+      assert.match(inputVue, /defineExpose\s*\([\s\S]*\bfocus\s*:/);
+      assert.match(textareaVue, /defineExpose\s*\([\s\S]*\bfocus\s*:/);
+    });
+
+    it('AdminTopupActionModal đóng qua onOpenChange của shadcn Dialog (Esc/bấm nền), không tự xử lý phím Tab', () => {
+      assert.match(rawModalVue, /@update:open="onOpenChange"/);
+      assert.doesNotMatch(rawModalVue, /@keydown\.tab/, 'Focus trap do reka-ui Dialog đảm nhiệm');
     });
   });
 
@@ -1011,16 +994,12 @@ export const useApiClient = () => ({
     );
 
     it('trang tuân thủ vùng chạm >= 48px, không emoji và hỗ trợ màn hình chuẩn 360px', () => {
-      // Vùng chạm tối thiểu 48px
-      // Nút dùng class chung trong utils/admin-ui.ts, nơi khai báo vùng chạm 48px
-      const rawAdminUi = fs.readFileSync(path.join(webRoot, 'utils/admin-ui.ts'), 'utf8');
-      assert.match(rawAdminUi, /min-h-\[48px\]\s+min-w-\[48px\]/);
-      assert.match(rawPageVue, /:class="ui\.btn/);
-      const touchMatches = rawPageVue.match(/min-h-\[48px\]\s+min-w-\[48px\]/g);
-      assert.ok(
-        touchMatches && touchMatches.length >= 2,
-        'Các nút tương tác trên trang admin topups phải có vùng chạm >= 48px',
-      );
+      // Vùng chạm tối thiểu 48px: nút dùng shadcn Button, kích thước khai báo trong buttonVariants
+      const rawButtonVariants = fs.readFileSync(path.join(webRoot, 'components/ui/button/index.ts'), 'utf8');
+      assert.match(rawButtonVariants, /"default": "h-12 min-w-12/);
+      assert.match(rawButtonVariants, /"icon": "h-12 w-12"/);
+      assert.match(rawPageVue, /<Button\b/);
+      assert.doesNotMatch(rawPageVue, /<button\b/, 'Trang admin topups phải dùng shadcn Button');
 
       // Tuyệt đối không dùng emoji UTF-8 trong UI chrome
       const emojiRegex =
@@ -1366,13 +1345,13 @@ export const useApiClient = () => ({
       // Link /admin/topups đang active
       assert.match(
         html,
-        /href="\/admin\/topups"[^>]*class="[^"]*bg-\[#1A1A1A\] font-medium text-\[#EDEDED\][^"]*"/,
+        /href="\/admin\/topups"[^>]*class="[^"]*bg-accent font-medium text-accent-foreground[^"]*"/,
       );
 
       // Link /admin/ops không active
       assert.match(
         html,
-        /href="\/admin\/ops"[^>]*class="[^"]*text-\[#B4B4B4\] hover:bg-\[#1A1A1A\]\/60 hover:text-\[#EDEDED\][^"]*"/,
+        /href="\/admin\/ops"[^>]*class="[^"]*text-muted-foreground hover:bg-accent\/60 hover:text-accent-foreground[^"]*"/,
       );
     });
 
@@ -1382,13 +1361,13 @@ export const useApiClient = () => ({
       // Link /admin/ops đang active
       assert.match(
         html,
-        /href="\/admin\/ops"[^>]*class="[^"]*bg-\[#1A1A1A\] font-medium text-\[#EDEDED\][^"]*"/,
+        /href="\/admin\/ops"[^>]*class="[^"]*bg-accent font-medium text-accent-foreground[^"]*"/,
       );
 
       // Link /admin/topups không active
       assert.match(
         html,
-        /href="\/admin\/topups"[^>]*class="[^"]*text-\[#B4B4B4\] hover:bg-\[#1A1A1A\]\/60 hover:text-\[#EDEDED\][^"]*"/,
+        /href="\/admin\/topups"[^>]*class="[^"]*text-muted-foreground hover:bg-accent\/60 hover:text-accent-foreground[^"]*"/,
       );
     });
   });

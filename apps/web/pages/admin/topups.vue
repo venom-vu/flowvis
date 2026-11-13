@@ -18,7 +18,12 @@ import {
 } from '~/utils/topup';
 import { formatNumberVi, formatVndVi } from '~/utils/catalog';
 import { MotionApiClientError, resolveApiErrorMessageVi } from '~/utils/api-client';
-import { ui } from '~/utils/admin-ui';
+
+import { Button } from '@/components/ui/button';
+import { Alert, AlertDescription } from '@/components/ui/alert';
+import { Card } from '@/components/ui/card';
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
+import { Tabs, TabsList, TabsTrigger } from '@/components/ui/tabs';
 
 definePageMeta({
   layout: 'admin',
@@ -46,6 +51,10 @@ const {
 } = useAdminTopups();
 
 const pager = useCursorPager(topups, hasMore, loadMore);
+
+function onFilterChange(value: string | number): void {
+  void changeFilter(String(value) as AdminTopupFilterStatus);
+}
 
 async function changeFilter(status: AdminTopupFilterStatus): Promise<void> {
   pager.reset();
@@ -220,98 +229,73 @@ watch(isAdmin, (admin) => {
 <template>
   <div data-testid="page-admin-topups" class="space-y-8">
     <AdminAccessGate :pending="isMePending" :admin="isAdmin">
-      <header class="flex flex-wrap items-end justify-between gap-4 border-b border-[#2E2E2E] pb-6">
+      <header class="flex flex-wrap items-end justify-between gap-4 border-b border-border pb-6">
         <div>
-          <nav aria-label="Breadcrumb" class="mb-2 flex items-center gap-2 text-sm text-[#B4B4B4]">
-            <NuxtLink to="/admin" class="hover:text-[#EDEDED]">Admin</NuxtLink>
+          <nav aria-label="Breadcrumb" class="mb-2 flex items-center gap-2 text-sm text-muted-foreground">
+            <NuxtLink to="/admin" class="hover:text-foreground">Admin</NuxtLink>
             <span>/</span>
-            <span class="text-[#EDEDED]">Duyệt đơn VietQR</span>
+            <span class="text-foreground">Duyệt đơn VietQR</span>
           </nav>
-          <h1 :class="ui.pageTitle">Danh sách đơn nạp VietQR</h1>
-          <p :class="ui.pageLead">Khung SLA 08:00 – 23:00, mỗi đơn cần duyệt trong 15 phút.</p>
+          <h1 class="text-3xl font-semibold tracking-tight">Danh sách đơn nạp VietQR</h1>
+          <p class="mt-2 text-base leading-relaxed text-muted-foreground">Khung SLA 08:00 – 23:00, mỗi đơn cần duyệt trong 15 phút.</p>
         </div>
-        <button
+        <Button
+          variant="outline"
           type="button"
           data-testid="admin-refresh-button"
           :disabled="isLoading"
-          :class="ui.btn"
+         
           @click="reloadTopups"
         >
           <Icon name="lucide:refresh-cw" class="h-4 w-4" :class="{ 'animate-spin': isLoading }" />
           <span>Làm mới</span>
-        </button>
+        </Button>
       </header>
 
-      <div
-        v-if="pageNotificationVi"
-        role="status"
-        aria-live="polite"
-        data-testid="admin-page-notification"
-        :class="ui.notice"
-        class="flex items-center justify-between gap-2"
-      >
-        <span>{{ pageNotificationVi }}</span>
-        <button
-          type="button"
-          aria-label="Đóng thông báo"
-          class="touch-target inline-flex min-h-[48px] min-w-[48px] items-center justify-center text-[#B4B4B4] hover:text-[#EDEDED]"
-          @click="pageNotificationVi = null"
-        >
+      <Alert v-if="pageNotificationVi" role="status" aria-live="polite" data-testid="admin-page-notification" class="flex items-center justify-between gap-2 pr-2">
+        <AlertDescription>{{ pageNotificationVi }}</AlertDescription>
+        <Button type="button" variant="ghost" size="icon" aria-label="Đóng thông báo" @click="pageNotificationVi = null">
           <Icon name="lucide:x" class="h-4 w-4" />
-        </button>
-      </div>
+        </Button>
+      </Alert>
 
       <!-- Số liệu chỉ đếm các đơn đã tải theo bộ lọc, không phải tổng toàn hệ thống -->
-      <section
+      <Card
         aria-label="Thống kê nhanh trong danh sách đơn nạp đang tải"
-        :class="ui.tableWrap"
+        class="overflow-hidden"
       >
-        <table :class="ui.table">
-          <thead>
-            <tr>
-              <th :class="ui.th">Chờ duyệt</th>
-              <th :class="ui.th">Quá hạn SLA</th>
-              <th :class="ui.th">Cần xem xét</th>
-              <th :class="ui.th">Đã giải quyết</th>
-            </tr>
-          </thead>
-          <tbody>
-            <tr class="text-2xl font-semibold">
-              <td :class="ui.td">{{ stats.pending }}</td>
-              <td :class="[ui.td, stats.overdue > 0 ? ui.bad : '']">{{ stats.overdue }}</td>
-              <td :class="ui.td">{{ stats.needsReview }}</td>
-              <td :class="ui.td">{{ stats.resolved }}</td>
-            </tr>
-          </tbody>
-        </table>
-      </section>
+        <Table>
+          <TableHeader>
+            <TableRow>
+              <TableHead>Chờ duyệt</TableHead>
+              <TableHead>Quá hạn SLA</TableHead>
+              <TableHead>Cần xem xét</TableHead>
+              <TableHead>Đã giải quyết</TableHead>
+            </TableRow>
+          </TableHeader>
+          <TableBody>
+            <TableRow class="text-2xl font-semibold">
+              <TableCell>{{ stats.pending }}</TableCell>
+              <TableCell :class="[stats.overdue > 0 ? 'text-destructive' : '']">{{ stats.overdue }}</TableCell>
+              <TableCell>{{ stats.needsReview }}</TableCell>
+              <TableCell>{{ stats.resolved }}</TableCell>
+            </TableRow>
+          </TableBody>
+        </Table>
+      </Card>
 
-      <nav
-        aria-label="Bộ lọc trạng thái đơn nạp"
-        class="flex gap-1 overflow-x-auto border-b border-[#2E2E2E]"
-      >
-        <button
-          v-for="tab in filterTabs"
-          :key="tab.id"
-          :data-testid="`filter-tab-${tab.id}`"
-          type="button"
-          class="touch-target inline-flex min-h-[48px] min-w-[48px] shrink-0 items-center justify-center border-b-2 px-4 text-[15px] transition"
-          :class="
-            statusFilter === tab.id
-              ? 'border-[#EDEDED] font-medium text-[#EDEDED]'
-              : 'border-transparent text-[#B4B4B4] hover:text-[#EDEDED]'
-          "
-          @click="changeFilter(tab.id)"
-        >
-          {{ tab.labelVi }}
-        </button>
-      </nav>
+      <Tabs :model-value="statusFilter" aria-label="Bộ lọc trạng thái đơn nạp" class="overflow-x-auto" @update:model-value="onFilterChange">
+        <TabsList class="h-auto">
+          <TabsTrigger v-for="tab in filterTabs" :key="tab.id" :value="tab.id" :data-testid="`filter-tab-${tab.id}`">
+            {{ tab.labelVi }}
+          </TabsTrigger>
+        </TabsList>
+      </Tabs>
 
       <div
         v-if="isLoading"
         data-testid="admin-topups-loading-state"
-        class="flex min-h-[240px] items-center justify-center gap-3"
-        :class="ui.muted"
+        class="flex min-h-[240px] items-center justify-center gap-3 text-sm text-muted-foreground"
       >
         <Icon name="lucide:loader-2" class="h-5 w-5 animate-spin" />
         <span>Đang tải danh sách đơn nạp...</span>
@@ -324,11 +308,11 @@ watch(isAdmin, (admin) => {
         data-testid="admin-topups-error-state"
         class="flex min-h-[200px] flex-col items-center justify-center gap-4 text-center"
       >
-        <p :class="ui.error" class="text-base">{{ errorVi }}</p>
-        <button type="button" :class="ui.btn" @click="reloadTopups">
+        <p class="text-sm text-destructive text-base">{{ errorVi }}</p>
+        <Button variant="outline" type="button" @click="reloadTopups">
           <Icon name="lucide:rotate-cw" class="h-4 w-4" />
           <span>Thử lại</span>
-        </button>
+        </Button>
       </div>
 
       <div
@@ -336,138 +320,142 @@ watch(isAdmin, (admin) => {
         data-testid="admin-topups-empty-state"
         class="flex min-h-[200px] flex-col items-center justify-center gap-1 text-center"
       >
-        <p class="text-base font-medium text-[#EDEDED]">Không có đơn nạp nào phù hợp</p>
-        <p :class="ui.muted">Hiện tại không có đơn nạp nào ở trạng thái này.</p>
+        <p class="text-base font-medium text-foreground">Không có đơn nạp nào phù hợp</p>
+        <p class="text-sm text-muted-foreground">Hiện tại không có đơn nạp nào ở trạng thái này.</p>
       </div>
 
       <div v-else class="space-y-4">
-        <div :class="ui.tableWrap">
-          <table :class="ui.table" class="min-w-[900px]">
-            <thead>
-              <tr>
-                <th :class="ui.th">Mã đơn</th>
-                <th :class="ui.th">Trạng thái</th>
-                <th :class="ui.th">Số tiền</th>
-                <th :class="ui.th">Hạn duyệt SLA</th>
-                <th :class="ui.th">Tham chiếu / Ghi chú</th>
-                <th :class="ui.th" class="text-right">Thao tác</th>
-              </tr>
-            </thead>
-            <tbody>
-              <tr
+        <Card class="overflow-hidden">
+          <Table class="min-w-[900px]">
+            <TableHeader>
+              <TableRow>
+                <TableHead>Mã đơn</TableHead>
+                <TableHead>Trạng thái</TableHead>
+                <TableHead>Số tiền</TableHead>
+                <TableHead>Hạn duyệt SLA</TableHead>
+                <TableHead>Tham chiếu / Ghi chú</TableHead>
+                <TableHead class="text-right">Thao tác</TableHead>
+              </TableRow>
+            </TableHeader>
+            <TableBody>
+              <TableRow
                 v-for="order in pager.pageItems.value"
                 :key="order.id"
                 data-testid="admin-topup-row"
-                class="hover:bg-[#111111]"
+                class="hover:bg-muted/50"
               >
-                <td :class="ui.td">
+                <TableCell>
                   <div class="font-geist-mono font-medium">NAP {{ order.code }}</div>
-                  <div :class="ui.muted">{{ formatTopupTimestampVi(order.createdAt) }}</div>
-                </td>
-                <td :class="ui.td">
+                  <div class="text-sm text-muted-foreground">{{ formatTopupTimestampVi(order.createdAt) }}</div>
+                </TableCell>
+                <TableCell>
                   <div>{{ getTopupStatusLabelVi(order.status) }}</div>
                   <div
                     v-if="isOverdue(order)"
                     data-testid="overdue-badge"
-                    class="mt-1 text-sm font-semibold"
-                    :class="ui.bad"
+                    class="mt-1 text-sm font-semibold text-destructive"
                   >
                     QUÁ HẠN
                   </div>
-                </td>
-                <td :class="ui.td">
+                </TableCell>
+                <TableCell>
                   <div class="font-medium">{{ formatVndVi(order.amountVnd) }}</div>
-                  <div :class="ui.muted">Gói {{ order.pack }}, +{{ formatNumberVi(order.credits) }} CR</div>
-                </td>
-                <td :class="ui.td" class="whitespace-nowrap">
-                  <span v-if="order.approveBy" :class="isOverdue(order) ? ui.bad : ''">
+                  <div class="text-sm text-muted-foreground">Gói {{ order.pack }}, +{{ formatNumberVi(order.credits) }} CR</div>
+                </TableCell>
+                <TableCell class="whitespace-nowrap">
+                  <span v-if="order.approveBy" :class="isOverdue(order) ? 'text-destructive' : ''">
                     {{ formatTopupTimestampVi(order.approveBy) }}
                   </span>
-                  <span v-else class="text-[#B4B4B4]">-</span>
-                </td>
-                <td :class="ui.td" class="max-w-xs break-words">
+                  <span v-else class="text-muted-foreground">-</span>
+                </TableCell>
+                <TableCell class="max-w-xs break-words">
                   <span v-if="order.bankRef" class="font-geist-mono">{{ order.bankRef }}</span>
                   <span v-else-if="order.note">Ghi chú: {{ order.note }}</span>
                   <span v-else-if="order.rejectReason">Từ chối: {{ order.rejectReason }}</span>
-                  <span v-else class="text-[#B4B4B4]">-</span>
-                </td>
-                <td :class="ui.td">
+                  <span v-else class="text-muted-foreground">-</span>
+                </TableCell>
+                <TableCell>
                   <div v-if="order.status === 'pending'" class="flex justify-end gap-2">
-                    <button
+                    <Button
                       type="button"
                       data-testid="action-approve-button"
                       :disabled="isActionLoading"
-                      :class="ui.btnPrimary"
+                     
                       @click="openActionModal(order, 'approve')"
                     >
                       Duyệt
-                    </button>
-                    <button
+                    </Button>
+                    <Button
+                      variant="outline" class="text-destructive hover:text-destructive"
                       type="button"
                       data-testid="action-reject-button"
                       :disabled="isActionLoading"
-                      :class="ui.btnDanger"
+                     
                       @click="openActionModal(order, 'reject')"
                     >
                       Từ chối
-                    </button>
-                    <button
+                    </Button>
+                    <Button
+                      variant="outline"
                       type="button"
                       data-testid="action-needs-review-button"
                       :disabled="isActionLoading"
-                      :class="ui.btn"
+                     
                       @click="openActionModal(order, 'needs-review')"
                     >
                       Xem xét
-                    </button>
+                    </Button>
                   </div>
                   <div v-else-if="order.status === 'needs_review'" class="flex justify-end gap-2">
-                    <button
+                    <Button
+                      variant="outline"
                       type="button"
                       data-testid="action-return-pending-button"
                       :disabled="isActionLoading"
-                      :class="ui.btn"
+                     
                       @click="handleReturnToPending(order)"
                     >
                       Đưa về chờ duyệt
-                    </button>
-                    <button
+                    </Button>
+                    <Button
+                      variant="outline" class="text-destructive hover:text-destructive"
                       type="button"
                       data-testid="action-reject-button"
                       :disabled="isActionLoading"
-                      :class="ui.btnDanger"
+                     
                       @click="openActionModal(order, 'reject')"
                     >
                       Từ chối
-                    </button>
+                    </Button>
                   </div>
                   <div v-else-if="order.status === 'expired'" class="flex justify-end">
-                    <button
+                    <Button
+                      variant="outline"
                       type="button"
                       data-testid="action-approve-expired-button"
                       :disabled="isActionLoading"
-                      :class="ui.btn"
+                     
                       @click="openActionModal(order, 'approve-expired')"
                     >
                       Duyệt đơn quá hạn
-                    </button>
+                    </Button>
                   </div>
-                  <div v-else-if="order.status === 'awaiting_transfer'" class="text-right" :class="ui.muted">
+                  <div v-else-if="order.status === 'awaiting_transfer'" class="text-right text-sm text-muted-foreground">
                     Chờ chuyển khoản
                   </div>
-                  <div v-else class="text-right" :class="ui.muted">Đã hoàn tất</div>
-                </td>
-              </tr>
-            </tbody>
-          </table>
-        </div>
+                  <div v-else class="text-right text-sm text-muted-foreground">Đã hoàn tất</div>
+                </TableCell>
+              </TableRow>
+            </TableBody>
+          </Table>
+        </Card>
 
         <p
           v-if="loadMoreErrorVi"
           role="alert"
           aria-live="polite"
           data-testid="load-more-error-banner"
-          :class="ui.error"
+          class="text-sm text-destructive"
         >
           {{ loadMoreErrorVi }} Bấm "Sau" để thử tải lại.
         </p>
@@ -481,6 +469,7 @@ watch(isAdmin, (admin) => {
           :loading="isLoadingMore || pager.isPaging.value"
           @prev="pager.prev"
           @next="pager.next"
+          @goto="pager.goTo"
         />
       </div>
     </AdminAccessGate>

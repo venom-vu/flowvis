@@ -10,7 +10,8 @@ export default defineNuxtConfig({
       assertReportEmail(process.env.NUXT_PUBLIC_REPORT_EMAIL, process.env.NODE_ENV);
     },
   },
-  modules: ['@nuxtjs/tailwindcss', '@nuxt/icon'],
+  modules: ['@nuxtjs/tailwindcss', '@nuxt/icon', 'shadcn-nuxt'],
+  shadcn: { prefix: '', componentDir: './components/ui' },
   css: ['~/assets/css/main.css'],
   nitro: {
     preset: 'cloudflare-pages',

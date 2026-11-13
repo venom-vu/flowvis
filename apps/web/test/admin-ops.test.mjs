@@ -632,8 +632,9 @@ describe('Story 6.8: các trang quản trị vận hành (SSR)', () => {
       fmtPct: String, fmtSecs: String, fmtVnd: String, fmtCount: String,
       pct: String, secs: String, formatNumberVi: String, formatVndVi: String, getPipelineLabelVi,
     });
-    // Biểu đồ nhiều series có legend
-    assert.match(html, /data-testid="stats-chart-tasks"[\s\S]*?data-testid="chart-legend"/);
+    // Biểu đồ nhiều series: BarChart của shadcn nhận đủ hai series (legend do shadcn chart dựng)
+    const tasksChart = html.slice(html.indexOf('stats-chart-tasks'));
+    assert.match(tasksChart, /data-chart-categories="Thành công\|Lỗi/);
     assert.match(html, /Hoán đổi khuôn mặt/);
     assert.match(html, /<table[^>]*data-testid="ops-stats-pipelines"/);
     assert.match(html, /<table[^>]*data-testid="ops-stats-margins"/);
@@ -658,10 +659,10 @@ describe('Story 6.8: các trang quản trị vận hành (SSR)', () => {
     assert.match(html, new RegExp(`>${u.total}<`));
     assert.match(html, /Tài khoản mới 30 ngày gần nhất/);
     assert.match(html, /Tài khoản theo gói/);
-    for (const t of ['FREE', 'Starter', 'Pro', 'Creator']) assert.match(html, new RegExp(`>${t}<`));
+    for (const t of ['FREE', 'Starter', 'Pro', 'Creator']) assert.match(html, new RegExp(`data-chart-row="${t}"`));
     // Mỗi ngày một cột trong biểu đồ tài khoản mới
     const signups = html.slice(html.indexOf('stats-chart-signups'), html.indexOf('stats-chart-tiers'));
-    assert.equal((signups.match(/<rect /g) || []).length, u.signupsByDay.length);
+    assert.equal((signups.match(/data-chart-row=/g) || []).length, u.signupsByDay.length);
   });
 
   it('tài khoản: lỗi tải số liệu người dùng hiện thông báo, phần tra cứu vẫn dùng được', async () => {
@@ -798,7 +799,7 @@ export const useAdminOps = () => {
     };
     for (const page of ['ops', 'stats', 'users', 'takedown', 'audit']) {
       const { descriptor } = parse(fs.readFileSync(path.join(webRoot, `pages/admin/${page}.vue`), 'utf8'));
-      let code = compileScript(descriptor, { id: `ops-${page}-test` }).content;
+      let code = compileScript(descriptor, { id: `ops-${page}-test` }).content.replace(/^import .*from '@\/components\/ui\/[^']*';?\s*$/gm, '');
       for (const [spec, file] of Object.entries(map)) {
         code = code.split(`'${spec}'`).join(JSON.stringify(pathToFileURL(path.join(dir, file)).href));
       }

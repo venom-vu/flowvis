@@ -46,10 +46,10 @@ const adminNavItems = [
   <!-- Layout Admin phong cách Vercel Docs: nền #0A0A0A, viền 1px, font Geist, Left Sidebar 220px -->
   <div
     data-testid="layout-admin"
-    class="flex min-h-dvh w-full max-w-[100vw] flex-col overflow-x-hidden bg-[#0A0A0A] font-geist text-[#EDEDED] antialiased"
+    class="flex min-h-dvh w-full max-w-[100vw] flex-col overflow-x-hidden bg-background font-geist text-foreground antialiased"
   >
     <header
-      class="fixed inset-x-0 top-0 z-40 flex h-16 items-center justify-between border-b border-[#262626] bg-[#0A0A0A] px-4 sm:px-6"
+      class="fixed inset-x-0 top-0 z-40 flex h-16 items-center justify-between border-b bg-background px-4 sm:px-6"
     >
       <div class="flex min-w-0 items-center gap-3 text-sm">
         <NuxtLink
@@ -59,14 +59,14 @@ const adminNavItems = [
           <Icon name="lucide:triangle" class="h-4 w-4 fill-current" />
           <span>flowvis</span>
         </NuxtLink>
-        <span class="text-[#454545]">/</span>
-        <NuxtLink to="/admin" class="truncate text-[#B4B4B4] transition hover:text-[#EDEDED]">
+        <span class="text-muted-foreground/50">/</span>
+        <NuxtLink to="/admin" class="truncate text-muted-foreground transition hover:text-foreground">
           Quản trị
         </NuxtLink>
       </div>
       <NuxtLink
         to="/"
-        class="touch-target inline-flex min-h-[48px] items-center gap-1.5 text-sm text-[#B4B4B4] transition hover:text-[#EDEDED]"
+        class="touch-target inline-flex min-h-[48px] items-center gap-1.5 text-sm text-muted-foreground transition hover:text-foreground"
       >
         <Icon name="lucide:arrow-up-left" class="h-4 w-4" />
         <span class="hidden sm:inline">Về Kho Công Cụ AI</span>
@@ -79,10 +79,10 @@ const adminNavItems = [
       <aside
         aria-label="Thanh điều hướng quản trị"
         data-testid="admin-left-sidebar"
-        class="sticky top-16 z-30 w-full shrink-0 border-b border-[#262626] bg-[#0A0A0A] lg:fixed lg:bottom-0 lg:left-0 lg:top-16 lg:w-[220px] lg:overflow-y-auto lg:border-b-0 lg:border-r"
+        class="sticky top-16 z-30 w-full shrink-0 border-b bg-background lg:fixed lg:bottom-0 lg:left-0 lg:top-16 lg:w-[220px] lg:overflow-y-auto lg:border-b-0 lg:border-r"
       >
         <nav class="p-3 lg:py-6">
-          <p class="px-3 pb-2 text-sm font-medium text-[#B4B4B4]">Quản trị</p>
+          <p class="px-3 pb-2 text-sm font-medium text-muted-foreground">Quản trị</p>
           <ul class="flex gap-1 overflow-x-auto lg:flex-col lg:overflow-visible">
             <li v-for="item in adminNavItems" :key="item.to" class="shrink-0 lg:shrink">
               <NuxtLink
@@ -90,8 +90,8 @@ const adminNavItems = [
                 class="touch-target flex min-h-[48px] min-w-[48px] items-center gap-2.5 rounded-md px-3 py-2 text-[15px] transition lg:min-h-[44px]"
                 :class="
                   route.path === item.to
-                    ? 'bg-[#1A1A1A] font-medium text-[#EDEDED]'
-                    : 'text-[#B4B4B4] hover:bg-[#1A1A1A]/60 hover:text-[#EDEDED]'
+                    ? 'bg-accent font-medium text-accent-foreground'
+                    : 'text-muted-foreground hover:bg-accent/60 hover:text-accent-foreground'
                 "
               >
                 <Icon :name="item.icon" class="h-4 w-4 shrink-0" />

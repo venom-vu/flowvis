@@ -1,5 +1,12 @@
 <script setup lang="ts">
 import { computed, nextTick, ref, watch } from 'vue';
+import { Alert, AlertDescription } from '@/components/ui/alert';
+import { Badge } from '@/components/ui/badge';
+import { Button } from '@/components/ui/button';
+import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from '@/components/ui/dialog';
+import { Input } from '@/components/ui/input';
+import { Label } from '@/components/ui/label';
+import { Textarea } from '@/components/ui/textarea';
 import type { AdminTopup } from '@flowvis/contracts';
 import { formatNumberVi, formatVndVi } from '~/utils/catalog';
 
@@ -42,8 +49,24 @@ const rejectReason = ref<string>('');
 const note = ref<string>('');
 const localErrorVi = ref<string | null>(null);
 
-const dialogRef = ref<HTMLElement | null>(null);
-const inputFieldRef = ref<HTMLInputElement | HTMLTextAreaElement | null>(null);
+const inputFieldRef = ref<{ focus?: () => void; $el?: unknown } | null>(null);
+
+function focusInputField(): void {
+  const target = inputFieldRef.value;
+  if (!target) return;
+  if (typeof target.focus === 'function') {
+    target.focus();
+    return;
+  }
+  const el = target.$el as { focus?: () => void } | undefined;
+  if (typeof el?.focus === 'function') {
+    el.focus();
+  }
+}
+
+function onOpenChange(next: boolean): void {
+  if (!next) handleClose();
+}
 
 watch(
   () => [props.open, props.actionType, props.topup?.id],
@@ -60,41 +83,11 @@ watch(
   async (isOpen) => {
     if (isOpen) {
       await nextTick();
-      inputFieldRef.value?.focus();
+      focusInputField();
     }
   },
   { flush: 'post' },
 );
-
-function handleKeydownTab(e: KeyboardEvent): void {
-  if (!dialogRef.value) {
-    return;
-  }
-  const focusable = dialogRef.value.querySelectorAll<HTMLElement>(
-    'button:not([disabled]), [href], input:not([disabled]), select:not([disabled]), textarea:not([disabled]), [tabindex]:not([tabindex="-1"])',
-  );
-  if (!focusable.length) {
-    e.preventDefault();
-    return;
-  }
-  const first = focusable[0];
-  const last = focusable[focusable.length - 1];
-  if (!first || !last) {
-    return;
-  }
-
-  if (e.shiftKey) {
-    if (document.activeElement === first) {
-      last.focus();
-      e.preventDefault();
-    }
-  } else {
-    if (document.activeElement === last) {
-      first.focus();
-      e.preventDefault();
-    }
-  }
-}
 
 const modalTitle = computed<string>(() => {
   switch (props.actionType) {
@@ -128,16 +121,14 @@ const submitButtonLabel = computed<string>(() => {
 
 const submitButtonClass = computed<string>(() => {
   switch (props.actionType) {
-    case 'approve':
-      return 'bg-[#EDEDED] hover:bg-white text-black border-transparent font-semibold';
     case 'approve-expired':
-      return 'bg-amber-500 hover:bg-amber-400 text-black border-transparent font-bold';
+      return 'bg-amber-500 text-black hover:bg-amber-400';
     case 'reject':
-      return 'bg-rose-500 hover:bg-rose-400 text-white border-transparent font-semibold';
+      return 'bg-rose-500 text-white hover:bg-rose-400';
     case 'needs-review':
-      return 'bg-orange-500 hover:bg-orange-400 text-white border-transparent font-semibold';
+      return 'bg-orange-500 text-white hover:bg-orange-400';
     default:
-      return 'bg-[#1A1A1A] hover:bg-[#1A1A1A] text-[#EDEDED] border-[#262626]';
+      return '';
   }
 });
 
@@ -215,148 +206,77 @@ function handleSubmit(): void {
 </script>
 
 <template>
-  <div
-    v-if="open && topup"
-    data-testid="admin-topup-action-modal"
-    class="fixed inset-0 !m-0 z-50 flex items-center justify-center p-4 font-geist text-[#EDEDED]"
-    @keydown.esc="handleClose"
-    @keydown.tab="handleKeydownTab"
-  >
-    <!-- Backdrop làm mờ -->
-    <div
-      class="fixed inset-0 bg-black/80 backdrop-blur-sm transition-opacity"
-      aria-hidden="true"
-      @click="handleClose"
-    />
-
-    <!-- Hộp thoại Centered Dialog -->
-    <div
-      ref="dialogRef"
-      role="dialog"
-      aria-modal="true"
-      tabindex="-1"
-      :aria-label="modalTitle"
-      class="relative z-10 w-full max-w-lg rounded-xl border border-[#262626] bg-[#0A0A0A] p-5 shadow-2xl sm:p-6 focus:outline-none"
+  <Dialog v-if="topup" :open="open" @update:open="onOpenChange">
+    <DialogContent
+      data-testid="admin-topup-action-modal"
+      class="max-h-[90dvh] max-w-lg overflow-y-auto"
+      @interact-outside="(e) => isSubmitting && e.preventDefault()"
     >
-      <!-- Header -->
-      <div class="flex items-center justify-between border-b border-[#262626] pb-4">
-        <div class="flex items-center gap-2">
-          <Icon
-            v-if="actionType === 'approve'"
-            name="lucide:check-circle-2"
-            class="h-5 w-5 text-emerald-400"
-          />
-          <Icon
-            v-else-if="actionType === 'approve-expired'"
-            name="lucide:alert-triangle"
-            class="h-5 w-5 text-amber-400"
-          />
-          <Icon
-            v-else-if="actionType === 'reject'"
-            name="lucide:x-circle"
-            class="h-5 w-5 text-rose-400"
-          />
-          <Icon
-            v-else
-            name="lucide:help-circle"
-            class="h-5 w-5 text-orange-400"
-          />
-          <h2 class="text-base font-semibold tracking-tight text-[#EDEDED] sm:text-lg">
-            {{ modalTitle }}
-          </h2>
-        </div>
-
-        <button
-          type="button"
-          aria-label="Đóng hộp thoại"
-          data-testid="modal-close-button"
-          :disabled="isSubmitting"
-          class="touch-target inline-flex min-h-[48px] min-w-[48px] items-center justify-center rounded-lg text-[#B4B4B4] transition hover:bg-[#1A1A1A] hover:text-[#EDEDED] disabled:opacity-50"
-          @click="handleClose"
-        >
-          <Icon name="lucide:x" class="h-5 w-5" />
-        </button>
-      </div>
+      <DialogHeader>
+        <DialogTitle class="flex items-center gap-2">
+          <Icon v-if="actionType === 'approve'" name="lucide:check-circle-2" class="h-5 w-5 text-emerald-400" />
+          <Icon v-else-if="actionType === 'approve-expired'" name="lucide:alert-triangle" class="h-5 w-5 text-amber-400" />
+          <Icon v-else-if="actionType === 'reject'" name="lucide:x-circle" class="h-5 w-5 text-rose-400" />
+          <Icon v-else name="lucide:help-circle" class="h-5 w-5 text-orange-400" />
+          <span>{{ modalTitle }}</span>
+        </DialogTitle>
+        <DialogDescription class="sr-only">Xác nhận thao tác với đơn nạp NAP {{ topup.code }}</DialogDescription>
+      </DialogHeader>
 
       <!-- Tóm tắt thông tin đơn nạp -->
-      <div class="mt-4 rounded-xl border border-[#262626] bg-[#1A1A1A] p-3.5 text-sm">
-        <div class="flex flex-wrap items-center justify-between gap-2 border-b border-[#262626] pb-2">
+      <div class="rounded-lg border bg-muted p-3.5 text-sm">
+        <div class="flex flex-wrap items-center justify-between gap-2 border-b pb-2">
           <div class="flex items-center gap-2">
-            <span class="text-[#B4B4B4]">Mã đơn:</span>
-            <span class="font-bold text-[#EDEDED]">NAP {{ topup.code }}</span>
+            <span class="text-muted-foreground">Mã đơn:</span>
+            <span class="font-bold">NAP {{ topup.code }}</span>
           </div>
-          <span class="rounded bg-[#1A1A1A] px-2 py-0.5 text-sm font-semibold text-[#B4B4B4]">
-            Gói {{ topup.pack }}
-          </span>
+          <Badge variant="secondary">Gói {{ topup.pack }}</Badge>
         </div>
-
-        <div class="mt-2.5 grid grid-cols-2 gap-2 text-sm sm:text-sm">
+        <div class="mt-2.5 grid grid-cols-2 gap-2">
           <div>
-            <span class="text-[#B4B4B4]">Số tiền đối chiếu:</span>
-            <p class="font-bold text-[#52A8FF] text-sm">
-              {{ formatVndVi(topup.amountVnd) }}
-            </p>
+            <span class="text-muted-foreground">Số tiền đối chiếu:</span>
+            <p class="font-bold text-[#52A8FF]">{{ formatVndVi(topup.amountVnd) }}</p>
           </div>
           <div>
-            <span class="text-[#B4B4B4]">Credit cộng:</span>
-            <p class="font-bold text-emerald-400 text-sm">
-              +{{ formatNumberVi(topup.credits) }} CR
-            </p>
+            <span class="text-muted-foreground">Credit cộng:</span>
+            <p class="font-bold text-emerald-400">+{{ formatNumberVi(topup.credits) }} CR</p>
           </div>
         </div>
-
-        <div class="mt-2 text-sm text-[#B4B4B4]">
+        <div class="mt-2 text-muted-foreground">
           <span>Nội dung chuyển khoản: </span>
-          <span class="font-semibold text-[#EDEDED]">{{ topup.transferContent }}</span>
+          <span class="font-semibold text-foreground">{{ topup.transferContent }}</span>
         </div>
       </div>
 
-      <!-- Cảnh báo đơn hết hạn nếu actionType === 'approve-expired' -->
-      <div
+      <Alert
         v-if="actionType === 'approve-expired'"
         data-testid="expired-warning-banner"
-        class="mt-4 flex items-start gap-2.5 rounded-xl border border-amber-500/40 bg-amber-500/10 p-3 text-sm text-amber-200"
+        class="border-amber-500/40 bg-amber-500/10 text-amber-200"
       >
-        <Icon name="lucide:alert-triangle" class="mt-0.5 h-4 w-4 shrink-0 text-amber-400" />
-        <div class="space-y-1">
+        <Icon name="lucide:alert-triangle" class="h-4 w-4 text-amber-400" />
+        <AlertDescription class="space-y-1">
           <p class="font-bold">CẢNH BÁO: Đơn nạp này đã hết hạn hiệu lực chuyển khoản!</p>
-          <p class="text-sm text-amber-300/90">
+          <p class="text-amber-300/90">
             Chỉ thực hiện duyệt đơn quá hạn khi bạn đã đối chiếu sao kê và chắc chắn tài khoản ngân hàng đã nhận được số tiền trên.
           </p>
-        </div>
-      </div>
+        </AlertDescription>
+      </Alert>
 
-      <!-- Thông báo xác nhận đối chiếu nếu actionType === 'approve' -->
-      <div
-        v-if="actionType === 'approve'"
-        class="mt-4 flex items-start gap-2.5 rounded-xl border border-cyan-500/30 bg-cyan-500/10 p-3 text-sm text-cyan-200"
-      >
-        <Icon name="lucide:shield-check" class="mt-0.5 h-4 w-4 shrink-0 text-cyan-400" />
-        <p class="text-sm leading-relaxed">
+      <Alert v-if="actionType === 'approve'" class="border-cyan-500/30 bg-cyan-500/10 text-cyan-200">
+        <Icon name="lucide:shield-check" class="h-4 w-4 text-cyan-400" />
+        <AlertDescription class="leading-relaxed">
           Đảm bảo đã đối chiếu khớp số tiền <strong>{{ formatVndVi(topup.amountVnd) }}</strong> trên sao kê ngân hàng trước khi xác nhận. Thao tác này sẽ cộng <strong>{{ formatNumberVi(topup.credits) }} credit</strong> cho người dùng ngay lập tức và không thể hoàn tác.
-        </p>
-      </div>
+        </AlertDescription>
+      </Alert>
 
-      <!-- Form nhập liệu theo actionType -->
-      <form class="mt-4 space-y-4" @submit.prevent="handleSubmit">
-        <!-- Nhập bank_ref khi duyệt (pending hoặc expired) -->
-        <div v-if="actionType === 'approve' || actionType === 'approve-expired'">
-          <label
-            for="admin-bank-ref-input"
-            class="block text-sm font-semibold text-[#EDEDED]"
-          >
-            Mã giao dịch ngân hàng (bank_ref) <span class="text-rose-400">*</span>
-          </label>
-          <p class="mt-0.5 text-sm text-[#B4B4B4]">
-            Mã tham chiếu duy nhất từ thông báo biến động số dư hoặc sao kê.
-          </p>
-          <BaseInput
+      <form class="space-y-4" @submit.prevent="handleSubmit">
+        <div v-if="actionType === 'approve' || actionType === 'approve-expired'" class="space-y-1.5">
+          <Label for="admin-bank-ref-input">Mã giao dịch ngân hàng (bank_ref) <span class="text-rose-400">*</span></Label>
+          <p class="text-sm text-muted-foreground">Mã tham chiếu duy nhất từ thông báo biến động số dư hoặc sao kê.</p>
+          <Input
             id="admin-bank-ref-input"
             ref="inputFieldRef"
             v-model="bankRef"
-            variant="admin"
-            focus-accent="cyan"
-            class="mt-1.5"
             data-testid="modal-bank-ref-input"
             type="text"
             maxlength="128"
@@ -367,29 +287,16 @@ function handleSubmit(): void {
           />
         </div>
 
-        <!-- Nhập rejectReason khi từ chối -->
-        <div v-else-if="actionType === 'reject'">
+        <div v-else-if="actionType === 'reject'" class="space-y-1.5">
           <div class="flex items-center justify-between">
-            <label
-              for="admin-reject-reason-input"
-              class="block text-sm font-semibold text-[#EDEDED]"
-            >
-              Lý do từ chối <span class="text-rose-400">*</span>
-            </label>
-            <span class="text-sm text-[#B4B4B4]">
-              {{ rejectReason.length }} / 500
-            </span>
+            <Label for="admin-reject-reason-input">Lý do từ chối <span class="text-rose-400">*</span></Label>
+            <span class="text-sm text-muted-foreground">{{ rejectReason.length }} / 500</span>
           </div>
-          <p class="mt-0.5 text-sm text-[#B4B4B4]">
-            Lý do sẽ được hiển thị cho người dùng khi xem chi tiết đơn nạp.
-          </p>
-          <BaseTextarea
+          <p class="text-sm text-muted-foreground">Lý do sẽ được hiển thị cho người dùng khi xem chi tiết đơn nạp.</p>
+          <Textarea
             id="admin-reject-reason-input"
             ref="inputFieldRef"
             v-model="rejectReason"
-            variant="admin"
-            focus-accent="rose"
-            class="mt-1.5"
             data-testid="modal-reject-reason-input"
             rows="3"
             maxlength="500"
@@ -400,29 +307,16 @@ function handleSubmit(): void {
           />
         </div>
 
-        <!-- Nhập note khi cần xem xét -->
-        <div v-else-if="actionType === 'needs-review'">
+        <div v-else-if="actionType === 'needs-review'" class="space-y-1.5">
           <div class="flex items-center justify-between">
-            <label
-              for="admin-note-input"
-              class="block text-sm font-semibold text-[#EDEDED]"
-            >
-              Ghi chú xem xét <span class="text-orange-400">*</span>
-            </label>
-            <span class="text-sm text-[#B4B4B4]">
-              {{ note.length }} / 500
-            </span>
+            <Label for="admin-note-input">Ghi chú xem xét <span class="text-orange-400">*</span></Label>
+            <span class="text-sm text-muted-foreground">{{ note.length }} / 500</span>
           </div>
-          <p class="mt-0.5 text-sm text-[#B4B4B4]">
-            Ghi chú nội bộ để các Admin khác nắm tình hình hoặc đối chiếu bổ sung.
-          </p>
-          <BaseTextarea
+          <p class="text-sm text-muted-foreground">Ghi chú nội bộ để các Admin khác nắm tình hình hoặc đối chiếu bổ sung.</p>
+          <Textarea
             id="admin-note-input"
             ref="inputFieldRef"
             v-model="note"
-            variant="admin"
-            focus-accent="orange"
-            class="mt-1.5"
             data-testid="modal-note-input"
             rows="3"
             maxlength="500"
@@ -433,45 +327,21 @@ function handleSubmit(): void {
           />
         </div>
 
-        <!-- Thông báo lỗi (nếu có) -->
-        <div
-          v-if="displayErrorVi"
-          role="alert"
-          aria-live="polite"
-          data-testid="modal-error-message"
-          class="flex items-start gap-2 rounded-lg border border-rose-500/40 bg-rose-500/10 p-2.5 text-sm text-rose-300"
-        >
-          <Icon name="lucide:alert-circle" class="mt-0.5 h-4 w-4 shrink-0 text-rose-400" />
-          <span class="leading-tight">{{ displayErrorVi }}</span>
-        </div>
+        <Alert v-if="displayErrorVi" variant="destructive" role="alert" aria-live="polite" data-testid="modal-error-message">
+          <Icon name="lucide:alert-circle" class="h-4 w-4" />
+          <AlertDescription>{{ displayErrorVi }}</AlertDescription>
+        </Alert>
 
-        <!-- Footer Buttons -->
         <div class="flex flex-col-reverse gap-2 pt-2 sm:flex-row sm:justify-end">
-          <button
-            type="button"
-            data-testid="modal-cancel-button"
-            :disabled="isSubmitting"
-            class="touch-target inline-flex min-h-[48px] min-w-[48px] items-center justify-center rounded-lg border border-[#262626] bg-[#111111] px-4 py-2 text-sm font-medium text-[#B4B4B4] transition hover:bg-[#1A1A1A] hover:text-[#EDEDED] disabled:opacity-50"
-            @click="handleClose"
-          >
+          <Button type="button" variant="outline" data-testid="modal-cancel-button" :disabled="isSubmitting" @click="handleClose">
             Hủy bỏ
-          </button>
-          <button
-            type="submit"
-            data-testid="modal-submit-button"
-            :disabled="isSubmitting"
-            class="touch-target inline-flex min-h-[48px] min-w-[48px] items-center justify-center gap-2 rounded-lg px-4 py-2 text-sm transition disabled:cursor-not-allowed disabled:opacity-50"
-            :class="submitButtonClass"
-          >
-            <Icon
-              v-if="isSubmitting"
-              name="lucide:loader-2"
-              class="h-4 w-4 animate-spin"
-            />
+          </Button>
+          <Button type="submit" data-testid="modal-submit-button" :disabled="isSubmitting" :class="submitButtonClass">
+            <Icon v-if="isSubmitting" name="lucide:loader-2" class="h-4 w-4 animate-spin" />
             <span>{{ isSubmitting ? 'Đang xử lý...' : submitButtonLabel }}</span>
-          </button>
+          </Button>
         </div>
       </form>
-    </div>
-  </div>
+    </DialogContent>
+  </Dialog>
 </template>

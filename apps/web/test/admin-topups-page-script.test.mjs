@@ -52,7 +52,7 @@ export const useAdminTopups = () => ({
 });`);
 
     const { descriptor } = parse(pageSource);
-    let code = compileScript(descriptor, { id: 'adm-page-test' }).content;
+    let code = compileScript(descriptor, { id: 'adm-page-test' }).content.replace(/^import .*from '@\/components\/ui\/[^']*';?\s*$/gm, '');
     const map = {
       '#imports': 'imports.mjs',
       '~/composables/useAdminAccess': 'use-admin-access.mjs',
@@ -62,7 +62,6 @@ export const useAdminTopups = () => ({
       '~/utils/catalog': 'catalog.mjs',
       '~/utils/topup': 'topup-utils.mjs',
       '~/utils/api-client': 'api-client.mjs',
-      '~/utils/admin-ui': 'admin-ui.mjs',
     };
     for (const [spec, file] of Object.entries(map)) {
       const before = code;

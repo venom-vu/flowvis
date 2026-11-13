@@ -5,8 +5,15 @@ import { useAdminAccess } from '~/composables/useAdminAccess';
 import { useAdminOps } from '~/composables/useAdminOps';
 import { formatNumberVi, formatVndVi } from '~/utils/catalog';
 import { getPipelineLabelVi } from '~/utils/task-format';
-import { ui } from '~/utils/admin-ui';
 import type { BarRow, BarSeries } from '~/components/AdminBarChart.vue';
+
+import { Button } from '@/components/ui/button';
+import { Input } from '@/components/ui/input';
+import { Label } from '@/components/ui/label';
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 
 definePageMeta({ layout: 'admin' });
 
@@ -14,9 +21,9 @@ const { isMePending, isAdmin } = useAdminAccess();
 const ops = useAdminOps();
 const { stats, isStatsLoading, statsErrorVi } = ops;
 
-/* Màu chart: 3 slot đầu bảng màu categorical (đã kiểm tra CVD trên nền #111111), gán theo thứ tự cố định. */
-const SERIES_1 = '#3987e5';
-const SERIES_2 = '#d95926';
+/* Màu chart lấy từ biến --chart-N của shadcn, gán theo thứ tự cố định. */
+const SERIES_1 = 'hsl(var(--chart-1))';
+const SERIES_2 = 'hsl(var(--chart-2))';
 
 const successSeries: BarSeries[] = [{ key: 'rate', labelVi: 'Tỷ lệ thành công', color: SERIES_1 }];
 const successRows = computed<BarRow[]>(() =>
@@ -122,121 +129,114 @@ watch(isAdmin, (admin) => {
 <template>
   <div data-testid="page-admin-stats" class="space-y-8">
     <AdminAccessGate :pending="isMePending" :admin="isAdmin">
-      <header class="border-b border-[#2E2E2E] pb-6">
-        <h1 :class="ui.pageTitle">Thống kê</h1>
-        <p :class="ui.pageLead">Hiệu quả từng tính năng AI, chi phí GPU và biên gộp theo khoảng thời gian.</p>
+      <header class="border-b border-border pb-6">
+        <h1 class="text-3xl font-semibold tracking-tight">Thống kê</h1>
+        <p class="mt-2 text-base leading-relaxed text-muted-foreground">Hiệu quả từng tính năng AI, chi phí GPU và biên gộp theo khoảng thời gian.</p>
       </header>
 
       <section class="space-y-5">
-        <form data-testid="ops-stats-section" :class="ui.card" class="grid grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-3" @submit.prevent="submitStats">
-          <label :class="ui.label">
+        <form data-testid="ops-stats-section" class="grid rounded-lg border bg-card p-5 grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-3" @submit.prevent="submitStats">
+          <Label class="flex flex-col gap-1.5">
             <span>Từ</span>
-            <BaseInput v-model="statsFrom" variant="admin" type="datetime-local" data-testid="ops-stats-from" />
-          </label>
-          <label :class="ui.label">
+            <Input v-model="statsFrom" type="datetime-local" data-testid="ops-stats-from" />
+          </Label>
+          <Label class="flex flex-col gap-1.5">
             <span>Đến</span>
-            <BaseInput v-model="statsTo" variant="admin" type="datetime-local" data-testid="ops-stats-to" />
-          </label>
-          <div :class="ui.label">
-            <label for="ops-stats-scope-select" class="block">Phạm vi</label>
-            <BaseSelect
-              id="ops-stats-scope-select"
-              v-model="statsScope"
-              variant="admin"
-              :options="scopeOptions"
-              data-testid="ops-stats-scope"
-            />
+            <Input v-model="statsTo" type="datetime-local" data-testid="ops-stats-to" />
+          </Label>
+          <div class="flex flex-col gap-1.5">
+            <Label for="ops-stats-scope-select">Phạm vi</Label>
+            <Select v-model="statsScope">
+              <SelectTrigger id="ops-stats-scope-select" role="combobox" data-testid="ops-stats-scope">
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem v-for="o in scopeOptions" :key="o.value" :value="o.value">{{ o.label }}</SelectItem>
+              </SelectContent>
+            </Select>
           </div>
-          <label :class="ui.label">
+          <Label class="flex flex-col gap-1.5">
             <span>Giá thử mỗi giây Motion (credit)</span>
-            <BaseInput v-model="trialMotionPrice" variant="admin" inputmode="numeric" data-testid="ops-stats-motion-price" placeholder="Để trống = giá thật" />
-          </label>
-          <label :class="ui.label">
+            <Input v-model="trialMotionPrice" inputmode="numeric" data-testid="ops-stats-motion-price" placeholder="Để trống = giá thật" />
+          </Label>
+          <Label class="flex flex-col gap-1.5">
             <span>Giá thử mỗi ảnh (credit)</span>
-            <BaseInput v-model="trialImagePrice" variant="admin" inputmode="numeric" data-testid="ops-stats-image-price" placeholder="Để trống = giá thật" />
-          </label>
+            <Input v-model="trialImagePrice" inputmode="numeric" data-testid="ops-stats-image-price" placeholder="Để trống = giá thật" />
+          </Label>
           <div class="flex items-end">
-            <button type="submit" data-testid="ops-stats-submit" :disabled="isStatsLoading" :class="[ui.btnPrimary, 'w-full']">
+            <Button type="submit" data-testid="ops-stats-submit" :disabled="isStatsLoading" class="w-full">
               Xem thống kê
-            </button>
+            </Button>
           </div>
-          <p class="sm:col-span-2 xl:col-span-3" :class="ui.muted">Giá thử chỉ dùng để tính lại thống kê, không thay đổi giá thật.</p>
+          <p class="sm:col-span-2 xl:col-span-3 text-sm text-muted-foreground">Giá thử chỉ dùng để tính lại thống kê, không thay đổi giá thật.</p>
         </form>
 
-        <p v-if="statsFormErrorVi" data-testid="ops-stats-form-error" role="alert" :class="ui.error">{{ statsFormErrorVi }}</p>
-        <p v-if="statsErrorVi" data-testid="ops-stats-error" role="alert" :class="ui.error">{{ statsErrorVi }}</p>
+        <p v-if="statsFormErrorVi" data-testid="ops-stats-form-error" role="alert" class="text-sm text-destructive">{{ statsFormErrorVi }}</p>
+        <p v-if="statsErrorVi" data-testid="ops-stats-error" role="alert" class="text-sm text-destructive">{{ statsErrorVi }}</p>
 
         <template v-if="stats">
           <div class="grid grid-cols-2 gap-3 xl:grid-cols-3">
-            <div :class="ui.card" class="space-y-1">
-              <p class="text-sm font-medium text-[#B4B4B4]">Đơn nạp đã duyệt</p>
-              <p class="text-3xl font-semibold tracking-tight text-[#EDEDED]">{{ formatNumberVi(stats.successMetrics.approvedTopups) }}</p>
-            </div>
-            <div :class="ui.card" class="space-y-1">
-              <p class="text-sm font-medium text-[#B4B4B4]">Tỷ lệ chuyển đổi 30 ngày</p>
-              <p class="text-3xl font-semibold tracking-tight text-[#EDEDED]">{{ pct(stats.successMetrics.conversionRate) }}</p>
-            </div>
-            <div :class="ui.card" class="col-span-2 space-y-1 xl:col-span-1">
-              <p class="text-sm font-medium text-[#B4B4B4]">Chi phí GPU</p>
-              <p class="text-3xl font-semibold tracking-tight text-[#EDEDED]">{{ stats.successMetrics.gpuCostUsd.toFixed(2) }} USD</p>
-            </div>
+            <Card>
+              <CardHeader class="p-5 pb-1"><CardDescription>Đơn nạp đã duyệt</CardDescription></CardHeader>
+              <CardContent class="p-5 pt-0"><CardTitle class="text-3xl">{{ formatNumberVi(stats.successMetrics.approvedTopups) }}</CardTitle></CardContent>
+            </Card>
+            <Card>
+              <CardHeader class="p-5 pb-1"><CardDescription>Tỷ lệ chuyển đổi 30 ngày</CardDescription></CardHeader>
+              <CardContent class="p-5 pt-0"><CardTitle class="text-3xl">{{ pct(stats.successMetrics.conversionRate) }}</CardTitle></CardContent>
+            </Card>
+            <Card class="col-span-2  xl:col-span-1">
+              <CardHeader class="p-5 pb-1"><CardDescription>Chi phí GPU</CardDescription></CardHeader>
+              <CardContent class="p-5 pt-0"><CardTitle class="text-3xl">{{ stats.successMetrics.gpuCostUsd.toFixed(2) }} USD</CardTitle></CardContent>
+            </Card>
           </div>
 
           <div class="grid grid-cols-1 gap-3 xl:grid-cols-2">
-            <div :class="ui.card">
-              <AdminBarChart data-testid="stats-chart-tasks" title="Số Task theo tính năng" :series="taskTotalSeries" :rows="taskTotalRows" :format="fmtCount" />
-            </div>
-            <div :class="ui.card">
-              <AdminBarChart data-testid="stats-chart-success" title="Tỷ lệ thành công" :series="successSeries" :rows="successRows" :format="fmtPct" :max="100" />
-            </div>
-            <div :class="ui.card">
-              <AdminBarChart data-testid="stats-chart-time" title="Thời gian xử lý (giây)" :series="timeSeries" :rows="timeRows" :format="fmtSecs" />
-            </div>
-            <div :class="ui.card">
-              <AdminBarChart data-testid="stats-chart-cost" title="Chi phí GPU trung bình mỗi Task" :series="costSeries" :rows="costRows" :format="fmtVnd" />
-            </div>
+            <AdminBarChart data-testid="stats-chart-tasks" title="Số Task theo tính năng" :series="taskTotalSeries" :rows="taskTotalRows" :format="fmtCount" />
+            <AdminBarChart data-testid="stats-chart-success" title="Tỷ lệ thành công" :series="successSeries" :rows="successRows" :format="fmtPct" />
+            <AdminBarChart data-testid="stats-chart-time" title="Thời gian xử lý (giây)" :series="timeSeries" :rows="timeRows" :format="fmtSecs" />
+            <AdminBarChart data-testid="stats-chart-cost" title="Chi phí GPU trung bình mỗi Task" :series="costSeries" :rows="costRows" :format="fmtVnd" />
           </div>
 
-          <h3 class="pt-2 text-lg font-semibold text-[#EDEDED]">Bảng số liệu theo tính năng</h3>
-          <div :class="ui.tableWrap">
-            <table :class="ui.table" data-testid="ops-stats-pipelines">
-              <thead>
-                <tr>
-                  <th :class="ui.th">Tính năng</th><th :class="ui.th">Thành công</th><th :class="ui.th">TB</th><th :class="ui.th">p95</th><th :class="ui.th">Phí GPU TB (USD)</th><th :class="ui.th">Phí GPU TB (VNĐ)</th><th :class="ui.th">Phí lãng phí (USD)</th><th :class="ui.th">Theo loại máy</th>
-                </tr>
-              </thead>
-              <tbody>
-                <tr v-for="p in stats.pipelines" :key="p.pipeline">
-                  <td :class="ui.td">{{ getPipelineLabelVi(p.pipeline) }}</td>
-                  <td :class="ui.td">{{ pct(p.successRate) }}</td>
-                  <td :class="ui.td">{{ secs(p.avgProcessingSeconds) }}</td>
-                  <td :class="ui.td">{{ secs(p.p95ProcessingSeconds) }}</td>
-                  <td :class="ui.td">{{ p.avgCostUsd === null ? '-' : `${p.avgCostUsd.toFixed(4)} USD` }}</td>
-                  <td :class="ui.td">{{ p.avgCostVnd === null ? '-' : formatVndVi(Math.round(p.avgCostVnd)) }}</td>
-                  <td :class="ui.td">{{ p.wastedCostUsd.toFixed(4) }} USD</td>
-                  <td :class="ui.td">{{ p.costByInstanceType.length ? p.costByInstanceType.map((i) => `${i.instanceType}: ${i.tasks} Task, ${i.costUsd.toFixed(4)} USD`).join('; ') : '-' }}</td>
-                </tr>
-              </tbody>
-            </table>
-          </div>
+          <h3 class="pt-2 text-lg font-semibold text-foreground">Bảng số liệu theo tính năng</h3>
+          <Card class="overflow-hidden">
+            <Table data-testid="ops-stats-pipelines">
+              <TableHeader>
+                <TableRow>
+                  <TableHead>Tính năng</TableHead><TableHead>Thành công</TableHead><TableHead>TB</TableHead><TableHead>p95</TableHead><TableHead>Phí GPU TB (USD)</TableHead><TableHead>Phí GPU TB (VNĐ)</TableHead><TableHead>Phí lãng phí (USD)</TableHead><TableHead>Theo loại máy</TableHead>
+                </TableRow>
+              </TableHeader>
+              <TableBody>
+                <TableRow v-for="p in stats.pipelines" :key="p.pipeline">
+                  <TableCell>{{ getPipelineLabelVi(p.pipeline) }}</TableCell>
+                  <TableCell>{{ pct(p.successRate) }}</TableCell>
+                  <TableCell>{{ secs(p.avgProcessingSeconds) }}</TableCell>
+                  <TableCell>{{ secs(p.p95ProcessingSeconds) }}</TableCell>
+                  <TableCell>{{ p.avgCostUsd === null ? '-' : `${p.avgCostUsd.toFixed(4)} USD` }}</TableCell>
+                  <TableCell>{{ p.avgCostVnd === null ? '-' : formatVndVi(Math.round(p.avgCostVnd)) }}</TableCell>
+                  <TableCell>{{ p.wastedCostUsd.toFixed(4) }} USD</TableCell>
+                  <TableCell>{{ p.costByInstanceType.length ? p.costByInstanceType.map((i) => `${i.instanceType}: ${i.tasks} Task, ${i.costUsd.toFixed(4)} USD`).join('; ') : '-' }}</TableCell>
+                </TableRow>
+              </TableBody>
+            </Table>
+          </Card>
 
-          <h3 class="pt-2 text-lg font-semibold text-[#EDEDED]">Biên gộp</h3>
-          <div :class="ui.tableWrap">
-            <table :class="ui.table" data-testid="ops-stats-margins">
-              <thead>
-                <tr><th :class="ui.th">Tính năng</th><th :class="ui.th">Gói</th><th :class="ui.th">Doanh thu</th><th :class="ui.th">Chi phí</th><th :class="ui.th">Biên gộp</th></tr>
-              </thead>
-              <tbody>
-                <tr v-for="(m, i) in stats.margins" :key="i">
-                  <td :class="ui.td">{{ getPipelineLabelVi(m.pipeline) }}</td>
-                  <td :class="ui.td">{{ m.pack }}</td>
-                  <td :class="ui.td">{{ formatVndVi(Math.round(m.revenueVnd)) }}</td>
-                  <td :class="ui.td">{{ formatVndVi(Math.round(m.costVnd)) }}</td>
-                  <td :class="[ui.td, m.marginVnd < 0 ? ui.bad : '']">{{ formatNumberVi(Math.round(m.marginVnd)) }}đ ({{ pct(m.marginRate) }})</td>
-                </tr>
-              </tbody>
-            </table>
-          </div>
+          <h3 class="pt-2 text-lg font-semibold text-foreground">Biên gộp</h3>
+          <Card class="overflow-hidden">
+            <Table data-testid="ops-stats-margins">
+              <TableHeader>
+                <TableRow><TableHead>Tính năng</TableHead><TableHead>Gói</TableHead><TableHead>Doanh thu</TableHead><TableHead>Chi phí</TableHead><TableHead>Biên gộp</TableHead></TableRow>
+              </TableHeader>
+              <TableBody>
+                <TableRow v-for="(m, i) in stats.margins" :key="i">
+                  <TableCell>{{ getPipelineLabelVi(m.pipeline) }}</TableCell>
+                  <TableCell>{{ m.pack }}</TableCell>
+                  <TableCell>{{ formatVndVi(Math.round(m.revenueVnd)) }}</TableCell>
+                  <TableCell>{{ formatVndVi(Math.round(m.costVnd)) }}</TableCell>
+                  <TableCell :class="[m.marginVnd < 0 ? 'text-destructive' : '']">{{ formatNumberVi(Math.round(m.marginVnd)) }}đ ({{ pct(m.marginRate) }})</TableCell>
+                </TableRow>
+              </TableBody>
+            </Table>
+          </Card>
         </template>
       </section>
     </AdminAccessGate>

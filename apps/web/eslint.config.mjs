@@ -4,6 +4,8 @@ import vueParser from 'vue-eslint-parser';
 import rootConfig from '../../eslint.config.mjs';
 
 export default [
+  // Mã do shadcn-vue sinh ra, cập nhật bằng CLI nên không sửa theo lint.
+  { ignores: ['components/ui/**'] },
   ...rootConfig,
   ...pluginVue.configs['flat/recommended'],
   {

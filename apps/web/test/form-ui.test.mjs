@@ -252,7 +252,69 @@ describe('Base Form UI & sửa lỗi vỡ giao diện', () => {
       runConfirm: noop,
       formatTopupTimestampVi: String,
     });
-    assert.match(takedownHtml, /<button[^>]*data-testid="ops-task-lookup"[^>]*whitespace-nowrap/);
-    assert.match(takedownHtml, /class="w-full min-w-0 flex-1"/);
+    // Nút Tra cứu là shadcn Button: whitespace-nowrap và vùng chạm 48px nằm trong buttonVariants
+    assert.match(takedownHtml, /<button[^>]*data-testid="ops-task-lookup"/);
+    const buttonVariants = fs.readFileSync(path.join(webRoot, 'components/ui/button/index.ts'), 'utf8');
+    assert.match(buttonVariants, /whitespace-nowrap/);
+    assert.match(takedownHtml, /<input[^>]*data-testid="ops-task-input"/);
+    assert.match(takedownHtml, /<input[^>]*class="[^"]*flex-1/);
+  });
+
+  it('Nền header và viền focus toàn hệ thống: nền đặc opaque, tắt viền focus trắng mặc định', () => {
+    const mainCss = fs.readFileSync(path.join(webRoot, 'assets/css/main.css'), 'utf8');
+    assert.doesNotMatch(mainCss, /--ring:\s*0\s+0%\s+93%/);
+    assert.match(mainCss, /--ring:\s*0\s+0%\s+42%/);
+    assert.match(mainCss, /\*:focus[\s\S]*\*:focus-visible[\s\S]*outline:\s*none/);
+    assert.match(mainCss, /\[data-testid='layout-admin'\]\s*>\s*header/);
+    assert.match(mainCss, /\[data-testid='admin-left-sidebar'\]/);
+    assert.match(mainCss, /\[data-testid='app-top-header'\]/);
+
+    const topHeader = fs.readFileSync(path.join(webRoot, 'components/AppTopHeader.vue'), 'utf8');
+    assert.match(topHeader, /class="[^"]*\bbg-cyber-bg\b(?!\/)/);
+    assert.doesNotMatch(topHeader, /bg-cyber-bg\/95/);
+    assert.doesNotMatch(topHeader, /backdrop-blur/);
+
+    const bottomNav = fs.readFileSync(path.join(webRoot, 'components/AppBottomNav.vue'), 'utf8');
+    assert.match(bottomNav, /class="[^"]*\bbg-cyber-bg\b(?!\/)/);
+    assert.doesNotMatch(bottomNav, /bg-cyber-bg\/95/);
+    assert.doesNotMatch(bottomNav, /backdrop-blur/);
+
+    for (const rel of [
+      'components/ui/select/SelectTrigger.vue',
+      'components/ui/dialog/DialogContent.vue',
+      'components/ui/badge/index.ts',
+    ]) {
+      const content = fs.readFileSync(path.join(webRoot, rel), 'utf8');
+      assert.doesNotMatch(content, /\bfocus:ring-/, `${rel} vẫn dùng focus:ring- khi click`);
+      assert.match(content, /\bfocus-visible:ring-1\b/);
+    }
+  });
+
+  it('Tooltip biểu đồ toàn hệ thống: không bị Unovis injectGlobal phủ nền trắng và dùng bảng màu tối', () => {
+    const mainCss = fs.readFileSync(path.join(webRoot, 'assets/css/main.css'), 'utf8');
+    assert.match(mainCss, /html:root,\s*:root\.dark\s*\{[\s\S]*--vis-tooltip-background-color:\s*transparent/);
+    assert.match(mainCss, /--vis-tooltip-text-color:\s*hsl\(var\(--popover-foreground\)\)/);
+    assert.match(mainCss, /--vis-tooltip-padding:\s*0/);
+    assert.match(mainCss, /html\s+\[data-flowvis-chart-tooltip\]/);
+    assert.match(mainCss, /\[data-testid='chart-tooltip'\]/);
+
+    const crosshair = fs.readFileSync(path.join(webRoot, 'components/ui/chart/ChartCrosshair.vue'), 'utf8');
+    assert.match(crosshair, /data-flowvis-chart-tooltip/);
+
+    const chartTooltip = fs.readFileSync(path.join(webRoot, 'components/ui/chart/ChartTooltip.vue'), 'utf8');
+    assert.match(chartTooltip, /data-testid="chart-tooltip"/);
+    assert.match(chartTooltip, /\bbg-popover\b/);
+    assert.match(chartTooltip, /\btext-popover-foreground\b/);
+    assert.match(chartTooltip, /\btext-muted-foreground\b/);
+  });
+
+  it('SelectContent dùng cú pháp Tailwind v3 khớp chiều rộng trigger và nền popover đặc', () => {
+    const selectContent = fs.readFileSync(path.join(webRoot, 'components/ui/select/SelectContent.vue'), 'utf8');
+    assert.doesNotMatch(selectContent, /\bh-\(--|\bmin-w-\(--/);
+    assert.match(selectContent, /\bmin-w-\[var\(--reka-select-trigger-width\)\]/);
+    assert.match(selectContent, /\bbg-popover\b/);
+
+    const mainCss = fs.readFileSync(path.join(webRoot, 'assets/css/main.css'), 'utf8');
+    assert.match(mainCss, /\[data-reka-popper-content-wrapper\]\s*>\s*div/);
   });
 });

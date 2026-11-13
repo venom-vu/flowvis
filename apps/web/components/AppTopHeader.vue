@@ -73,7 +73,7 @@ function isActiveRoute(targetPath: string): boolean {
 <template>
   <header
     data-testid="app-top-header"
-    class="fixed inset-x-0 top-0 z-40 h-[68px] w-full border-b border-cyber-border bg-cyber-bg/95 backdrop-blur"
+    class="fixed inset-x-0 top-0 z-40 h-[68px] w-full border-b border-cyber-border bg-cyber-bg"
   >
     <div
       class="mx-auto flex h-full max-w-7xl items-center gap-2 px-3 sm:gap-6 sm:px-6 lg:px-8"

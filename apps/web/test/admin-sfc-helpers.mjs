@@ -4,6 +4,9 @@ import { fileURLToPath, pathToFileURL } from 'node:url';
 import { compileScript, compileTemplate, parse } from '@vue/compiler-sfc';
 import { createSSRApp, defineComponent } from 'vue';
 import { renderToString } from '@vue/server-renderer';
+import { shadcnStubs } from './shadcn-stubs.mjs';
+
+export { shadcnStubs };
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 export const webRoot = path.resolve(__dirname, '..');
@@ -45,10 +48,20 @@ export async function compileFullSfc(relFile) {
     compilerOptions: { bindingMetadata: script.bindings },
   });
   if (template.errors.length) throw new Error(`${relFile}: ${template.errors.join('; ')}`);
-  const scriptCode = script.content.replaceAll("'~/utils/form-ui'", JSON.stringify(formUiUrl));
+  const paginationUrl = pathToFileURL(path.join(webRoot, 'utils/pagination.ts')).href;
+  const scriptCode = script.content
+    .replaceAll("'~/utils/form-ui'", JSON.stringify(formUiUrl))
+    .replaceAll("'~/utils/pagination'", JSON.stringify(paginationUrl))
+    // Component shadcn được thay bằng stub (bản thật cần reka-ui và alias '@/').
+    .replace(/^import\s*\{([^}]*)\}\s*from\s*'@\/components\/ui\/[^'\n]*';?[ \t]*$/gm, (_m, names) => {
+      const list = names.split(',').map((n) => n.trim()).filter(Boolean).map((n) => n.split(' as ').pop().trim());
+      return `const { ${list.join(', ')} } = __shadcnStubs();`;
+    });
+  const stubsUrl = pathToFileURL(path.join(webRoot, 'test/shadcn-stubs.mjs')).href;
+  const scriptWithStubs = `import { shadcnStubs as __shadcnStubs } from ${JSON.stringify(stubsUrl)};\n${scriptCode}`;
   const tmpScript = path.join(webRoot, 'test', `.tmp-script-${process.pid}-${Math.random().toString(36).slice(2)}.ts`);
   const tmpTpl = path.join(webRoot, 'test', `.tmp-tpl-${process.pid}-${Math.random().toString(36).slice(2)}.mjs`);
-  fs.writeFileSync(tmpScript, scriptCode, 'utf8');
+  fs.writeFileSync(tmpScript, scriptWithStubs, 'utf8');
   fs.writeFileSync(tmpTpl, template.code, 'utf8');
   try {
     const comp = (await import(pathToFileURL(tmpScript).href)).default;
@@ -62,10 +75,10 @@ export async function compileFullSfc(relFile) {
 
 const shared = {
   gate: await compileSsr('components/AdminAccessGate.vue'),
-  pager: await compileSsr('components/AdminPager.vue'),
-  confirm: await compileSsr('components/AdminConfirmDialog.vue'),
-  bar: await compileSsr('components/AdminBarChart.vue'),
-  daily: await compileSsr('components/AdminDailyChart.vue'),
+  pager: await compileFullSfc('components/AdminPager.vue'),
+  confirm: await compileFullSfc('components/AdminConfirmDialog.vue'),
+  bar: await compileFullSfc('components/AdminBarChart.vue'),
+  daily: await compileFullSfc('components/AdminDailyChart.vue'),
   baseInput: await compileFullSfc('components/BaseInput.vue'),
   baseTextarea: await compileFullSfc('components/BaseTextarea.vue'),
   baseSelect: await compileFullSfc('components/BaseSelect.vue'),
@@ -88,52 +101,19 @@ export function staticPager(items, { page = 1, pageSize = 20, hasMore = false } 
   };
 }
 
-/* Biểu đồ: dựng lại phần tính toán của script setup ở mức đủ cho SSR (không hover). */
-const chartComponent = (render, props, setup) => ({ props, ssrRender: render, setup });
-
-function barSetup(p) {
-  const s = p.series.length;
-  const rowH = s * 14 + (s - 1) * 4 + 28;
-  const all = p.rows.flatMap((r) => r.values.filter((v) => v !== null));
-  const max = p.max ?? Math.max(1, ...all.map((v) => Math.abs(v)));
-  const plotW = 640 - 132 - 88;
-  return {
-    BAR_H: 14, GAP: 4, ROW_PAD: 14, LABEL_W: 132, VALUE_W: 88, WIDTH: 640, plotW,
-    rowH, height: Math.max(1, p.rows.length) * rowH, hover: null, tip: null,
-    format: p.format ?? String,
-    barW: (v) => (v === null || v <= 0 ? 0 : Math.max(2, (v / max) * plotW)),
-  };
-}
-
-function dailySetup(p) {
-  const PAD = { top: 12, right: 8, bottom: 28, left: 36 };
-  const plotW = 640 - PAD.left - PAD.right;
-  const plotH = 220 - PAD.top - PAD.bottom;
-  const max = Math.max(1, ...p.points.map((x) => x.count));
-  const slot = plotW / Math.max(1, p.points.length);
-  const barW = Math.max(2, slot * 0.7);
-  return {
-    WIDTH: 640, HEIGHT: 220, PAD, plotW, plotH, ticks: [0, max], slot, barW, hoverIdx: null, tip: null, svgRef: null,
-    total: p.points.reduce((a, x) => a + x.count, 0),
-    y: (v) => PAD.top + plotH - (v / max) * plotH,
-    x: (i) => PAD.left + i * slot + (slot - barW) / 2,
-    xLabels: p.points.map((x, i) => ({ i, label: x.date })),
-    shortDate: (d) => d, onMove() {}, color: p.color ?? '#3987e5', unitVi: p.unitVi ?? '',
-  };
-}
-
 /** Render trang admin với các component admin dùng chung thật; Icon/NuxtLink là stub. */
 export async function renderAdminPage(ssrRender, setupData, extraComponents = {}) {
   const app = createSSRApp({ ssrRender, setup: () => ({ ui, ...setupData }) });
   const withUi = (render, props, emits = []) => ({ props, emits, ssrRender: render, setup: () => ({ ui, openAuthDialog() {}, emit() {} }) });
   app.component('AdminAccessGate', withUi(shared.gate, ['pending', 'admin']));
-  app.component('AdminPager', withUi(shared.pager, ['page', 'pageCount', 'hasMore', 'canPrev', 'canNext', 'loading'], ['prev', 'next']));
-  app.component('AdminConfirmDialog', withUi(shared.confirm, ['open', 'title', 'busy', 'errorVi'], ['cancel', 'confirm']));
-  app.component('AdminBarChart', chartComponent(shared.bar, ['title', 'series', 'rows', 'format', 'max'], barSetup));
-  app.component('AdminDailyChart', chartComponent(shared.daily, ['title', 'points', 'color', 'unitVi'], dailySetup));
+  app.component('AdminPager', shared.pager);
+  app.component('AdminConfirmDialog', shared.confirm);
+  app.component('AdminBarChart', shared.bar);
+  app.component('AdminDailyChart', shared.daily);
   app.component('BaseInput', shared.baseInput);
   app.component('BaseTextarea', shared.baseTextarea);
   app.component('BaseSelect', shared.baseSelect);
+  for (const [n, d] of Object.entries(shadcnStubs())) app.component(n, d);
   app.component('Icon', { props: ['name'], ssrRender(_c, push) { push('<span class="mock-lucide-icon"></span>'); } });
   app.component('NuxtLink', {
     props: ['to'],
