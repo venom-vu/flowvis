@@ -754,7 +754,7 @@ describe('@flowvis/web — Story 1.9 đăng nhập, ToS và phiên', () => {
     assert.deepEqual(paths, ['/']);
   });
 
-  it('trang chính render thông báo hết credit ở balance = 0, kèm liên kết /pricing, và không render ở balance 500', async () => {
+  it('trang chính không còn render thông báo hết credit ở mọi trạng thái số dư', async () => {
     const raw = fs.readFileSync(path.join(webRoot, 'pages/index.vue'), 'utf8');
     const { descriptor } = parse(raw);
     const compiled = compileTemplate({
@@ -776,7 +776,6 @@ describe('@flowvis/web — Story 1.9 đăng nhập, ToS và phiên', () => {
           setup() {
             return {
               me,
-              isOutOfCredit,
               pricing: MOCK_PRICING_CONFIG_RESPONSE,
               currentTier: 'FREE',
               currentTierCapSeconds: 5,
@@ -811,8 +810,7 @@ describe('@flowvis/web — Story 1.9 đăng nhập, ToS và phiên', () => {
       }
 
       const empty = await render({ ...MOCK_ME_PRO_RESPONSE, balance: 0 });
-      assert.match(empty, /data-testid="zero-credit-notice"/);
-      assert.match(empty, /href="\/pricing"/);
+      assert.doesNotMatch(empty, /data-testid="zero-credit-notice"/);
 
       const funded = await render({ ...MOCK_ME_PRO_RESPONSE, balance: 500 });
       assert.doesNotMatch(funded, /data-testid="zero-credit-notice"/);

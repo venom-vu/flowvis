@@ -23,21 +23,27 @@ const data = computed(() =>
   }),
 );
 // Nhãn trục X thưa: khoảng 6 nhãn, luôn có ngày cuối.
+const isVisibleTick = (i: number, n: number): boolean => {
+  const every = Math.max(1, Math.ceil(n / 6));
+  return (n - 1 - i) % every === 0;
+};
 const xFormatter = (v: number | Date): string => {
   const i = Number(v);
-  const n = props.points.length;
-  const every = Math.max(1, Math.ceil(n / 6));
-  return (n - 1 - i) % every === 0 ? (data.value[i]?.date ?? '') : '';
+  return isVisibleTick(i, props.points.length) ? (data.value[i]?.date ?? '') : '';
 };
+const xTickValues = computed(() => {
+  const n = props.points.length;
+  return props.points.map((_, i) => i).filter((i) => isVisibleTick(i, n));
+});
 </script>
 
 <template>
-  <Card class="p-5">
-    <CardHeader class="flex flex-row items-baseline justify-between gap-2 p-0 pb-4">
+  <Card class="min-w-0 p-5">
+    <CardHeader class="flex flex-row flex-wrap items-baseline justify-between gap-2 p-0 pb-4">
       <CardTitle class="text-base">{{ title }}</CardTitle>
       <span class="text-sm text-muted-foreground">Tổng {{ total }} {{ unitVi }}</span>
     </CardHeader>
-    <CardContent class="p-0">
+    <CardContent class="min-w-0 p-0">
       <BarChart
         class="h-[220px]"
         :data="data"
@@ -45,6 +51,8 @@ const xFormatter = (v: number | Date): string => {
         :categories="[category]"
         :colors="[color]"
         :x-formatter="xFormatter"
+        :x-tick-values="xTickValues"
+        :adaptive-x-axis-ticks="true"
         :show-legend="false"
         :rounded-corners="2"
       />

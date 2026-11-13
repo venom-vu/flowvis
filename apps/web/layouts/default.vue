@@ -1,7 +1,30 @@
 <script setup lang="ts">
+import { computed, watch } from 'vue';
+import { useAuth } from '~/composables/useAuth';
 import { usePricingConfig } from '~/composables/usePricingConfig';
+import { useSessionHint } from '~/composables/useSessionHint';
 
 const { me } = usePricingConfig();
+const { sessionChecked } = useAuth();
+const { hint } = useSessionHint();
+
+// Đồng bộ gợi ý: có hồ sơ thì ghi nhớ, kiểm tra phiên xong mà không có thì xóa.
+watch(
+  [() => me.value?.email, sessionChecked],
+  ([email, checked]) => {
+    if (email) {
+      hint.value = true;
+    } else if (checked) {
+      hint.value = false;
+    }
+  },
+  { immediate: true },
+);
+
+// Chưa biết trạng thái: từng đăng nhập, phiên chưa kiểm tra xong, chưa có hồ sơ.
+const authPending = computed<boolean>(
+  () => hint.value && !sessionChecked.value && !me.value?.email,
+);
 </script>
 
 <template>
@@ -15,6 +38,7 @@ const { me } = usePricingConfig();
       :tier="me?.tier ?? 'FREE'"
       :email="me?.email ?? null"
       :role="me?.role ?? null"
+      :auth-pending="authPending"
     />
 
     <main

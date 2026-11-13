@@ -1,13 +1,12 @@
 <script setup lang="ts">
-import { computed, ref } from 'vue';
-import { isOutOfCredit } from '~/utils/auth-session';
-import { usePricingConfig } from '~/composables/usePricingConfig';
+import { computed, ref } from "vue";
+import { usePricingConfig } from "~/composables/usePricingConfig";
 import {
   FEATURE_CATEGORIES,
   formatNumberVi,
   type AiFeatureTool,
   type FeatureCategoryId,
-} from '~/utils/catalog';
+} from "~/utils/catalog";
 
 const {
   pricing,
@@ -21,15 +20,15 @@ const {
   clearError,
 } = usePricingConfig();
 
-const selectedCategory = ref<FeatureCategoryId>('all');
-const searchKeyword = ref<string>('');
+const selectedCategory = ref<FeatureCategoryId>("all");
+const searchKeyword = ref<string>("");
 const activeFeature = ref<AiFeatureTool | null>(null);
 const isWorkspaceOpen = ref<boolean>(false);
 
 function normalizeTextVi(text: string): string {
   return text
-    .normalize('NFD')
-    .replace(/[\u0300-\u036f]/g, '')
+    .normalize("NFD")
+    .replace(/[\u0300-\u036f]/g, "")
     .toLowerCase();
 }
 
@@ -38,7 +37,7 @@ const filteredFeatures = computed<AiFeatureTool[]>(() => {
   const normalizedKeyword = normalizeTextVi(rawKeyword);
   return features.value.filter((tool) => {
     const matchesCategory =
-      selectedCategory.value === 'all' ||
+      selectedCategory.value === "all" ||
       tool.category === selectedCategory.value;
     if (!matchesCategory) {
       return false;
@@ -77,11 +76,15 @@ function closeWorkspace(): void {
         class="flex flex-col justify-between gap-4 lg:flex-row lg:items-center"
       >
         <div class="space-y-2">
-          <div class="inline-flex items-center gap-2 rounded-full border border-cyber-violet/40 bg-cyber-violet/15 px-3 py-1 text-xs font-medium text-cyber-violet">
+          <div
+            class="inline-flex items-center gap-2 rounded-full border border-cyber-violet/40 bg-cyber-violet/15 px-3 py-1 text-xs font-medium text-cyber-violet"
+          >
             <Icon name="lucide:cpu" class="h-3.5 w-3.5" />
             <span>Kho Công Cụ AI Thế Hệ Mới</span>
           </div>
-          <h1 class="font-display text-2xl font-bold tracking-tight text-cyber-text sm:text-3xl">
+          <h1
+            class="font-display text-2xl font-bold tracking-tight text-cyber-text sm:text-3xl"
+          >
             Chọn Công Cụ AI Và Mở Không Gian Làm Việc
           </h1>
           <p class="max-w-2xl text-sm text-cyber-muted">
@@ -122,26 +125,6 @@ function closeWorkspace(): void {
           </div>
         </div>
       </div>
-    </section>
-
-    <!-- Nhắc nạp khi hết credit -->
-    <section
-      v-if="isOutOfCredit(me)"
-      data-testid="zero-credit-notice"
-      role="status"
-      class="flex flex-col gap-3 rounded-2xl border border-cyber-warning/50 bg-cyber-surface p-4 sm:flex-row sm:items-center sm:justify-between"
-    >
-      <div class="flex items-center gap-3 text-sm text-cyber-text">
-        <Icon name="lucide:coins" class="h-5 w-5 shrink-0 text-cyber-warning" />
-        <span>Bạn đã hết credit. Hãy nạp thêm credit để tiếp tục tạo tác vụ AI.</span>
-      </div>
-      <NuxtLink
-        to="/pricing"
-        class="touch-target inline-flex min-h-[48px] min-w-[48px] items-center justify-center gap-2 rounded-xl bg-cyber-violet px-4 py-2.5 text-xs font-semibold text-cyber-text hover:bg-cyber-violet/90"
-      >
-        <Icon name="lucide:plus-circle" class="h-4 w-4" />
-        <span>Nạp Credit</span>
-      </NuxtLink>
     </section>
 
     <!-- Banner thông báo lỗi tiếng Việt (nếu có) -->
@@ -195,7 +178,10 @@ function closeWorkspace(): void {
       v-if="isLoading && !pricing"
       class="flex items-center justify-center gap-3 rounded-2xl border border-cyber-border bg-cyber-surface p-10 text-sm text-cyber-muted"
     >
-      <Icon name="lucide:loader-circle" class="h-5 w-5 animate-spin text-cyber-violet" />
+      <Icon
+        name="lucide:loader-circle"
+        class="h-5 w-5 animate-spin text-cyber-violet"
+      />
       <span>Đang tải cấu hình công cụ và bảng giá từ hệ thống...</span>
     </div>
 

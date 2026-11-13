@@ -12,6 +12,7 @@ const props = withDefaults(
     tier?: AccountTier | null;
     email?: string | null;
     role?: UserRole | null;
+    authPending?: boolean;
   }>(),
   {
     balance: null,
@@ -19,6 +20,7 @@ const props = withDefaults(
     tier: null,
     email: null,
     role: null,
+    authPending: false,
   },
 );
 
@@ -33,19 +35,7 @@ const baseNavItems = [
   },
 ] as const;
 
-const navItems = computed(() => {
-  if (props.role === "admin") {
-    return [
-      ...baseNavItems,
-      {
-        to: "/admin",
-        labelVi: "Quản Trị",
-        icon: "lucide:terminal",
-      },
-    ];
-  }
-  return baseNavItems;
-});
+const navItems = baseNavItems;
 
 const isLoggedIn = computed<boolean>(() => Boolean(props.email));
 
@@ -116,11 +106,12 @@ function isActiveRoute(targetPath: string): boolean {
           to="/pricing"
           data-testid="pricing-link"
           class="touch-target hidden min-h-[48px] min-w-[48px] items-center rounded-lg px-3 text-sm font-medium transition sm:inline-flex"
-          :class="
+          :class="[
+            authPending ? 'invisible' : '',
             isActiveRoute('/pricing')
               ? 'text-cyber-text'
-              : 'text-cyber-muted hover:text-cyber-text'
-          "
+              : 'text-cyber-muted hover:text-cyber-text',
+          ]"
         >
           Bảng giá
         </NuxtLink>
@@ -152,10 +143,22 @@ function isActiveRoute(targetPath: string): boolean {
           <span>Nạp Credit</span>
         </NuxtLink>
 
-        <AccountPopover v-if="isLoggedIn" :email="email" />
+        <!-- Khung chờ khi đang khôi phục phiên: tránh nháy UI khách -->
+        <div
+          v-if="!isLoggedIn && authPending"
+          data-testid="auth-pending"
+          aria-busy="true"
+          aria-label="Đang kiểm tra phiên đăng nhập"
+          class="flex items-center gap-2"
+        >
+          <div class="h-[48px] w-[104px] animate-pulse rounded-xl border border-cyber-border bg-cyber-surface" />
+          <div class="h-[48px] w-[48px] animate-pulse rounded-full border border-cyber-border bg-cyber-surface" />
+        </div>
+
+        <AccountPopover v-if="isLoggedIn" :email="email" :role="role" />
 
         <button
-          v-else
+          v-else-if="!authPending"
           type="button"
           data-testid="login-button"
           aria-label="Đăng nhập tài khoản"

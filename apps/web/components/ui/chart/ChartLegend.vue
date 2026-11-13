@@ -22,7 +22,7 @@ function keepStyling() {
     const elements = elRef.value?.querySelectorAll(selector)
     const classes = buttonVariants({ variant: "ghost", size: "xs" }).split(" ")
 
-    elements?.forEach(el => el.classList.add(...classes, "!inline-flex", "!mr-2"))
+    elements?.forEach(el => el.classList.add(...classes, "!inline-flex", "!mr-2", "!max-w-full"))
   })
 }
 
@@ -48,7 +48,9 @@ function onLegendItemClick(d: BulletLegendItemInterface, i: number) {
 
 <template>
   <div
-    ref="elRef" class="w-max" :style="{
+    ref="elRef"
+    class="w-fit max-w-full shrink-0 [&_[data-vis-bullet-legend]]:flex [&_[data-vis-bullet-legend]]:flex-wrap [&_[data-vis-bullet-legend]]:justify-end [&_[data-vis-bullet-legend]]:gap-y-1"
+    :style="{
       '--vis-legend-bullet-size': '16px',
     }"
   >

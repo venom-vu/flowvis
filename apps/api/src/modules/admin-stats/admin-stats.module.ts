@@ -5,10 +5,11 @@ import { TasksModule } from '../tasks/tasks.module.js';
 import { TopupsModule } from '../topups/topups.module.js';
 import { AdminStatsController } from './admin-stats.controller.js';
 import { AdminStatsService } from './admin-stats.service.js';
+import { FxRateService } from './fx-rate.service.js';
 
 @Module({
   imports: [AuthModule, TasksModule, TopupsModule, AuditModule],
   controllers: [AdminStatsController],
-  providers: [AdminStatsService],
+  providers: [AdminStatsService, FxRateService],
 })
 export class AdminStatsModule {}

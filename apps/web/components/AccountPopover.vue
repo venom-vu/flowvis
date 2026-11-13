@@ -4,11 +4,14 @@ import { navigateTo, useRoute } from "#imports";
 import { useAuth } from "~/composables/useAuth";
 // import { useAuthDialog } from "~/composables/useAuthDialog";
 
+import type { UserRole } from "@flowvis/contracts";
+
 withDefaults(
   defineProps<{
     email?: string | null;
+    role?: UserRole | null;
   }>(),
-  { email: null },
+  { email: null, role: null },
 );
 
 const route = useRoute();
@@ -61,6 +64,11 @@ function goToHistory(): void {
 function goToTasks(): void {
   close();
   void navigateTo("/tasks");
+}
+
+function goToAdmin(): void {
+  close();
+  void navigateTo("/admin");
 }
 
 async function handleLogout(): Promise<void> {
@@ -152,6 +160,21 @@ onBeforeUnmount(() => {
           class="h-4 w-4 shrink-0 text-cyber-violet"
         />
         <span>Biến động credit</span>
+      </button>
+
+      <button
+        v-if="role === 'admin'"
+        type="button"
+        role="menuitem"
+        data-testid="menu-admin"
+        class="touch-target flex min-h-[48px] w-full items-center gap-3 rounded-xl px-3 py-2 text-left text-sm transition hover:bg-cyber-bg"
+        @click="goToAdmin"
+      >
+        <Icon
+          name="lucide:terminal"
+          class="h-4 w-4 shrink-0 text-cyber-violet"
+        />
+        <span>Quản trị</span>
       </button>
 
       <button

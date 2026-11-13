@@ -4,7 +4,6 @@ import type { Component } from "vue"
 import type { BaseChartProps } from "."
 import { Axis, GroupedBar, StackedBar } from "@unovis/ts"
 import { VisAxis, VisGroupedBar, VisStackedBar, VisXYContainer } from "@unovis/vue"
-import { useMounted } from "@vueuse/core"
 import { computed, ref } from "vue"
 import { cn } from "@/lib/utils"
 import { ChartCrosshair, ChartLegend, defaultColors } from '@/components/ui/chart'
@@ -24,11 +23,21 @@ const props = withDefaults(defineProps<BaseChartProps<T> & {
    * @default 0
    */
   roundedCorners?: number
+  /**
+   * Explicit X-axis tick values (e.g. indices for categorical bars).
+   */
+  xTickValues?: number[]
+  /**
+   * Adaptively thin X-axis tick labels to prevent overlapping.
+   * @default false
+   */
+  adaptiveXAxisTicks?: boolean
 }>(), {
   type: "grouped",
   margin: () => ({ top: 0, bottom: 0, left: 0, right: 0 }),
   filterOpacity: 0.2,
   roundedCorners: 0,
+  adaptiveXAxisTicks: false,
   showXAxis: true,
   showYAxis: true,
   showTooltip: true,
@@ -50,8 +59,6 @@ const legendItems = ref<BulletLegendItemInterface[]>(props.categories.map((categ
   inactive: false,
 })))
 
-const isMounted = useMounted()
-
 function handleLegendItemClick(d: BulletLegendItemInterface, i: number) {
   emits("legendItemClick", d, i)
 }
@@ -61,12 +68,12 @@ const selectorsBar = computed(() => props.type === "grouped" ? GroupedBar.select
 </script>
 
 <template>
-  <div :class="cn('w-full h-[400px] flex flex-col items-end', $attrs.class ?? '')">
+  <div :class="cn('w-full h-[400px] flex flex-col items-end gap-1', $attrs.class ?? '')">
     <ChartLegend v-if="showLegend" v-model:items="legendItems" @legend-item-click="handleLegendItemClick" />
 
     <VisXYContainer
       :data="data"
-      :style="{ height: isMounted ? '100%' : 'auto' }"
+      class="w-full flex-1 min-h-0"
       :margin="margin"
     >
       <ChartCrosshair v-if="showTooltip" :colors="colors" :items="legendItems" :custom-tooltip="customTooltip" :index="index" />
@@ -90,7 +97,9 @@ const selectorsBar = computed(() => props.type === "grouped" ? GroupedBar.select
       <VisAxis
         v-if="showXAxis"
         type="x"
-        :tick-format="xFormatter ?? ((v: number) => data[v]?.[index])"
+        :tick-format="xFormatter ?? ((v: number | Date) => (typeof v === 'number' && Number.isInteger(v) ? String(data[v]?.[index] ?? '') : ''))"
+        :tick-values="xTickValues"
+        :tick-text-adaptive-sets="adaptiveXAxisTicks"
         :grid-line="false"
         :tick-line="false"
         tick-text-color="hsl(var(--vis-text-color))"

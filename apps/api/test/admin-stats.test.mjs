@@ -96,6 +96,10 @@ describe('Story 6.6: [BE] Thống kê vận hành và nhật ký Admin', () => {
     process.env.DATABASE_URL = DB_URL;
     process.env.REDIS_URL = REDIS_URL;
     process.env.PORT = '0';
+    // Giả lập API tỉ giá lỗi để service dùng USD_VND.
+    const realFetch = globalThis.fetch;
+    globalThis.fetch = (u, ...a) => (String(u).includes('er-api.com') ? Promise.reject(new Error('offline')) : realFetch(u, ...a));
+    process.env.USD_VND = '25000';
     process.env.JWT_SECRET = 'super-secret-test-jwt-key-with-at-least-32-chars-ok';
     process.env.FRONTEND_URL = 'http://localhost:3000';
     await ensureInfra();

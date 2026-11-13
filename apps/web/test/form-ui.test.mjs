@@ -317,4 +317,30 @@ describe('Base Form UI & sửa lỗi vỡ giao diện', () => {
     const mainCss = fs.readFileSync(path.join(webRoot, 'assets/css/main.css'), 'utf8');
     assert.match(mainCss, /\[data-reka-popper-content-wrapper\]\s*>\s*div/);
   });
+
+  it('Biểu đồ cột: VisXYContainer co giãn vừa phần còn lại sau legend và legend/trục X không tràn khung', () => {
+    const barChart = fs.readFileSync(path.join(webRoot, 'components/ui/chart-bar/BarChart.vue'), 'utf8');
+    assert.doesNotMatch(barChart, /height:\s*isMounted\s*\?\s*'100%'/);
+    assert.match(barChart, /<VisXYContainer[\s\S]*class="[^"]*\bflex-1\b[^"]*\bmin-h-0\b/);
+    assert.match(barChart, /:tick-values="xTickValues"/);
+    assert.match(barChart, /:tick-text-adaptive-sets="adaptiveXAxisTicks"/);
+    assert.match(barChart, /Number\.isInteger\(v\)/);
+
+    const legend = fs.readFileSync(path.join(webRoot, 'components/ui/chart/ChartLegend.vue'), 'utf8');
+    assert.doesNotMatch(legend, /\bw-max\b/);
+    assert.match(legend, /\bmax-w-full\b/);
+    assert.match(legend, /\bshrink-0\b/);
+    assert.match(legend, /flex-wrap/);
+
+    const adminBar = fs.readFileSync(path.join(webRoot, 'components/AdminBarChart.vue'), 'utf8');
+    assert.match(adminBar, /min-w-0/);
+    assert.match(adminBar, /:x-tick-values="xTickValues"/);
+    assert.match(adminBar, /:adaptive-x-axis-ticks="true"/);
+
+    const adminDaily = fs.readFileSync(path.join(webRoot, 'components/AdminDailyChart.vue'), 'utf8');
+    assert.match(adminDaily, /min-w-0/);
+    assert.match(adminDaily, /flex-wrap/);
+    assert.match(adminDaily, /:x-tick-values="xTickValues"/);
+    assert.match(adminDaily, /:adaptive-x-axis-ticks="true"/);
+  });
 });

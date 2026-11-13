@@ -32,6 +32,7 @@ const props = withDefaults(
 const index = 'labelVi';
 const categories = computed(() => props.series.map((s) => s.labelVi));
 const colors = computed(() => props.series.map((s) => s.color));
+const xTickValues = computed(() => props.rows.map((_, i) => i));
 const data = computed(() =>
   props.rows.map((r) => {
     const row: Record<string, string | number> = { [index]: r.labelVi };
@@ -45,20 +46,22 @@ const yFormatter = (v: number | Date): string => props.format(Number(v));
 </script>
 
 <template>
-  <Card class="p-5">
+  <Card class="min-w-0 p-5">
     <CardHeader class="p-0 pb-4">
       <CardTitle class="text-base">{{ title }}</CardTitle>
     </CardHeader>
-    <CardContent class="p-0">
+    <CardContent class="min-w-0 p-0">
       <p v-if="rows.length === 0" class="text-sm text-muted-foreground">Chưa có dữ liệu.</p>
       <BarChart
         v-else
-        class="h-[260px]"
+        class="h-[280px]"
         :data="data"
         :index="index"
         :categories="categories"
         :colors="colors"
         :y-formatter="yFormatter"
+        :x-tick-values="xTickValues"
+        :adaptive-x-axis-ticks="true"
         :show-legend="series.length >= 2"
         :rounded-corners="2"
       />
