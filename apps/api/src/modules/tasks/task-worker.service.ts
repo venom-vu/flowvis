@@ -9,7 +9,9 @@ import {
   RunningHubNetworkError,
   STORAGE_PORT,
   type ResultIngestor,
+  type RunningHubInstanceType,
   type RunningHubNodeInfo,
+  type RunningHubOutputs,
   type RunningHubPort,
   type StoragePort,
 } from '../../ports/index.js';
@@ -288,15 +290,16 @@ export class TaskWorkerService implements OnModuleInit, OnModuleDestroy {
     }
 
     // (d) submit
-    if (!(await this.tasks.markSubmitStarted(taskId))) return;
+    const instanceType = this.pipelines.getInstanceType(config);
+    if (!(await this.tasks.markSubmitStarted(taskId, instanceType))) return;
     this.logger.log(
-      `Task ${taskId}: gửi ${this.pipelines.getRunMode(config)} ${workflowId} với ${nodeInfo.length} node (${nodeInfo
+      `Task ${taskId}: gửi ${this.pipelines.getRunMode(config)} (máy ${instanceType}) ${workflowId} với ${nodeInfo.length} node (${nodeInfo
         .map((n) => `${n.nodeId}/${n.fieldName}`)
         .join(', ')})`,
     );
     let rhId: string;
     try {
-      rhId = await this.submitWithRetry(workflowId, nodeInfo, signal, this.pipelines.getRunMode(config));
+      rhId = await this.submitWithRetry(workflowId, nodeInfo, signal, this.pipelines.getRunMode(config), instanceType);
     } catch (err) {
       if (signal.aborted) return;
       if (err instanceof SubmitFailure) {
@@ -358,10 +361,11 @@ export class TaskWorkerService implements OnModuleInit, OnModuleDestroy {
     nodeInfo: RunningHubNodeInfo[],
     signal: AbortSignal,
     mode?: 'ai-app' | 'workflow',
+    instanceType?: RunningHubInstanceType,
   ): Promise<string> {
     for (let attempt = 1; attempt <= 2; attempt++) {
       try {
-        return await this.rh.submit(workflowId, nodeInfo, this.timeoutSignal(signal), mode);
+        return await this.rh.submit(workflowId, nodeInfo, this.timeoutSignal(signal), mode, instanceType);
       } catch (err) {
         if (err instanceof RunningHubNetworkError) {
           this.logger.warn(`submit lần ${attempt}/2 lỗi mạng (requestSent=${err.requestSent}): ${err.message}`);
@@ -380,6 +384,15 @@ export class TaskWorkerService implements OnModuleInit, OnModuleDestroy {
     throw new SubmitFailure('RH_ERROR');
   }
 
+  /** Ghi chi phí thật; lỗi chỉ log cảnh báo, không làm hỏng Task. */
+  private async safeRecordCost(taskId: string, out: RunningHubOutputs): Promise<void> {
+    try {
+      await this.tasks.recordCost(taskId, { costUsd: out.costUsd, costSeconds: out.costSeconds });
+    } catch (err) {
+      this.logger.warn(`Task ${taskId}: không ghi được chi phí GPU: ${String(err)}`);
+    }
+  }
+
   private async poll(initial: TaskRow, signal: AbortSignal): Promise<void> {
     const taskId = initial.id;
     const rhId = initial.runninghubTaskId as string;
@@ -395,6 +408,7 @@ export class TaskWorkerService implements OnModuleInit, OnModuleDestroy {
           lastStatus = out.status;
           this.logger.log(`Task ${taskId}: RunningHub ${rhId} trạng thái ${out.status}`);
         }
+        if (out.status === 'SUCCESS' || out.status === 'FAILED') await this.safeRecordCost(taskId, out);
         if (out.status === 'SUCCESS') {
           const gpuCoins = clampCoins(out.consumeMoney);
           this.logger.log(`Task ${taskId}: RunningHub SUCCESS, tải kết quả từ ${out.fileUrl ?? '(thiếu fileUrl)'}`);

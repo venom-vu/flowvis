@@ -38,6 +38,8 @@ import {
 } from '@flowvis/contracts';
 import type { Queue } from 'bullmq';
 import { PrismaService, type PrismaTransactionClient } from '../../infra/prisma.service.js';
+import type { RunningHubInstanceType } from '../../ports/index.js';
+import { estimateCostUsd } from './instance-pricing.js';
 import { RedisService } from '../../infra/redis.service.js';
 import { assertValidTransition, isTerminal } from './task-transitions.js';
 import { AccountLockedException } from '../auth/guards/account-locked.guard.js';
@@ -67,10 +69,17 @@ export interface TaskPipelineStatsRow {
   system_failed: number;
   avg_proc: number | null;
   p95_proc: number | null;
-  ok_gpu_sum: number | null;
-  wasted_gpu: number | null;
+  /** Chi phí USD của Task succeeded. */
+  ok_cost: number | null;
+  /** Chi phí USD lãng phí (failed/timed_out/cancelled). */
+  wasted_cost: number | null;
   ok_seconds: number | null;
-  all_gpu: number | null;
+  all_cost: number | null;
+  /** Số Task succeeded có cost_usd (mẫu cho AVG). */
+  ok_cost_n: number;
+  /** Số giây ok_seconds chỉ tính Task succeeded có cost_usd (để chia per-giây). */
+  ok_seconds_costed: number | null;
+  by_instance: Array<{ instance_type: string; tasks: number; cost_usd: number }>;
 }
 
 export const TASKS_QUEUE = 'tasks';
@@ -221,27 +230,31 @@ export class TasksService {
   /** Thống kê Task theo pipeline trong [from, to] (created_at); `benchmark` chọn nhóm user của `userIds`. */
   async statsByPipeline(from: Date, to: Date, userIds: string[], benchmark: boolean): Promise<TaskPipelineStatsRow[]> {
     const reasons = [...SYSTEM_FAILURE_REASONS];
-    const rows = await this.prisma.$queryRaw<Array<Omit<TaskPipelineStatsRow, 'counts'>>>`
+    const rows = await this.prisma.$queryRaw<Array<Omit<TaskPipelineStatsRow, 'counts' | 'by_instance'>>>`
       SELECT pipeline,
         SUM(ok)::int AS succeeded,
         SUM(sys_fail)::int AS system_failed,
         AVG(proc)::float8 AS avg_proc,
         percentile_cont(0.95) WITHIN GROUP (ORDER BY proc)::float8 AS p95_proc,
-        SUM(ok_gpu)::float8 AS ok_gpu_sum,
-        SUM(wasted)::float8 AS wasted_gpu,
+        SUM(ok_cost)::float8 AS ok_cost,
+        SUM(wasted)::float8 AS wasted_cost,
         SUM(ok_seconds)::float8 AS ok_seconds,
-        SUM(all_gpu)::float8 AS all_gpu
+        SUM(all_cost)::float8 AS all_cost,
+        COUNT(ok_cost)::int AS ok_cost_n,
+        SUM(ok_seconds_costed)::float8 AS ok_seconds_costed
       FROM (
         SELECT pipeline,
           (status = 'succeeded')::int AS ok,
           (status IN ('failed','timed_out') AND reason_code = ANY(${reasons}::text[]))::int AS sys_fail,
           CASE WHEN status = 'succeeded' AND finished_at IS NOT NULL AND running_at IS NOT NULL
             THEN EXTRACT(EPOCH FROM (finished_at - running_at)) END AS proc,
-          CASE WHEN status = 'succeeded' THEN COALESCE(gpu_coins, 0) ELSE 0 END AS ok_gpu,
-          CASE WHEN status IN ('failed','timed_out','cancelled') THEN COALESCE(gpu_coins, 0) ELSE 0 END AS wasted,
+          CASE WHEN status = 'succeeded' THEN cost_usd END AS ok_cost,
+          CASE WHEN status IN ('failed','timed_out','cancelled') THEN COALESCE(cost_usd, 0) ELSE 0 END AS wasted,
           CASE WHEN status = 'succeeded' AND jsonb_typeof(params->'seconds') = 'number'
             THEN (params->>'seconds')::float8 ELSE 0 END AS ok_seconds,
-          COALESCE(gpu_coins, 0) AS all_gpu
+          CASE WHEN status = 'succeeded' AND cost_usd IS NOT NULL AND jsonb_typeof(params->'seconds') = 'number'
+            THEN (params->>'seconds')::float8 ELSE 0 END AS ok_seconds_costed,
+          COALESCE(cost_usd, 0) AS all_cost
         FROM tasks
         WHERE created_at >= ${from}::timestamptz AND created_at <= ${to}::timestamptz
           AND ((user_id = ANY(${userIds}::uuid[])) = ${benchmark}::boolean)
@@ -252,10 +265,21 @@ export class TasksService {
       WHERE created_at >= ${from}::timestamptz AND created_at <= ${to}::timestamptz
         AND ((user_id = ANY(${userIds}::uuid[])) = ${benchmark}::boolean)
       GROUP BY pipeline, status`;
+    const instRows = await this.prisma.$queryRaw<Array<{ pipeline: string; instance_type: string; tasks: number; cost_usd: number }>>`
+      SELECT pipeline, COALESCE(instance_type, 'unknown') AS instance_type, COUNT(*)::int AS tasks,
+        COALESCE(SUM(cost_usd), 0)::float8 AS cost_usd
+      FROM tasks
+      WHERE created_at >= ${from}::timestamptz AND created_at <= ${to}::timestamptz
+        AND ((user_id = ANY(${userIds}::uuid[])) = ${benchmark}::boolean)
+        AND instance_type IS NOT NULL
+      GROUP BY pipeline, instance_type`;
     return rows.map((r) => {
       const counts: Record<string, number> = {};
       for (const c of countRows) if (c.pipeline === r.pipeline) counts[c.status] = c.n;
-      return { ...r, counts };
+      const by_instance = instRows
+        .filter((i) => i.pipeline === r.pipeline)
+        .map((i) => ({ instance_type: i.instance_type, tasks: i.tasks, cost_usd: i.cost_usd }));
+      return { ...r, counts, by_instance };
     });
   }
 
@@ -348,10 +372,43 @@ export class TasksService {
   }
 
   /** Đặt submit_started_at một lần duy nhất; false nếu đã đặt hoặc Task không còn running. */
-  async markSubmitStarted(taskId: string): Promise<boolean> {
+  async markSubmitStarted(taskId: string, instanceType: RunningHubInstanceType): Promise<boolean> {
     const n = await this.prisma.$executeRaw`
-      UPDATE tasks SET submit_started_at = now(), updated_at = now()
+      UPDATE tasks SET submit_started_at = now(), instance_type = ${instanceType}, updated_at = now()
       WHERE id = ${taskId}::uuid AND status = 'running' AND submit_started_at IS NULL`;
+    return n > 0;
+  }
+
+  /**
+   * Ghi chi phí GPU thật khi RunningHub báo SUCCESS/FAILED (chỉ khi Task đang running).
+   * Có costUsd hợp lệ: 'reported'. Ngược lại có costSeconds > 0 và Task có instance_type: 'estimated'. Không có gì: để NULL.
+   * cost_seconds luôn được lưu nếu có.
+   */
+  async recordCost(taskId: string, cost: { costUsd?: number; costSeconds?: number }): Promise<boolean> {
+    const secs =
+      typeof cost.costSeconds === 'number' && Number.isFinite(cost.costSeconds) && cost.costSeconds > 0
+        ? Math.round(cost.costSeconds)
+        : null;
+    const reported =
+      typeof cost.costUsd === 'number' && Number.isFinite(cost.costUsd) && cost.costUsd >= 0 ? cost.costUsd : null;
+    if (reported === null && secs === null) return false;
+    const row = await this.prisma.task.findUnique({ where: { id: taskId }, select: { instanceType: true, status: true } });
+    if (!row || row.status !== 'running') return false;
+    let usd: number | null = null;
+    let source: 'reported' | 'estimated' | null = null;
+    if (reported !== null) {
+      usd = reported;
+      source = 'reported';
+    } else {
+      const est = estimateCostUsd(row.instanceType, secs);
+      if (est !== undefined) {
+        usd = est;
+        source = 'estimated';
+      }
+    }
+    const n = await this.prisma.$executeRaw`
+      UPDATE tasks SET cost_usd = ${usd}::numeric, cost_source = ${source}, cost_seconds = ${secs}::int, updated_at = now()
+      WHERE id = ${taskId}::uuid AND status = 'running'`;
     return n > 0;
   }
 

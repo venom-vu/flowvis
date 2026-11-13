@@ -27,7 +27,6 @@ export const DEFAULT_THRESHOLDS = Object.freeze({
   trimMaxSeconds: 60,
   healthP95MaxMs: 1000,
   minCreatorMargin: 0.7,
-  coinsPerGpuSecond: 0.4,
   durationToleranceSeconds: 0.5,
   faceSwapSlaSeconds: 60,
   benchmarkSampleCount: 20,
@@ -41,7 +40,6 @@ const NUMERIC_ENV = {
   trimMaxSeconds: 'PRELAUNCH_TRIM_MAX_SECONDS',
   healthP95MaxMs: 'PRELAUNCH_HEALTH_P95_MAX_MS',
   minCreatorMargin: 'PRELAUNCH_MIN_CREATOR_MARGIN',
-  coinsPerGpuSecond: 'PRELAUNCH_COINS_PER_GPU_SECOND',
   durationToleranceSeconds: 'PRELAUNCH_DURATION_TOLERANCE',
   faceSwapSlaSeconds: 'PRELAUNCH_FACESWAP_SLA_SECONDS',
   benchmarkSampleCount: 'PRELAUNCH_BENCHMARK_SAMPLES',
@@ -104,10 +102,10 @@ export function percentile(values, p) {
   return xs[Math.min(xs.length, Math.max(1, rank)) - 1];
 }
 
-/** Giây GPU suy ra từ coin RunningHub (mặc định 0,4 coin/giây). */
-export function gpuSecondsFromCoins(coins, coinsPerSecond = DEFAULT_THRESHOLDS.coinsPerGpuSecond) {
-  if (!Number.isFinite(coins) || coins < 0 || !(coinsPerSecond > 0)) return null;
-  return coins / coinsPerSecond;
+/** Chi phí USD của RunningHub (Enterprise-Shared) cho mỗi giây video, làm tròn 4 chữ số; null khi thiếu dữ liệu. */
+export function costUsdPerSecond(costUsd, seconds) {
+  if (!Number.isFinite(costUsd) || costUsd < 0 || !Number.isFinite(seconds) || !(seconds > 0)) return null;
+  return Math.round((costUsd / seconds) * 10000) / 10000;
 }
 
 /** Sai số độ dài video so với đoạn đã cắt; null khi thiếu số liệu. */
@@ -371,10 +369,10 @@ export function validateManifest(manifest, { baseDir, repoRoot, thresholds = DEF
   return { errors, warnings, samples, sensitive };
 }
 
-/** Số liệu một lượt benchmark từ Task kết thúc + chỉ số đo (gpu_coins, mốc thời gian, độ dài thật). */
+/** Số liệu một lượt benchmark từ Task kết thúc + chỉ số đo (cost_usd, cost_seconds, mốc thời gian, độ dài thật). */
 export function sampleMetrics(sample, task, metrics, thresholds = DEFAULT_THRESHOLDS) {
-  const coins = metrics?.gpuCoins ?? null;
-  const gpuSeconds = coins == null ? null : gpuSecondsFromCoins(coins, thresholds.coinsPerGpuSecond);
+  const costUsd = typeof metrics?.costUsd === 'number' ? metrics.costUsd : null;
+  const gpuSeconds = typeof metrics?.costSeconds === 'number' ? metrics.costSeconds : null;
   const processingSeconds = secondsBetween(metrics?.runningAt, metrics?.finishedAt);
   const totalSeconds = secondsBetween(metrics?.queuedAt, metrics?.finishedAt);
   const out = {
@@ -384,7 +382,9 @@ export function sampleMetrics(sample, task, metrics, thresholds = DEFAULT_THRESH
     taskId: task?.id ?? null,
     status: task?.status ?? null,
     reasonCode: task?.reasonCode ?? null,
-    gpuCoins: coins,
+    costUsd,
+    costSource: metrics?.costSource ?? null,
+    instanceType: metrics?.instanceType ?? null,
     gpuSeconds,
     processingSeconds,
     totalSeconds,
@@ -399,6 +399,7 @@ export function sampleMetrics(sample, task, metrics, thresholds = DEFAULT_THRESH
     out.trimSeconds = sample.seconds;
     out.gpuSecondsPerVideoSecond =
       gpuSeconds != null && sample.seconds > 0 ? Math.round((gpuSeconds / sample.seconds) * 1000) / 1000 : null;
+    out.costUsdPerVideoSecond = costUsdPerSecond(costUsd, sample.seconds);
     out.outputSeconds = metrics?.outputSeconds ?? null;
     out.durationErrorSeconds = durationError(out.outputSeconds, sample.seconds);
     out.durationOk =

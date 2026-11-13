@@ -22,10 +22,13 @@ const EMPTY_ROW = (pipeline: string): TaskPipelineStatsRow => ({
   system_failed: 0,
   avg_proc: null,
   p95_proc: null,
-  ok_gpu_sum: null,
-  wasted_gpu: null,
+  ok_cost: null,
+  wasted_cost: null,
   ok_seconds: null,
-  all_gpu: null,
+  all_cost: null,
+  ok_cost_n: 0,
+  ok_seconds_costed: null,
+  by_instance: [],
 });
 
 function positiveEnv(name: string, fallback: number): number {
@@ -50,12 +53,6 @@ export class AdminStatsService {
 
   async compute(q: AdminStatsQuery): Promise<AdminStatsResponse> {
     const usdVnd = positiveEnv('USD_VND', 25000);
-    const coinsPerUsd = {
-      retail: positiveEnv('RH_COINS_PER_USD_RETAIL', 1800),
-      standardPack: positiveEnv('RH_COINS_PER_USD_STANDARD', 3600),
-    };
-    const toVnd = (coins: number, scenario: 'retail' | 'standardPack') => (coins / coinsPerUsd[scenario]) * usdVnd;
-
     const from = new Date(q.from);
     const to = new Date(q.to);
     const benchmark = q.scope === 'benchmark';
@@ -75,60 +72,57 @@ export class AdminStatsService {
     const byPipeline = new Map(rows.map((r) => [r.pipeline, r]));
     const pipelines: AdminStatsPipeline[] = [];
     const margins: AdminStatsMargin[] = [];
-    let totalGpu = 0;
+    let totalCost = 0;
 
     for (const pipeline of TASK_PIPELINES as readonly TaskPipeline[]) {
       const r = byPipeline.get(pipeline) ?? EMPTY_ROW(pipeline);
-      totalGpu += r.all_gpu ?? 0;
+      totalCost += r.all_cost ?? 0;
       const taskCounts = Object.fromEntries(TASK_STATUSES.map((s) => [s, r.counts[s] ?? 0])) as AdminStatsPipeline['taskCounts'];
       const denom = r.succeeded + r.system_failed;
-      const okGpu = r.ok_gpu_sum ?? 0;
-      const hasSucceeded = r.succeeded > 0;
-      const avgCoins = hasSucceeded ? okGpu / r.succeeded : null;
+      const okCost = r.ok_cost ?? 0;
+      // AVG bỏ qua Task chưa có cost_usd (NULL).
+      const avgUsd = r.ok_cost_n > 0 ? okCost / r.ok_cost_n : null;
       pipelines.push({
         pipeline,
         taskCounts,
         successRate: denom === 0 ? null : r.succeeded / denom,
         avgProcessingSeconds: r.avg_proc,
         p95ProcessingSeconds: r.p95_proc,
-        avgGpuCoins: avgCoins,
-        wastedGpuCoins: r.wasted_gpu ?? 0,
-        avgCostVnd:
-          avgCoins === null ? null : { retail: toVnd(avgCoins, 'retail'), standardPack: toVnd(avgCoins, 'standardPack') },
+        avgCostUsd: avgUsd,
+        wastedCostUsd: r.wasted_cost ?? 0,
+        avgCostVnd: avgUsd === null ? null : avgUsd * usdVnd,
+        costByInstanceType: r.by_instance.map((i) => ({ instanceType: i.instance_type, tasks: i.tasks, costUsd: i.cost_usd })),
       });
 
-      // Biên gộp: chỉ khi có chi phí để tính (Task succeeded).
-      if (!hasSucceeded) continue;
+      // Biên gộp: chỉ khi có chi phí thật để tính.
+      if (r.ok_cost_n === 0) continue;
       const isMotion = pipeline === 'motion_control' || pipeline === 'character_replace';
-      let unitCoins: number;
+      let unitUsd: number;
       let unitCredits: number;
       if (isMotion) {
-        const secs = r.ok_seconds ?? 0;
+        const secs = r.ok_seconds_costed ?? 0;
         if (secs <= 0) continue;
-        unitCoins = okGpu / secs;
+        unitUsd = okCost / secs;
         unitCredits = q.motionPricePerSecond ?? PRICING_CONFIG.pipelines.motionControlCreditsPerSecond;
       } else {
-        unitCoins = okGpu / r.succeeded;
+        unitUsd = okCost / r.ok_cost_n;
         unitCredits =
           q.imagePrice ??
           (pipeline === 'face_swap' ? PRICING_CONFIG.pipelines.faceSwapCredits : PRICING_CONFIG.pipelines.bodyRetouchCredits);
       }
+      const costVnd = unitUsd * usdVnd;
       for (const pack of PRICING_CONFIG.topupPacks) {
         const revenuePer100 = (pack.priceVnd / pack.credits) * 100;
         const revenueVnd = (revenuePer100 * unitCredits) / 100;
-        for (const scenario of ['retail', 'standardPack'] as const) {
-          const costVnd = toVnd(unitCoins, scenario);
-          const marginVnd = revenueVnd - costVnd;
-          margins.push({
-            pipeline,
-            pack: pack.id,
-            scenario,
-            revenueVnd,
-            costVnd,
-            marginVnd,
-            marginRate: revenueVnd === 0 ? null : marginVnd / revenueVnd,
-          });
-        }
+        const marginVnd = revenueVnd - costVnd;
+        margins.push({
+          pipeline,
+          pack: pack.id,
+          revenueVnd,
+          costVnd,
+          marginVnd,
+          marginRate: revenueVnd === 0 ? null : marginVnd / revenueVnd,
+        });
       }
     }
 
@@ -141,7 +135,7 @@ export class AdminStatsService {
       successMetrics: {
         approvedTopups,
         conversionRate,
-        gpuCostUsd: totalGpu / coinsPerUsd.retail,
+        gpuCostUsd: totalCost,
       },
     };
   }

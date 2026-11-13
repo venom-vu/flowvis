@@ -20,7 +20,7 @@ export const OpsStatusResponseSchema = z.object({
       metrics: z.record(z.union([z.number(), z.string(), z.boolean(), z.null()])),
     })
     .nullable(),
-  rhBalance: z.object({ coins: z.number().nonnegative(), readAt: isoDate }).nullable(),
+  rhBalance: z.object({ usd: z.number().nonnegative(), readAt: isoDate }).nullable(),
   lastBackup: z
     .object({
       at: isoDate,
@@ -42,10 +42,6 @@ export type OpsResumeResponse = OpsStatusResponse;
 export const STATS_SCOPES = ['real', 'benchmark'] as const;
 export const StatsScopeSchema = z.enum(STATS_SCOPES);
 export type StatsScope = z.infer<typeof StatsScopeSchema>;
-
-export const STATS_SCENARIOS = ['retail', 'standardPack'] as const;
-export const StatsScenarioSchema = z.enum(STATS_SCENARIOS);
-export type StatsScenario = z.infer<typeof StatsScenarioSchema>;
 
 const positiveIntQuery = (label: string) =>
   z.coerce
@@ -84,8 +80,6 @@ const StatusCountsSchema = z.object(
   >,
 );
 
-const ScenarioCostSchema = z.object({ retail: nonNeg, standardPack: nonNeg });
-
 export const AdminStatsPipelineSchema = z.object({
   pipeline: TaskPipelineSchema,
   taskCounts: StatusCountsSchema,
@@ -93,17 +87,20 @@ export const AdminStatsPipelineSchema = z.object({
   successRate: z.number().min(0).max(1).nullable(),
   avgProcessingSeconds: nonNeg.nullable(),
   p95ProcessingSeconds: nonNeg.nullable(),
-  avgGpuCoins: nonNeg.nullable(),
-  wastedGpuCoins: nonNeg,
-  /** Chi phí GPU trung bình mỗi Task, quy VNĐ theo hai kịch bản. */
-  avgCostVnd: ScenarioCostSchema.nullable(),
+  /** Chi phí GPU thật trung bình mỗi Task thành công (USD, RunningHub Enterprise-Shared); null khi chưa có dữ liệu. */
+  avgCostUsd: nonNeg.nullable(),
+  /** Chi phí GPU lãng phí của Task failed/timed_out/cancelled (USD). */
+  wastedCostUsd: nonNeg,
+  /** avgCostUsd quy VNĐ theo USD_VND. */
+  avgCostVnd: nonNeg.nullable(),
+  /** Chi phí và số Task theo loại máy RunningHub (default/plus/ultra). */
+  costByInstanceType: z.array(z.object({ instanceType: z.string(), tasks: nonNegInt, costUsd: nonNeg })),
 });
 export type AdminStatsPipeline = z.infer<typeof AdminStatsPipelineSchema>;
 
 export const AdminStatsMarginSchema = z.object({
   pipeline: TaskPipelineSchema,
   pack: TopupPackIdSchema,
-  scenario: StatsScenarioSchema,
   revenueVnd: nonNeg,
   costVnd: nonNeg,
   marginVnd: z.number(),
@@ -122,6 +119,7 @@ export const AdminStatsResponseSchema = z.object({
     /** SM-1..SM-4 */
     approvedTopups: nonNegInt,
     conversionRate: z.number().min(0).max(1).nullable(),
+    /** Tổng chi phí GPU thật (USD) của mọi Task trong kỳ. */
     gpuCostUsd: nonNeg,
   }),
 });

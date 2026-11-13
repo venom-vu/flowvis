@@ -26,6 +26,8 @@ export interface PipelineConfig {
   readonly workflowEnvVar: string;
   /** Tên biến môi trường chọn cách gọi RunningHub: `ai-app` hoặc `workflow`. */
   readonly runModeEnvVar: string;
+  /** Tên biến môi trường chọn loại máy RunningHub (`default`/`plus`/`ultra`); trống = default. */
+  readonly instanceEnvVar: string;
   /** Cách gọi khi biến `runModeEnvVar` để trống. */
   readonly defaultRunMode: RunningHubRunMode;
   readonly inputs: readonly PipelineInputMapping[];
@@ -51,6 +53,7 @@ export const PIPELINE_CONFIGS: Readonly<Record<string, PipelineConfig>> = {
     pipeline: 'face_swap',
     workflowEnvVar: 'RUNNINGHUB_WORKFLOW_FACESWAP',
     runModeEnvVar: 'RUNNINGHUB_MODE_FACESWAP',
+    instanceEnvVar: 'RUNNINGHUB_INSTANCE_FACE_SWAP',
     defaultRunMode: 'ai-app',
     // [ASSUMPTION] AI App Face Swap có hai node ảnh, curl mẫu không ghi mô tả: giả định node 470 = ảnh đích (giữ bố cục, kích thước), node 475 = ảnh nguồn (khuôn mặt). Nếu kết quả bị ngược thì hoán đổi hai nodeId.
     inputs: [
@@ -63,6 +66,7 @@ export const PIPELINE_CONFIGS: Readonly<Record<string, PipelineConfig>> = {
     pipeline: 'body_retouch',
     workflowEnvVar: 'RUNNINGHUB_WORKFLOW_BODY_RESHAPE',
     runModeEnvVar: 'RUNNINGHUB_MODE_BODY_RESHAPE',
+    instanceEnvVar: 'RUNNINGHUB_INSTANCE_BODY_RETOUCH',
     defaultRunMode: 'ai-app',
     requiredAtStartup: true,
     // AI App nâng ngực (2095511080751996930): node 4 = LoadImage (ảnh), node 56 = strength_model của LoRA (intensity 1-10 x 0.1 -> 0.1-1.0; mặc định 5 -> 0.5).
@@ -74,6 +78,7 @@ export const PIPELINE_CONFIGS: Readonly<Record<string, PipelineConfig>> = {
     pipeline: 'motion_control',
     workflowEnvVar: 'RUNNINGHUB_WORKFLOW_MOTION',
     runModeEnvVar: 'RUNNINGHUB_MODE_MOTION',
+    instanceEnvVar: 'RUNNINGHUB_INSTANCE_MOTION_CONTROL',
     defaultRunMode: 'ai-app',
     requiredAtStartup: true,
     // AI App Motion Control (2108650752700166145): node 30 = ảnh nhân vật, node 33 = video chuyển động.
@@ -96,6 +101,7 @@ export const PIPELINE_CONFIGS: Readonly<Record<string, PipelineConfig>> = {
     pipeline: 'character_replace',
     workflowEnvVar: 'RUNNINGHUB_WORKFLOW_CHARACTER_REPLACE',
     runModeEnvVar: 'RUNNINGHUB_MODE_CHARACTER_REPLACE',
+    instanceEnvVar: 'RUNNINGHUB_INSTANCE_CHARACTER_REPLACE',
     defaultRunMode: 'ai-app',
     // Không requiredAtStartup: môi trường chưa cấu hình vẫn khởi động; adapter unconfigured ném RH_ERROR.
     // AI App Thay nhân vật video (1955095782514987010): 352 = video, 318 = ảnh nhân vật, 284 = prompt, 339 = số giây, 341 = mốc bắt đầu.

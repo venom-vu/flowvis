@@ -687,4 +687,107 @@ describe('Story 2.5: [BE] Worker xử lý Task qua RunningHub', () => {
     for (const i of ids) assert.notEqual((await row(i)).status, 'queued');
     await clearGate();
   });
+
+  it('worker lưu instance_type và gửi đúng instanceType tới submit (plus cho pipeline được cấu hình)', async () => {
+    const saved = process.env.RUNNINGHUB_INSTANCE_FACE_SWAP;
+    try {
+      reset(); await clearGate();
+      let sent;
+      submitImpl = async (...a) => { sent = a[4]; return 'rh-1'; };
+      ingestImpl = async (t) => { await svc.transition(t.id, 'running', 'failed', 'OUTPUT_UPLOAD_ERROR'); };
+      process.env.RUNNINGHUB_INSTANCE_FACE_SWAP = 'plus';
+      const u = await newUser();
+      const id = await createTask(u);
+      await worker.processTask(id);
+      assert.equal(sent, 'plus');
+      assert.equal((await row(id)).instance_type, 'plus');
+
+      reset(); await clearGate();
+      submitImpl = async (...a) => { sent = a[4]; return 'rh-2'; };
+      ingestImpl = async (t) => { await svc.transition(t.id, 'running', 'failed', 'OUTPUT_UPLOAD_ERROR'); };
+      delete process.env.RUNNINGHUB_INSTANCE_FACE_SWAP;
+      const id2 = await createTask(u);
+      await worker.processTask(id2);
+      assert.equal(sent, 'default');
+      assert.equal((await row(id2)).instance_type, 'default');
+    } finally {
+      if (saved === undefined) delete process.env.RUNNINGHUB_INSTANCE_FACE_SWAP; else process.env.RUNNINGHUB_INSTANCE_FACE_SWAP = saved;
+    }
+  });
+
+  it('recordCost: reported khi có costUsd, estimated khi chỉ có giây, bỏ qua khi không có gì, bỏ qua khi không còn running', async () => {
+    reset(); await clearGate();
+    const u = await newUser();
+    const mk = async (inst) => {
+      const id = await createTask(u);
+      await upd(id, `status='running', running_at=now()${inst ? `, instance_type='${inst}'` : ''}`);
+      return id;
+    };
+    const a = await mk('default');
+    assert.equal(await svc.recordCost(a, { costUsd: 0.016, costSeconds: 63 }), true);
+    let r = await row(a);
+    assert.equal(r.cost_source, 'reported');
+    assert.equal(Number(r.cost_usd), 0.016);
+    assert.equal(r.cost_seconds, 63);
+
+    const b = await mk('plus');
+    assert.equal(await svc.recordCost(b, { costSeconds: 3600 }), true);
+    r = await row(b);
+    assert.equal(r.cost_source, 'estimated');
+    assert.ok(Math.abs(Number(r.cost_usd) - 1.18) < 1e-6);
+    assert.equal(r.cost_seconds, 3600);
+
+    const c = await mk('default');
+    assert.equal(await svc.recordCost(c, {}), false);
+    r = await row(c);
+    assert.equal(r.cost_usd, null); assert.equal(r.cost_source, null); assert.equal(r.cost_seconds, null);
+
+    // Có giây nhưng Task không có instance_type: lưu giây, không ước tính.
+    const d = await mk(null);
+    await svc.recordCost(d, { costSeconds: 40 });
+    r = await row(d);
+    assert.equal(r.cost_seconds, 40); assert.equal(r.cost_usd, null); assert.equal(r.cost_source, null);
+
+    await upd(c, "status='failed', reason_code='RH_ERROR', finished_at=now()");
+    assert.equal(await svc.recordCost(c, { costUsd: 1 }), false);
+    assert.equal((await row(c)).cost_usd, null);
+  });
+
+  it('poll ghi chi phí từ outputs() trước khi ingest; lỗi recordCost không làm hỏng Task', async () => {
+    reset(); await clearGate();
+    outputsQueue = [{ status: 'SUCCESS', fileUrl: 'http://x/y.png', consumeMoney: 3, costUsd: 0.016, costSeconds: 63 }];
+    let seenAtIngest;
+    ingestImpl = async (t) => {
+      seenAtIngest = await row(t.id);
+      await svc.transition(t.id, 'running', 'failed', 'OUTPUT_UPLOAD_ERROR');
+    };
+    const u = await newUser();
+    const id = await createTask(u);
+    await worker.processTask(id);
+    assert.equal(seenAtIngest.cost_source, 'reported');
+    assert.equal(Number(seenAtIngest.cost_usd), 0.016);
+    assert.equal((await row(id)).cost_seconds, 63);
+
+    reset(); await clearGate();
+    outputsQueue = [{ status: 'FAILED', errorMessage: 'NO_POSE', costSeconds: 30 }];
+    const id2 = await createTask(u);
+    await worker.processTask(id2);
+    const r2 = await row(id2);
+    assert.equal(r2.status, 'failed');
+    assert.equal(r2.cost_source, 'estimated');
+    assert.ok(Math.abs(Number(r2.cost_usd) - (30 * 0.88) / 3600) < 1e-6);
+
+    reset(); await clearGate();
+    const orig = svc.recordCost;
+    svc.recordCost = async () => { throw new Error('db down'); };
+    try {
+      outputsQueue = [{ status: 'FAILED', errorMessage: 'NO_POSE', costUsd: 0.01 }];
+      const id3 = await createTask(u);
+      await worker.processTask(id3);
+      assert.equal((await row(id3)).status, 'failed');
+      assert.equal((await ledger(id3, 'RELEASED')).length, 1);
+    } finally {
+      svc.recordCost = orig;
+    }
+  });
 });

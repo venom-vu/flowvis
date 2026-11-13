@@ -204,17 +204,17 @@ describe('Story 6.3: [BE] Hết ngân sách RunningHub và cảnh báo số dư'
 
   it('số dư: lưu rh_balance; dưới ngưỡng gửi một lần, lên trên rồi xuống thì gửi lại', async () => {
     await reset();
-    process.env.RH_BALANCE_ALERT_COINS = '27000';
-    balanceImpl = async () => 20000;
+    process.env.RH_BALANCE_ALERT_USD = '10';
+    balanceImpl = async () => 2;
     await balance.check();
     await balance.check();
     assert.equal(sent.filter((e) => e.kind === 'ops.rh_balance_low').length, 1);
     const b = await settings.getRhBalance();
-    assert.equal(b.coins, 20000);
+    assert.equal(b.usd, 2);
     assert.ok(b.readAt);
-    balanceImpl = async () => 30000;
+    balanceImpl = async () => 30;
     await balance.check();
-    balanceImpl = async () => 100;
+    balanceImpl = async () => 0.5;
     await balance.check();
     assert.equal(sent.filter((e) => e.kind === 'ops.rh_balance_low').length, 2);
     assert.equal(await flag('intake_paused'), false);
@@ -226,7 +226,7 @@ describe('Story 6.3: [BE] Hết ngân sách RunningHub và cảnh báo số dư'
     for (let i = 0; i < 5; i++) await balance.check();
     assert.equal(sent.filter((e) => e.kind === 'ops.rh_balance_unreadable').length, 1);
     assert.equal(await flag('intake_paused'), false);
-    balance.rh = { getBalance: async () => 50000 };
+    balance.rh = { getBalance: async () => 50 };
     await balance.check();
     assert.equal((await settings.getRhBalanceState()).failStreak, 0);
     balance.rh = { getBalance: async () => { throw new Error('x'); } };

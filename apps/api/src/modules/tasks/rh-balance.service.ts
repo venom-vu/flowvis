@@ -9,8 +9,8 @@ export const BALANCE_FAIL_STREAK = 3;
 const READ_TIMEOUT_MS = 10_000;
 
 function alertThreshold(): number {
-  const n = Number(process.env.RH_BALANCE_ALERT_COINS);
-  return Number.isFinite(n) && n >= 0 && process.env.RH_BALANCE_ALERT_COINS?.trim() ? n : 27000;
+  const n = Number(process.env.RH_BALANCE_ALERT_USD);
+  return Number.isFinite(n) && n >= 0 && process.env.RH_BALANCE_ALERT_USD?.trim() ? n : 10;
 }
 
 /** Đọc số dư RunningHub định kỳ (chỉ tiến trình worker) và cảnh báo khi thấp hoặc không đọc được. */
@@ -37,10 +37,10 @@ export class RhBalanceService {
     this.running = true;
     try {
       const state = await this.settings.getRhBalanceState();
-      let coins: number;
+      let usd: number;
       try {
-        coins = await this.rh.getBalance(AbortSignal.timeout(READ_TIMEOUT_MS));
-        if (!Number.isFinite(coins) || coins < 0) throw new Error('Số dư không hợp lệ');
+        usd = await this.rh.getBalance(AbortSignal.timeout(READ_TIMEOUT_MS));
+        if (!Number.isFinite(usd) || usd < 0) throw new Error('Số dư không hợp lệ');
       } catch (err) {
         state.failStreak += 1;
         this.logger.warn(`Không đọc được số dư RunningHub (lần ${state.failStreak}): ${String(err)}`);
@@ -57,15 +57,15 @@ export class RhBalanceService {
       }
       state.failStreak = 0;
       state.failAlerted = false;
-      await this.settings.saveRhBalance({ coins, readAt: new Date().toISOString() });
+      await this.settings.saveRhBalance({ usd, readAt: new Date().toISOString() });
       const threshold = alertThreshold();
-      if (coins < threshold) {
+      if (usd < threshold) {
         if (!state.lowAlerted) {
           state.lowAlerted = await this.alerts.raise(`rh_balance_low:${new Date().toISOString()}`, {
             kind: 'ops.rh_balance_low',
             severity: 'warn',
-            message: `Số dư RunningHub còn ${coins} coin, dưới ngưỡng ${threshold}.`,
-            data: { coins, threshold },
+            message: `Số dư RunningHub còn ${usd.toFixed(2)} USD, dưới ngưỡng ${threshold} USD.`,
+            data: { usd, threshold },
           });
         }
       } else {

@@ -121,7 +121,7 @@ onBeforeUnmount(() => {
                 </td>
                 <td :class="ui.td">
                   <span v-if="status.rhBalance">
-                    Số dư {{ formatNumberVi(status.rhBalance.coins) }} coin, đọc lúc {{ formatTopupTimestampVi(status.rhBalance.readAt) }}
+                    Số dư {{ status.rhBalance.usd.toFixed(2) }} USD, đọc lúc {{ formatTopupTimestampVi(status.rhBalance.readAt) }}
                   </span>
                   <span v-else>Chưa đọc được số dư.</span>
                   <span v-if="balanceStale" data-testid="ops-balance-stale" class="mt-1 block font-medium" :class="ui.warn">
@@ -176,7 +176,7 @@ onBeforeUnmount(() => {
         </p>
         <p data-testid="ops-confirm-balance">
           Số dư RunningHub lần đọc cuối:
-          {{ status?.rhBalance ? `${formatNumberVi(status.rhBalance.coins)} coin (${formatTopupTimestampVi(status.rhBalance.readAt)})` : 'chưa đọc được' }}
+          {{ status?.rhBalance ? `${status.rhBalance.usd.toFixed(2)} USD (${formatTopupTimestampVi(status.rhBalance.readAt)})` : 'chưa đọc được' }}
         </p>
       </AdminConfirmDialog>
     </AdminAccessGate>

@@ -11,7 +11,7 @@ Ngày ghi: ____ · Người ghi: ____
 | Host dùng (`RUNNINGHUB_API_HOST`, `.ai` hay `.cn`) | |
 | Cách xác thực thật (Bearer, `apiKey` trong body, cả hai) | Adapter hiện gửi cả hai |
 | Giới hạn tần suất (header `rateLimitHeaders`, tài liệu) | |
-| Coin cho mỗi giây GPU thật (đặt `PRELAUNCH_COINS_PER_GPU_SECOND`, mặc định 0,4) | |
+| Chi phí USD / giây GPU thật (đọc từ `cost_usd`, `cost_seconds`) | |
 
 ## Endpoint số dư (`RH_BALANCE_ENDPOINT`)
 
@@ -19,11 +19,11 @@ Ngày ghi: ____ · Người ghi: ____
 |-----|---------|
 | Đường dẫn | |
 | Phương thức | POST (theo adapter) |
-| Tham số gửi | `{"apiKey": "***"}` |
+| Tham số gửi | `{"apikey": "***"}` |
 | HTTP status | |
 | Phản hồi thô (đã che) | |
-| Trường số dư thật | Adapter đọc `data.remainCoins` → `data.coins` → `coins` |
-| Adapter đọc đúng (`adapterCoins`)? | |
+| Trường số dư thật | Adapter đọc `data.remainMoney` (USD, chuỗi); `remainCoins` là "0" nên không dùng |
+| Adapter đọc đúng (`adapterUsd`)? | |
 
 Nếu trường số dư thật khác, mở story sửa `RunningHubOpenApiAdapter.getBalance()` (`apps/api/src/modules/tasks/runninghub-openapi.adapter.ts`).
 

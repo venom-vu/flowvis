@@ -31,11 +31,18 @@ export interface RunningHubNodeInfo {
 
 export type RunningHubRunMode = 'ai-app' | 'workflow';
 
+/** Loại máy RunningHub: default = Standard, plus, ultra (Lite tự động, không chọn được). */
+export type RunningHubInstanceType = 'default' | 'plus' | 'ultra';
+
 export interface RunningHubOutputs {
   readonly status: 'RUNNING' | 'SUCCESS' | 'FAILED';
   readonly fileUrl?: string;
   readonly errorMessage?: string;
   readonly consumeMoney?: number;
+  /** `usage.consumeMoney` (USD) do RunningHub báo; undefined khi thiếu hoặc không hợp lệ. */
+  readonly costUsd?: number;
+  /** `usage.taskCostTime` (giây) do RunningHub báo; undefined khi thiếu hoặc <= 0. */
+  readonly costSeconds?: number;
 }
 
 export interface RunningHubPort {
@@ -51,9 +58,10 @@ export interface RunningHubPort {
     nodeInfoList: RunningHubNodeInfo[],
     signal: AbortSignal,
     mode?: RunningHubRunMode,
+    instanceType?: RunningHubInstanceType,
   ): Promise<string>;
   outputs(runninghubTaskId: string, signal: AbortSignal): Promise<RunningHubOutputs>;
-  /** Số coin còn lại của tài khoản RunningHub (không âm). Ném lỗi khi không đọc được. */
+  /** Số dư USD còn lại của tài khoản RunningHub Enterprise-Shared (không âm). Ném lỗi khi không đọc được. */
   getBalance(signal: AbortSignal): Promise<number>;
 }
 

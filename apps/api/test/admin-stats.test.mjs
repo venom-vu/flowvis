@@ -69,14 +69,14 @@ describe('Story 6.6: [BE] Thống kê vận hành và nhật ký Admin', () => {
   const call = (who, url) =>
     fetch(`${baseUrl}${url}`, { headers: who ? { Authorization: `Bearer ${who.token}` } : {} });
   const snap = JSON.stringify({ tier: 'FREE', priority: 10, maxVideoSeconds: 5, priceVnd: 0, credits: 500 });
-  async function mkTask(uid, pipeline, status, { reason = null, gpu = null, secs = null, proc = null, created = at } = {}) {
+  async function mkTask(uid, pipeline, status, { reason = null, cost = null, inst = null, secs = null, proc = null, created = at } = {}) {
     const params = secs ? { seconds: secs } : {};
     await pool.query(
-      `INSERT INTO tasks (id,user_id,pipeline,status,result_key,reason_code,tier_snapshot,consent,tos_version,input_keys,params,hold_amount,gpu_coins,created_at,running_at,finished_at)
-       VALUES (gen_random_uuid(),$1,$2,$3,CASE WHEN $3='succeeded' THEN 'out/x' END,$4,$5::jsonb,true,'tos-v7','[]'::jsonb,$6::jsonb,100,$7,$8::timestamptz,
+      `INSERT INTO tasks (id,user_id,pipeline,status,result_key,reason_code,tier_snapshot,consent,tos_version,input_keys,params,hold_amount,cost_usd,instance_type,created_at,running_at,finished_at)
+       VALUES (gen_random_uuid(),$1,$2,$3,CASE WHEN $3='succeeded' THEN 'out/x' END,$4,$5::jsonb,true,'tos-v7','[]'::jsonb,$6::jsonb,100,$7,$10,$8::timestamptz,
          CASE WHEN $9::int IS NULL THEN NULL ELSE $8::timestamptz END,
          CASE WHEN $9::int IS NULL THEN NULL ELSE $8::timestamptz + ($9::int * interval '1 second') END)`,
-      [uid, pipeline, status, reason, snap, JSON.stringify(params), gpu, created, proc],
+      [uid, pipeline, status, reason, snap, JSON.stringify(params), cost, created, proc, inst],
     );
   }
   async function mkTopup(uid, code, updated) {
@@ -147,9 +147,10 @@ describe('Story 6.6: [BE] Thống kê vận hành và nhật ký Admin', () => {
       assert.equal(p.successRate, null);
       assert.equal(p.avgProcessingSeconds, null);
       assert.equal(p.p95ProcessingSeconds, null);
-      assert.equal(p.avgGpuCoins, null);
+      assert.equal(p.avgCostUsd, null);
       assert.equal(p.avgCostVnd, null);
-      assert.equal(p.wastedGpuCoins, 0);
+      assert.equal(p.wastedCostUsd, 0);
+      assert.deepEqual(p.costByInstanceType, []);
     }
     assert.deepEqual(j.margins, []);
     assert.equal(j.successMetrics.conversionRate, null);
@@ -160,16 +161,17 @@ describe('Story 6.6: [BE] Thống kê vận hành và nhật ký Admin', () => {
     const u = await mkUser();
     const bench = await mkUser();
     process.env.BENCHMARK_USER_EMAILS = ` ${bench.email.toUpperCase()} `;
-    await mkTask(u.id, 'face_swap', 'succeeded', { gpu: 180, proc: 10 });
-    await mkTask(u.id, 'face_swap', 'succeeded', { gpu: 180, proc: 30 });
-    await mkTask(u.id, 'face_swap', 'failed', { reason: 'RH_ERROR', gpu: 90 });
-    await mkTask(u.id, 'face_swap', 'failed', { reason: 'NO_FACE', gpu: 20 });
+    await mkTask(u.id, 'face_swap', 'succeeded', { cost: 0.02, inst: 'default', proc: 10 });
+    await mkTask(u.id, 'face_swap', 'succeeded', { cost: 0.04, inst: 'plus', proc: 30 });
+    await mkTask(u.id, 'face_swap', 'succeeded', {}); // chưa có chi phí: AVG phải bỏ qua
+    await mkTask(u.id, 'face_swap', 'failed', { reason: 'RH_ERROR', cost: 0.01, inst: 'default' });
+    await mkTask(u.id, 'face_swap', 'failed', { reason: 'NO_FACE', cost: 0.002, inst: 'default' });
     await mkTask(u.id, 'face_swap', 'cancelled');
-    await mkTask(u.id, 'face_swap', 'timed_out', { reason: 'RH_TIMEOUT', gpu: 40 });
-    await mkTask(u.id, 'face_swap', 'timed_out', { reason: 'FREE_WAIT_EXPIRED', gpu: 10 });
-    await mkTask(u.id, 'motion_control', 'succeeded', { gpu: 900, secs: 5, proc: 60 });
-    await mkTask(u.id, 'character_replace', 'succeeded', { gpu: 450, secs: 5, proc: 60 });
-    await mkTask(bench.id, 'face_swap', 'succeeded', { gpu: 360, proc: 5 });
+    await mkTask(u.id, 'face_swap', 'timed_out', { reason: 'RH_TIMEOUT', cost: 0.004, inst: 'default' });
+    await mkTask(u.id, 'face_swap', 'timed_out', { reason: 'FREE_WAIT_EXPIRED', cost: 0.001, inst: 'default' });
+    await mkTask(u.id, 'motion_control', 'succeeded', { cost: 0.05, inst: 'ultra', secs: 5, proc: 60 });
+    await mkTask(u.id, 'character_replace', 'succeeded', { cost: 0.025, inst: 'default', secs: 5, proc: 60 });
+    await mkTask(bench.id, 'face_swap', 'succeeded', { cost: 0.08, inst: 'default', proc: 5 });
     await mkTopup(u.id, `ST${runId}1`, '2030-01-12T00:00:00Z');
     await mkTopup(bench.id, `ST${runId}B`, '2030-01-13T00:00:00Z');
     // SM-1: tài khoản có Task, không nạp (cohort 1 mẫu); tài khoản không Task nhưng có nạp; nạp sau 30 ngày
@@ -182,34 +184,40 @@ describe('Story 6.6: [BE] Thống kê vận hành và nhật ký Admin', () => {
     await mkTopup(late.id, `ST${runId}3`, '2030-02-05T00:00:00Z');
     const real = await stats();
     const fs = real.pipelines.find((p) => p.pipeline === 'face_swap');
-    assert.equal(fs.taskCounts.succeeded, 2);
+    const near = (x, y) => assert.ok(Math.abs(x - y) < 1e-9, `${x} != ${y}`);
+    assert.equal(fs.taskCounts.succeeded, 3);
     assert.equal(fs.taskCounts.failed, 2);
     assert.equal(fs.taskCounts.cancelled, 1);
     assert.equal(fs.taskCounts.timed_out, 2);
     assert.equal(fs.taskCounts.queued, 2);
-    assert.equal(fs.successRate, 2 / 4);
+    assert.equal(fs.successRate, 3 / 5);
     assert.equal(fs.avgProcessingSeconds, 20);
     assert.equal(fs.p95ProcessingSeconds, 29);
-    assert.equal(fs.avgGpuCoins, 180);
-    assert.equal(fs.wastedGpuCoins, 160);
-    assert.equal(fs.avgCostVnd.retail, (180 / 1800) * 25000);
-    assert.equal(fs.avgCostVnd.standardPack, (180 / 3600) * 25000);
-    const m = real.margins.find((x) => x.pipeline === 'face_swap' && x.pack === 'starter' && x.scenario === 'retail');
+    near(fs.avgCostUsd, 0.03);
+    near(fs.wastedCostUsd, 0.017);
+    near(fs.avgCostVnd, 0.03 * 25000);
+    const byInst = Object.fromEntries(fs.costByInstanceType.map((i) => [i.instanceType, i]));
+    assert.equal(byInst.default.tasks, 5);
+    near(byInst.default.costUsd, 0.037);
+    assert.equal(byInst.plus.tasks, 1);
+    near(byInst.plus.costUsd, 0.04);
+    const m = real.margins.find((x) => x.pipeline === 'face_swap' && x.pack === 'starter');
     assert.ok(Math.abs(m.revenueVnd - 980) < 1e-6);
-    assert.ok(Math.abs(m.marginVnd - (980 - 2500)) < 1e-6);
-    const m80 = (await stats('&imagePrice=80')).margins.find((x) => x.pipeline === 'face_swap' && x.pack === 'starter' && x.scenario === 'retail');
+    assert.ok(Math.abs(m.costVnd - 750) < 1e-6);
+    assert.ok(Math.abs(m.marginVnd - (980 - 750)) < 1e-6);
+    const m80 = (await stats('&imagePrice=80')).margins.find((x) => x.pipeline === 'face_swap' && x.pack === 'starter');
     assert.ok(Math.abs(m80.revenueVnd - 784) < 1e-6);
-    const mm = real.margins.find((x) => x.pipeline === 'motion_control' && x.pack === 'pro' && x.scenario === 'standardPack');
+    const mm = real.margins.find((x) => x.pipeline === 'motion_control' && x.pack === 'pro');
     assert.ok(Math.abs(mm.revenueVnd - 825 * 0.5) < 1e-6);
-    assert.ok(Math.abs(mm.costVnd - (180 / 3600) * 25000) < 1e-6);
-    const cm = real.margins.find((x) => x.pipeline === 'character_replace' && x.pack === 'pro' && x.scenario === 'standardPack');
+    assert.ok(Math.abs(mm.costVnd - (0.05 / 5) * 25000) < 1e-6, 'chi phí mỗi giây = ok_cost / ok_seconds');
+    const cm = real.margins.find((x) => x.pipeline === 'character_replace' && x.pack === 'pro');
     assert.ok(Math.abs(cm.revenueVnd - 825 * 0.5) < 1e-6, 'tính theo 50 credit/giây như Motion');
-    assert.ok(Math.abs(cm.costVnd - (90 / 3600) * 25000) < 1e-6);
+    assert.ok(Math.abs(cm.costVnd - (0.025 / 5) * 25000) < 1e-6);
     // approved trong khoảng: u, noTask, late(02-05 ngoài khoảng, loại) => 2; bench bị loại khỏi real
     assert.equal(real.successMetrics.approvedTopups, 2);
     // cohort real có Task: u (nạp 12/01 trong 30 ngày), noTopup, late (nạp sau 30 ngày); noTask không Task => 1/3
     assert.equal(real.successMetrics.conversionRate, 1 / 3);
-    assert.ok(Math.abs(real.successMetrics.gpuCostUsd - 1870 / 1800) < 1e-9);
+    near(real.successMetrics.gpuCostUsd, 0.152);
 
     const b = await stats('&scope=benchmark');
     const bf = b.pipelines.find((p) => p.pipeline === 'face_swap');
@@ -221,14 +229,15 @@ describe('Story 6.6: [BE] Thống kê vận hành và nhật ký Admin', () => {
     const none = await stats('&scope=benchmark');
     assert.ok(none.pipelines.every((p) => Object.values(p.taskCounts).every((n) => n === 0)));
     assert.equal(none.successMetrics.gpuCostUsd, 0);
-    assert.equal((await stats()).pipelines.find((p) => p.pipeline === 'face_swap').taskCounts.succeeded, 3);
+    // Bỏ lọc benchmark: 3 task real (một task chưa có chi phí) + 1 task của tài khoản benchmark.
+    assert.equal((await stats()).pipelines.find((p) => p.pipeline === 'face_swap').taskCounts.succeeded, 4);
   });
 
   it('10.000 Task dưới 2 giây', async () => {
     const u = await mkUser();
     await pool.query(
-      `INSERT INTO tasks (id,user_id,pipeline,status,result_key,tier_snapshot,consent,tos_version,input_keys,params,hold_amount,gpu_coins,created_at,running_at,finished_at)
-       SELECT gen_random_uuid(),$1,'body_retouch','succeeded','out/x',$2::jsonb,true,'tos-v7','[]'::jsonb,'{}'::jsonb,100,100,
+      `INSERT INTO tasks (id,user_id,pipeline,status,result_key,tier_snapshot,consent,tos_version,input_keys,params,hold_amount,cost_usd,created_at,running_at,finished_at)
+       SELECT gen_random_uuid(),$1,'body_retouch','succeeded','out/x',$2::jsonb,true,'tos-v7','[]'::jsonb,'{}'::jsonb,100,0.01,
          '2030-01-20T00:00:00Z','2030-01-20T00:00:00Z','2030-01-20T00:00:20Z' FROM generate_series(1,10000)`,
       [u.id, snap],
     );

@@ -13,7 +13,7 @@ import {
   evaluateDiscord,
   evaluateTrim,
   extractRawFailure,
-  gpuSecondsFromCoins,
+  costUsdPerSecond,
   isHttpUrl,
   isInsideDir,
   isTechnicalFailure,
@@ -76,11 +76,12 @@ describe('phân vị và quy đổi', () => {
     assert.equal(percentile([], 95), null);
     assert.equal(percentile([3, 1, 2], 50), 2);
   });
-  it('giây GPU = coins / 0,4', () => {
-    assert.equal(gpuSecondsFromCoins(40), 100);
-    assert.equal(gpuSecondsFromCoins(0), 0);
-    assert.equal(gpuSecondsFromCoins(-1), null);
-    assert.equal(gpuSecondsFromCoins(10, 0.5), 20);
+  it('chi phí USD mỗi giây video', () => {
+    assert.equal(costUsdPerSecond(0.2, 10), 0.02);
+    assert.equal(costUsdPerSecond(0, 10), 0);
+    assert.equal(costUsdPerSecond(-1, 10), null);
+    assert.equal(costUsdPerSecond(1, 0), null);
+    assert.equal(costUsdPerSecond(null, 10), null);
   });
   it('sai số độ dài ±0,5 giây', () => {
     assert.equal(durationError(10.4, 10), 0.4);
@@ -216,10 +217,12 @@ describe('benchmark', () => {
     const r = sampleMetrics(
       motion,
       { id: 't1', status: 'succeeded', reasonCode: null },
-      { gpuCoins: 80, runningAt: '2026-11-12T00:00:00Z', finishedAt: '2026-11-12T00:01:30Z', outputSeconds: 10.3 },
+      { costUsd: 0.2, costSeconds: 200, costSource: 'reported', runningAt: '2026-11-12T00:00:00Z', finishedAt: '2026-11-12T00:01:30Z', outputSeconds: 10.3 },
     );
     assert.equal(r.gpuSeconds, 200);
     assert.equal(r.gpuSecondsPerVideoSecond, 20);
+    assert.equal(r.costUsd, 0.2);
+    assert.equal(r.costUsdPerVideoSecond, 0.02);
     assert.equal(r.processingSeconds, 90);
     assert.equal(r.durationErrorSeconds, 0.3);
     assert.equal(r.durationOk, true);

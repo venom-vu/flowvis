@@ -1,6 +1,7 @@
 import {
   RunningHubError,
   RunningHubNetworkError,
+  type RunningHubInstanceType,
   type RunningHubNodeInfo,
   type RunningHubOutputs,
   type RunningHubPort,
@@ -48,13 +49,14 @@ export class RunningHubHttpAdapter implements RunningHubPort {
     nodeInfoList: RunningHubNodeInfo[],
     signal: AbortSignal,
     mode?: RunningHubRunMode,
+    instanceType?: RunningHubInstanceType,
   ): Promise<string> {
     const body = await this.call(
       '/submit',
       {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ workflowId, nodeInfoList, mode: mode ?? 'ai-app' }),
+        body: JSON.stringify({ workflowId, nodeInfoList, mode: mode ?? 'ai-app', ...(instanceType ? { instanceType } : {}) }),
       },
       signal,
     );
@@ -73,15 +75,18 @@ export class RunningHubHttpAdapter implements RunningHubPort {
       fileUrl: typeof body.fileUrl === 'string' ? body.fileUrl : undefined,
       errorMessage: typeof body.errorMessage === 'string' ? body.errorMessage : undefined,
       consumeMoney: typeof body.consumeMoney === 'number' ? body.consumeMoney : undefined,
+      costUsd: typeof body.costUsd === 'number' && body.costUsd >= 0 ? body.costUsd : undefined,
+      costSeconds: typeof body.costSeconds === 'number' && body.costSeconds > 0 ? body.costSeconds : undefined,
     };
   }
 
   async getBalance(signal: AbortSignal): Promise<number> {
     const body = await this.call('/balance', { method: 'GET' }, signal);
-    if (typeof body.coins !== 'number' || !Number.isFinite(body.coins) || body.coins < 0) {
+    const usd = (body as { usd?: unknown }).usd;
+    if (typeof usd !== 'number' || !Number.isFinite(usd) || usd < 0) {
       throw new RunningHubError('Phản hồi số dư không hợp lệ');
     }
-    return body.coins;
+    return usd;
   }
 }
 

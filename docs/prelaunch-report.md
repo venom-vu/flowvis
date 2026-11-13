@@ -21,16 +21,16 @@ Kết quả: `Đạt` / `Không đạt` / `Chấp nhận rủi ro` / `Chưa ch�
 |---|------|---------|---------------|-------------------|------|------------|
 | 1 | Discord nhận tin ≤ 10 s | Chưa chạy | `latencyMs` = | | | |
 | 2 | ffmpeg cắt clip 20 s 1080p | Chưa chạy | `trimMs` = ; CPU max = ; đĩa tạm max = ; `/health` p95 = ; restart = ; OOM = | | | |
-| 3 | Endpoint số dư RunningHub | Chưa chạy | host = ; endpoint = ; HTTP = ; `adapterCoins` = | | | |
+| 3 | Endpoint số dư RunningHub | Chưa chạy | host = ; endpoint = ; HTTP = ; `adapterUsd` = | | | |
 | 4 | Benchmark 20 mẫu | Chưa chạy | biên Creator nạp lẻ FS/BR/MC = / / ; lỗi kỹ thuật = | | | |
 | 4b | Mẫu nhạy cảm (không tính vào 20) | Chưa chạy | chuỗi lỗi / "không có lớp lọc nội dung" | | | |
 | 5 | Sao lưu R2 + restore-drill | Chưa chạy | RTO (`rtoMs`) = ; `checked` = | | | |
 
 ## Chi tiết benchmark (bước 4)
 
-Giây GPU = `gpu_coins` / số coin mỗi giây GPU (`PRELAUNCH_COINS_PER_GPU_SECOND`, mặc định 0,4). Sai số độ dài ngưỡng ±0,5 s. Face Swap ghi kèm SLA 60 s (không chặn tự động).
+Giây GPU = `cost_seconds` và chi phí = `cost_usd` do RunningHub báo (USD, Enterprise-Shared). Sai số độ dài ngưỡng ±0,5 s. Face Swap ghi kèm SLA 60 s (không chặn tự động).
 
-| Mẫu | Pipeline | Tham số | Trạng thái / reasonCode | `gpu_coins` | Giây GPU | Giây GPU / giây video | Sai số độ dài (s) | `running_at`→`finished_at` (s) | SLA 60 s (FS) | Xem nửa sau (≥ 15 s) |
+| Mẫu | Pipeline | Tham số | Trạng thái / reasonCode | `cost_usd` | Giây GPU | Giây GPU / giây video | Sai số độ dài (s) | `running_at`→`finished_at` (s) | SLA 60 s (FS) | Xem nửa sau (≥ 15 s) |
 |-----|----------|---------|-------------------------|-------------|----------|-----------------------|-------------------|-------------------------------|---------------|----------------------|
 | face-1 | face_swap | góc nghiêng | | | | – | – | | | – |
 | face-2 | face_swap | góc nghiêng | | | | – | – | | | – |

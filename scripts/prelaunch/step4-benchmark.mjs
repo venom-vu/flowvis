@@ -1,7 +1,7 @@
 #!/usr/bin/env node
 // Bước 4: benchmark 20 mẫu qua API công khai bằng tài khoản benchmark (email trong BENCHMARK_USER_EMAILS,
 // đã nạp gói Creator qua luồng nạp thật, bank_ref bắt đầu bằng BENCH-).
-// Mỗi mẫu: upload -> confirm -> tạo Task -> poll tới khi kết thúc. Sau đó đọc gpu_coins/running_at/finished_at
+// Mỗi mẫu: upload -> confirm -> tạo Task -> poll tới khi kết thúc. Sau đó đọc cost_usd/cost_seconds/running_at/finished_at
 // (CLI chỉ đọc prelaunch-task-metrics), đo độ dài video thật bằng ffprobe (nếu có), rồi gọi
 // GET /admin/stats?scope=benchmark để đánh giá biên Creator (kịch bản nạp lẻ) và tỷ lệ lỗi kỹ thuật.
 //
@@ -247,7 +247,7 @@ if (taskIds.length > 0) {
   if (m.json?.tasks) metricsById = Object.fromEntries(m.json.tasks.map((t) => [t.id, t]));
   if (m.spawnError || !m.json?.tasks || m.code !== 0) {
     metricsError = m.spawnError ?? `prelaunch-task-metrics thoát ${m.code}${m.json?.error ? ` (${m.json.error})` : ''}`;
-    console.error(`Không đọc được gpu_coins/mốc thời gian: ${metricsError}`);
+    console.error(`Không đọc được cost_usd/cost_seconds/mốc thời gian: ${metricsError}`);
   }
 }
 

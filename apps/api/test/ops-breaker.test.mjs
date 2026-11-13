@@ -324,7 +324,7 @@ describe('Story 6.2: [BE] Ngắt mạch và chặn tạo Task khi tạm dừng',
     const marked = Object.getOwnPropertyNames(proto).filter(
       (n) => n !== 'constructor' && typeof proto[n] === 'function' && reflector.get(CREATES_TASK_KEY, proto[n]),
     );
-    assert.deepEqual(marked.sort(), ['createBodyRetouch', 'createFaceSwap', 'createMotion']);
+    assert.deepEqual(marked.sort(), ['createBodyRetouch', 'createCharacterReplace', 'createFaceSwap', 'createMotion']);
     for (const n of marked) {
       const guards = Reflect.getMetadata('__guards__', proto[n]) ?? [];
       assert.ok(guards.includes(IntakeOpenGuard), `${n} thiếu IntakeOpenGuard`);

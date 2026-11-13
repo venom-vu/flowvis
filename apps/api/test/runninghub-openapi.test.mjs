@@ -124,21 +124,19 @@ describe('RunningHubOpenApiAdapter', () => {
     });
   });
 
-  it('getBalance: đọc RH_BALANCE_ENDPOINT; data.remainCoins, data.coins, coins cấp trên; lỗi khi thiếu cấu hình/không hợp lệ/không OK', async () => {
+  it('getBalance: đọc RH_BALANCE_ENDPOINT; data.remainMoney (USD); lỗi khi thiếu cấu hình/không hợp lệ/không OK', async () => {
     const saved = process.env.RH_BALANCE_ENDPOINT;
     try {
       delete process.env.RH_BALANCE_ENDPOINT;
       await assert.rejects(adapter().getBalance(signal()), RunningHubError);
       process.env.RH_BALANCE_ENDPOINT = 'balance/path';
       seen.length = 0;
-      next = { body: { code: 0, data: { remainCoins: '12345' } } };
-      assert.equal(await adapter().getBalance(signal()), 12345);
+      next = { body: { code: 0, data: { remainCoins: '0', remainMoney: '9.0150', currency: 'USD' } } };
+      assert.equal(await adapter().getBalance(signal()), 9.015);
       assert.equal(seen[0].url, '/balance/path');
-      next = { body: { code: 0, data: { coins: 7 } } };
-      assert.equal(await adapter().getBalance(signal()), 7);
-      next = { body: { coins: 0 } };
+      next = { body: { code: 0, data: { remainMoney: 0 } } };
       assert.equal(await adapter().getBalance(signal()), 0);
-      for (const body of [{ data: { coins: 'abc' } }, { data: { coins: -1 } }, { data: {} }]) {
+      for (const body of [{ data: { remainMoney: 'abc' } }, { data: { remainMoney: -1 } }, { data: { remainCoins: '5' } }, { data: {} }]) {
         next = { body };
         await assert.rejects(adapter().getBalance(signal()), RunningHubError);
       }
@@ -160,6 +158,48 @@ describe('RunningHubOpenApiAdapter', () => {
     assert.equal(seen[0].url, '/openapi/v2/query');
     assert.equal(seen[0].headers.authorization, `Bearer ${API_KEY}`);
     assert.deepEqual(JSON.parse(seen[0].body.toString()), { taskId: '1910246754753896450' });
+  });
+
+  it('submit: gửi đúng instanceType được truyền (plus), mặc định default', async () => {
+    seen.length = 0;
+    next = { body: '{"taskId":"9","status":"QUEUED","errorCode":"","errorMessage":"","results":null}' };
+    await adapter().submit('app', [], signal(), 'ai-app', 'plus');
+    assert.equal(JSON.parse(seen[0].body.toString()).instanceType, 'plus');
+    await adapter().submit('app', [], signal(), 'workflow', 'ultra');
+    assert.equal(JSON.parse(seen[1].body.toString()).instanceType, 'ultra');
+  });
+
+  it('query: đọc usage.consumeMoney (USD, chuỗi) và taskCostTime (giây, chuỗi) khi SUCCESS và FAILED', async () => {
+    const usage = { consumeMoney: '0.016', consumeCoins: null, taskCostTime: '63', thirdPartyConsumeMoney: null };
+    next = { body: { taskId: '1', status: 'SUCCESS', errorCode: '', errorMessage: '', results: [{ url: 'https://cdn.example/o.png', outputType: 'png' }], usage } };
+    let out = await adapter().outputs('1', signal());
+    assert.equal(out.costUsd, 0.016);
+    assert.equal(out.costSeconds, 63);
+    next = { body: { taskId: '1', status: 'FAILED', errorCode: '', errorMessage: 'NO_POSE', results: null, usage } };
+    out = await adapter().outputs('1', signal());
+    assert.equal(out.status, 'FAILED');
+    assert.equal(out.costUsd, 0.016);
+    assert.equal(out.costSeconds, 63);
+  });
+
+  it('query: usage thiếu/null/"0"/âm/không phải số thì bỏ qua đúng trường', async () => {
+    const base = { taskId: '1', status: 'SUCCESS', errorCode: '', errorMessage: '', results: [{ url: 'https://cdn.example/o.png', outputType: 'png' }] };
+    next = { body: base };
+    let out = await adapter().outputs('1', signal());
+    assert.equal(out.costUsd, undefined);
+    assert.equal(out.costSeconds, undefined);
+    next = { body: { ...base, usage: { consumeMoney: null, taskCostTime: '0' } } };
+    out = await adapter().outputs('1', signal());
+    assert.equal(out.costUsd, undefined);
+    assert.equal(out.costSeconds, undefined);
+    next = { body: { ...base, usage: { consumeMoney: '-1', taskCostTime: 'abc' } } };
+    out = await adapter().outputs('1', signal());
+    assert.equal(out.costUsd, undefined);
+    assert.equal(out.costSeconds, undefined);
+    next = { body: { ...base, usage: { consumeMoney: '0', taskCostTime: '5' } } };
+    out = await adapter().outputs('1', signal());
+    assert.equal(out.costUsd, 0);
+    assert.equal(out.costSeconds, 5);
   });
 
   it('query: SUCCESS lấy results[0].url', async () => {

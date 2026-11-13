@@ -2,7 +2,7 @@ import pg from 'pg';
 
 /**
  * Bước 4 cổng trước khi bật VietQR (Story 6.11): đọc (chỉ SELECT) số liệu benchmark của các Task mà API công khai
- * không trả: `gpu_coins`, `queued_at`, `running_at`, `finished_at`, `params.seconds`.
+ * không trả: `cost_usd`, `cost_seconds`, `cost_source`, `instance_type`, `queued_at`, `running_at`, `finished_at`, `params.seconds`.
  * Dùng: node apps/api/dist/scripts/prelaunch-task-metrics.js <taskId> [taskId...]
  * In JSON một dòng {ok, tasks:[...]}; thoát 0 đọc được đủ, 1 thiếu Task, 2 lỗi cấu hình/kết nối.
  */
@@ -13,7 +13,10 @@ interface Row {
   pipeline: string;
   status: string;
   reason_code: string | null;
-  gpu_coins: number | null;
+  instance_type: string | null;
+  cost_usd: string | null;
+  cost_seconds: number | null;
+  cost_source: string | null;
   queued_at: Date | null;
   running_at: Date | null;
   finished_at: Date | null;
@@ -40,7 +43,7 @@ async function main(): Promise<number> {
   await client.connect();
   try {
     const res = await client.query<Row>(
-      `SELECT id, pipeline, status, reason_code, gpu_coins, queued_at, running_at, finished_at, params
+      `SELECT id, pipeline, status, reason_code, instance_type, cost_usd, cost_seconds, cost_source, queued_at, running_at, finished_at, params
          FROM tasks WHERE id = ANY($1::uuid[])`,
       [ids],
     );
@@ -49,7 +52,10 @@ async function main(): Promise<number> {
       pipeline: r.pipeline,
       status: r.status,
       reasonCode: r.reason_code,
-      gpuCoins: r.gpu_coins,
+      instanceType: r.instance_type,
+      costUsd: r.cost_usd === null ? null : Number(r.cost_usd),
+      costSeconds: r.cost_seconds,
+      costSource: r.cost_source,
       queuedAt: iso(r.queued_at),
       runningAt: iso(r.running_at),
       finishedAt: iso(r.finished_at),

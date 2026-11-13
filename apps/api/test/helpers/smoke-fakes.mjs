@@ -99,6 +99,8 @@ export function startFakeRunningHub(state) {
               status: 'SUCCESS',
               fileUrl: `http://host.docker.internal:${PORTS.rh}/files/result.${state.resultExt}`,
               consumeMoney: 7,
+              costUsd: 0.016,
+              costSeconds: 63,
             }),
           );
         }

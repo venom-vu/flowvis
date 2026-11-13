@@ -1,6 +1,7 @@
 import {
   RunningHubError,
   RunningHubNetworkError,
+  type RunningHubInstanceType,
   type RunningHubNodeInfo,
   type RunningHubOutputs,
   type RunningHubPort,
@@ -80,6 +81,23 @@ function isTransientCode(code: unknown): boolean {
 }
 
 const MEDIA_OUTPUT_TYPES = new Set(['png', 'jpg', 'jpeg', 'webp', 'mp4', 'webm', 'mov']);
+
+/** Đọc `usage` của /openapi/v2/query: consumeMoney (USD, chuỗi) và taskCostTime (giây, chuỗi). Giá trị lạ bị bỏ qua. */
+function parseUsage(env: Envelope): { costUsd?: number; costSeconds?: number } {
+  const usage = (env as { usage?: unknown }).usage;
+  if (!usage || typeof usage !== 'object') return {};
+  const u = usage as { consumeMoney?: unknown; taskCostTime?: unknown };
+  const num = (v: unknown): number | undefined => {
+    const n = typeof v === 'string' && v.trim() !== '' ? Number(v) : v;
+    return typeof n === 'number' && Number.isFinite(n) ? n : undefined;
+  };
+  const money = num(u.consumeMoney);
+  const secs = num(u.taskCostTime);
+  return {
+    ...(money !== undefined && money >= 0 ? { costUsd: money } : {}),
+    ...(secs !== undefined && secs > 0 ? { costSeconds: Math.round(secs) } : {}),
+  };
+}
 
 function v2FailureMessage(env: Envelope): string {
   const reason = env.failedReason as { exception_message?: unknown } | null | undefined;
@@ -179,6 +197,7 @@ export class RunningHubOpenApiAdapter implements RunningHubPort {
     nodeInfoList: RunningHubNodeInfo[],
     signal: AbortSignal,
     mode: RunningHubRunMode = 'ai-app',
+    instanceType: RunningHubInstanceType = 'default',
   ): Promise<string> {
     const path =
       mode === 'workflow'
@@ -186,8 +205,8 @@ export class RunningHubOpenApiAdapter implements RunningHubPort {
         : `/openapi/v2/run/ai-app/${encodeURIComponent(workflowId)}`;
     const payload =
       mode === 'workflow'
-        ? { addMetadata: false, nodeInfoList, instanceType: 'default', usePersonalQueue: 'false' }
-        : { nodeInfoList, instanceType: 'default', usePersonalQueue: 'false' };
+        ? { addMetadata: false, nodeInfoList, instanceType, usePersonalQueue: 'false' }
+        : { nodeInfoList, instanceType, usePersonalQueue: 'false' };
     const env = await this.post(path, JSON.stringify(payload), signal);
     const err = v2ErrorCode(env);
     // Bận/giới hạn tần suất: task chưa được tạo nên thử lại an toàn (requestSent=false).
@@ -216,9 +235,9 @@ export class RunningHubOpenApiAdapter implements RunningHubPort {
       // Một workflow có thể trả nhiều đầu ra (vd. zip rồi png): ưu tiên ảnh/video, bỏ qua file đóng gói.
       const first = withUrl.find((r) => MEDIA_OUTPUT_TYPES.has(String(r.outputType ?? '').toLowerCase())) ?? withUrl[0];
       // SUCCESS mà không có url: worker ghi OUTPUT_UPLOAD_ERROR và hoàn credit.
-      return { status: 'SUCCESS', fileUrl: first?.url as string | undefined };
+      return { status: 'SUCCESS', fileUrl: first?.url as string | undefined, ...parseUsage(env) };
     }
-    if (status === 'FAILED') return { status: 'FAILED', errorMessage: v2FailureMessage(env) };
+    if (status === 'FAILED') return { status: 'FAILED', errorMessage: v2FailureMessage(env), ...parseUsage(env) };
     if (status === 'QUEUED' || status === 'RUNNING' || status === 'CREATE') return { status: 'RUNNING' };
 
     if (err) {
@@ -229,14 +248,14 @@ export class RunningHubOpenApiAdapter implements RunningHubPort {
     throw new RunningHubError(`RunningHub trả trạng thái không rõ (${status || 'rỗng'})`);
   }
 
-  /** Đọc số dư qua đường dẫn cấu hình `RH_BALANCE_ENDPOINT` (POST, trả `data.remainCoins`/`data.coins`/`coins`). */
+  /** Đọc số dư USD qua `RH_BALANCE_ENDPOINT` (`/uc/openapi/accountStatus`, POST); số dư dùng được là `data.remainMoney` (chuỗi USD), không dùng remainCoins. */
   async getBalance(signal: AbortSignal): Promise<number> {
     const endpoint = process.env.RH_BALANCE_ENDPOINT?.trim();
     if (!endpoint) throw new RunningHubError('Chưa cấu hình RH_BALANCE_ENDPOINT');
     const path = endpoint.startsWith('/') ? endpoint : `/${endpoint}`;
-    const env = await this.post(path, JSON.stringify({ apiKey: this.apiKey }), signal);
-    const data = (env.data ?? {}) as { remainCoins?: unknown; coins?: unknown };
-    const raw = data.remainCoins ?? data.coins ?? (env as { coins?: unknown }).coins;
+    const env = await this.post(path, JSON.stringify({ apikey: this.apiKey }), signal);
+    const data = (env.data ?? {}) as { remainMoney?: unknown };
+    const raw = data.remainMoney;
     const n = typeof raw === 'string' && raw.trim() !== '' ? Number(raw) : raw;
     if (typeof n !== 'number' || !Number.isFinite(n) || n < 0) {
       throw new RunningHubError('Phản hồi số dư không hợp lệ');

@@ -17,7 +17,7 @@ export const SETTING_KEYS = {
 export const ALERT_KEY_PREFIX = 'alert:';
 
 export interface RhBalanceReading {
-  coins: number;
+  usd: number;
   readAt: string;
 }
 
@@ -78,8 +78,8 @@ export class SettingsService {
   async getRhBalance(): Promise<RhBalanceReading | null> {
     const v = await this.read(this.prisma, SETTING_KEYS.rhBalance);
     if (!v || typeof v !== 'object') return null;
-    const { coins, readAt } = v as Partial<RhBalanceReading>;
-    return typeof coins === 'number' && typeof readAt === 'string' ? { coins, readAt } : null;
+    const { usd, readAt } = v as Partial<RhBalanceReading>;
+    return typeof usd === 'number' && typeof readAt === 'string' ? { usd, readAt } : null;
   }
 
   async getRhBalanceState(): Promise<RhBalanceState> {

@@ -31,14 +31,11 @@ const timeRows = computed<BarRow[]>(() =>
   (stats.value?.pipelines ?? []).map((p) => ({ labelVi: getPipelineLabelVi(p.pipeline), values: [p.avgProcessingSeconds, p.p95ProcessingSeconds] })),
 );
 
-const costSeries: BarSeries[] = [
-  { key: 'retail', labelVi: 'Giá lẻ', color: SERIES_1 },
-  { key: 'standardPack', labelVi: 'Giá gói', color: SERIES_2 },
-];
+const costSeries: BarSeries[] = [{ key: 'avgUsd', labelVi: 'Chi phí GPU (VNĐ)', color: SERIES_1 }];
 const costRows = computed<BarRow[]>(() =>
   (stats.value?.pipelines ?? []).map((p) => ({
     labelVi: getPipelineLabelVi(p.pipeline),
-    values: [p.avgCostVnd?.retail ?? null, p.avgCostVnd?.standardPack ?? null],
+    values: [p.avgCostVnd],
   })),
 );
 
@@ -205,7 +202,7 @@ watch(isAdmin, (admin) => {
             <table :class="ui.table" data-testid="ops-stats-pipelines">
               <thead>
                 <tr>
-                  <th :class="ui.th">Tính năng</th><th :class="ui.th">Thành công</th><th :class="ui.th">TB</th><th :class="ui.th">p95</th><th :class="ui.th">Phí GPU TB (lẻ)</th><th :class="ui.th">Phí GPU TB (gói)</th>
+                  <th :class="ui.th">Tính năng</th><th :class="ui.th">Thành công</th><th :class="ui.th">TB</th><th :class="ui.th">p95</th><th :class="ui.th">Phí GPU TB (USD)</th><th :class="ui.th">Phí GPU TB (VNĐ)</th><th :class="ui.th">Phí lãng phí (USD)</th><th :class="ui.th">Theo loại máy</th>
                 </tr>
               </thead>
               <tbody>
@@ -214,8 +211,10 @@ watch(isAdmin, (admin) => {
                   <td :class="ui.td">{{ pct(p.successRate) }}</td>
                   <td :class="ui.td">{{ secs(p.avgProcessingSeconds) }}</td>
                   <td :class="ui.td">{{ secs(p.p95ProcessingSeconds) }}</td>
-                  <td :class="ui.td">{{ p.avgCostVnd ? formatVndVi(Math.round(p.avgCostVnd.retail)) : '-' }}</td>
-                  <td :class="ui.td">{{ p.avgCostVnd ? formatVndVi(Math.round(p.avgCostVnd.standardPack)) : '-' }}</td>
+                  <td :class="ui.td">{{ p.avgCostUsd === null ? '-' : `${p.avgCostUsd.toFixed(4)} USD` }}</td>
+                  <td :class="ui.td">{{ p.avgCostVnd === null ? '-' : formatVndVi(Math.round(p.avgCostVnd)) }}</td>
+                  <td :class="ui.td">{{ p.wastedCostUsd.toFixed(4) }} USD</td>
+                  <td :class="ui.td">{{ p.costByInstanceType.length ? p.costByInstanceType.map((i) => `${i.instanceType}: ${i.tasks} Task, ${i.costUsd.toFixed(4)} USD`).join('; ') : '-' }}</td>
                 </tr>
               </tbody>
             </table>
@@ -225,13 +224,12 @@ watch(isAdmin, (admin) => {
           <div :class="ui.tableWrap">
             <table :class="ui.table" data-testid="ops-stats-margins">
               <thead>
-                <tr><th :class="ui.th">Tính năng</th><th :class="ui.th">Gói</th><th :class="ui.th">Kịch bản</th><th :class="ui.th">Doanh thu</th><th :class="ui.th">Chi phí</th><th :class="ui.th">Biên gộp</th></tr>
+                <tr><th :class="ui.th">Tính năng</th><th :class="ui.th">Gói</th><th :class="ui.th">Doanh thu</th><th :class="ui.th">Chi phí</th><th :class="ui.th">Biên gộp</th></tr>
               </thead>
               <tbody>
                 <tr v-for="(m, i) in stats.margins" :key="i">
                   <td :class="ui.td">{{ getPipelineLabelVi(m.pipeline) }}</td>
                   <td :class="ui.td">{{ m.pack }}</td>
-                  <td :class="ui.td">{{ m.scenario === 'retail' ? 'Giá lẻ' : 'Giá gói' }}</td>
                   <td :class="ui.td">{{ formatVndVi(Math.round(m.revenueVnd)) }}</td>
                   <td :class="ui.td">{{ formatVndVi(Math.round(m.costVnd)) }}</td>
                   <td :class="[ui.td, m.marginVnd < 0 ? ui.bad : '']">{{ formatNumberVi(Math.round(m.marginVnd)) }}đ ({{ pct(m.marginRate) }})</td>

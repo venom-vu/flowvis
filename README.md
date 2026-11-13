@@ -89,7 +89,7 @@ Smoke `apps/api/test/smoke-ops.test.mjs` chạy bằng `RUN_COMPOSE_E2E=1 pnpm -
 ### Runbook Admin (trang `/admin/ops`)
 
 - **Ngắt mạch kích hoạt** (hệ thống tạm dừng nhận Task mới, người dùng thấy biểu ngữ bảo trì): xem `lastBreakerTrigger` (quy tắc và số liệu) và log worker; xử lý nguyên nhân (RunningHub, R2, ffmpeg), rồi bấm "Mở lại nhận Task" (`POST /admin/ops/resume`). Lỗi cũ không tính lại sau khi mở.
-- **Hết ngân sách RunningHub** (`rhBudgetExhausted`): nạp coin RunningHub, kiểm tra `rhBalance`, rồi mở lại. Trong lúc tạm dừng, đăng nhập, nạp credit, lịch sử và tải kết quả vẫn dùng được; Task bị ảnh hưởng đã `failed` `RH_BUDGET` và RELEASED 100%.
+- **Hết ngân sách RunningHub** (`rhBudgetExhausted`): nạp tiền (USD) cho RunningHub, kiểm tra `rhBalance`, rồi mở lại. Trong lúc tạm dừng, đăng nhập, nạp credit, lịch sử và tải kết quả vẫn dùng được; Task bị ảnh hưởng đã `failed` `RH_BUDGET` và RELEASED 100%.
 - **Sao lưu lỗi** (Discord `ops.backup_failed`, hoặc quá 36 giờ không có bản thành công): xem `lastBackup`, kiểm tra `pg_dump`/R2 trong log worker; bản cũ không bị xóa khi lỗi. Chạy lại bằng lịch 03:00 hoặc xác nhận qua `deploy/RESTORE.md` (có lệnh restore-drill).
 - **Đơn nạp quá hạn**: vào `/admin/topups`, đối chiếu `bank_ref` với sao kê; duyệt đơn `needs_review`/`expired` đúng số tiền, hoặc bỏ qua. Không có đường tự hoàn credit Task đã `succeeded`; dùng cộng bù (`ADJUST`) kèm lý do.
 - **Vi phạm nội dung**: tra cứu theo mã Task hoặc `shareUrl`, bấm gỡ (thu hồi liên kết, xóa `in/` và `out/` trên R2, số dư không đổi); khóa tài khoản nếu cần. Người dùng báo cáo qua `mailto:` ở chân trang.
