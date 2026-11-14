@@ -12,7 +12,7 @@ export function motionPrice(seconds: number): number {
 /** Số giây Trim tối thiểu của Motion Control. */
 export const MOTION_MIN_TRIM_SECONDS = 3;
 
-export const TASK_PIPELINES = ['face_swap', 'body_retouch', 'motion_control', 'character_replace'] as const;
+export const TASK_PIPELINES = ['face_swap', 'body_retouch', 'motion_control', 'character_replace', 'outfit_change'] as const;
 export type TaskPipeline = (typeof TASK_PIPELINES)[number];
 export const TaskPipelineSchema = z.enum(TASK_PIPELINES);
 
@@ -218,6 +218,17 @@ export const IntensitySchema = z
   .max(INTENSITY_MAX, 'Mức điều chỉnh tối đa là 10.')
   .default(INTENSITY_DEFAULT);
 export type Intensity = z.infer<typeof IntensitySchema>;
+
+/** POST /tasks/outfit-change — đổi trang phục: ảnh người mẫu + ảnh trang phục; giá do server quyết định. */
+export const OutfitChangeCreateRequestSchema = z
+  .object({
+    modelKey: ConfirmedUploadKeySchema,
+    clothingKey: ConfirmedUploadKeySchema,
+  })
+  .strict();
+export type OutfitChangeCreateRequest = z.infer<typeof OutfitChangeCreateRequestSchema>;
+export const OutfitChangeCreateResponseSchema = TaskSchema;
+export type OutfitChangeCreateResponse = Task;
 
 /** Ba vùng nhãn của thanh mức điều chỉnh (min/max gồm cả hai đầu). */
 export const INTENSITY_LABEL_ZONES = [

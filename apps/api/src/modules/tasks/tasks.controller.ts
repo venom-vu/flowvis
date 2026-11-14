@@ -3,6 +3,8 @@ import {
   ApiErrorCode,
   BodyRetouchCreateRequestSchema,
   FaceSwapCreateRequestSchema,
+  OutfitChangeCreateRequestSchema,
+  type OutfitChangeCreateResponse,
   MotionCreateRequestSchema,
   CharacterReplaceCreateRequestSchema,
   type CharacterReplaceCreateResponse,
@@ -51,6 +53,24 @@ export class TasksController {
       });
     }
     return this.tasks.createFaceSwap(user.sub, parsed.data);
+  }
+
+  @Post('outfit-change')
+  @CreatesTask()
+  @UseGuards(IntakeOpenGuard)
+  async createOutfitChange(
+    @CurrentUser() user: JwtUserPayload,
+    @Body() body: unknown,
+  ): Promise<OutfitChangeCreateResponse> {
+    const parsed = OutfitChangeCreateRequestSchema.safeParse(body);
+    if (!parsed.success) {
+      const code = ApiErrorCode.VALIDATION_FAILED;
+      throw new BadRequestException({
+        code,
+        message: parsed.error.issues[0]?.message ?? getApiErrorMessageVi(code),
+      });
+    }
+    return this.tasks.createOutfitChange(user.sub, parsed.data);
   }
 
   @Post('body-retouch')

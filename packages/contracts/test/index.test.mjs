@@ -33,6 +33,7 @@ import {
   AuthRefreshResponseSchema,
   CONTRACTS_PACKAGE_VERSION,
   FaceSwapCreateRequestSchema,
+  OutfitChangeCreateRequestSchema,
   ConfirmedUploadKeySchema,
   RawUploadKeySchema,
   ImageMetaSchema,
@@ -925,8 +926,18 @@ describe('@flowvis/contracts', () => {
     const KEY = 'in/10000000-0000-4000-8000-000000000001/60000000-0000-4000-8000-000000000001';
 
     it('exports pipelines and intensity constants', () => {
-      assert.deepEqual([...TASK_PIPELINES], ['face_swap', 'body_retouch', 'motion_control', 'character_replace']);
+      assert.deepEqual([...TASK_PIPELINES], ['face_swap', 'body_retouch', 'motion_control', 'character_replace', 'outfit_change']);
       assert.deepEqual([INTENSITY_MIN, INTENSITY_MAX, INTENSITY_DEFAULT], [1, 10, 5]);
+    });
+
+    it('validates outfit change request (2 keys, strict)', () => {
+      const KEY2 = 'in/10000000-0000-4000-8000-000000000001/60000000-0000-4000-8000-000000000002';
+      assert.ok(OutfitChangeCreateRequestSchema.safeParse({ modelKey: KEY, clothingKey: KEY2 }).success);
+      assert.equal(OutfitChangeCreateRequestSchema.safeParse({ modelKey: KEY }).success, false);
+      assert.equal(
+        OutfitChangeCreateRequestSchema.safeParse({ modelKey: KEY, clothingKey: KEY2, credit: 1 }).success,
+        false,
+      );
     });
 
     it('parses valid request and defaults intensity to 5', () => {

@@ -127,7 +127,9 @@ export class AdminStatsService {
           q.imagePrice ??
           (pipeline === "face_swap"
             ? PRICING_CONFIG.pipelines.faceSwapCredits
-            : PRICING_CONFIG.pipelines.bodyRetouchCredits);
+            : pipeline === "outfit_change"
+              ? PRICING_CONFIG.pipelines.outfitChangeCredits
+              : PRICING_CONFIG.pipelines.bodyRetouchCredits);
       }
       const costVnd = unitUsd * usdVnd;
       for (const pack of PRICING_CONFIG.topupPacks) {

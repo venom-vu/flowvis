@@ -20,6 +20,7 @@ import {
   BodyRetouchCreateRequestSchema,
   type BodyRetouchCreateRequest,
   type FaceSwapCreateRequest,
+  type OutfitChangeCreateRequest,
   type MotionCreateRequest,
   type ValidationReason,
   MOTION_MIN_TRIM_SECONDS,
@@ -92,6 +93,7 @@ export const RESULT_URL_TTL_SECONDS = 600;
 /** Thứ tự hiển thị đầu vào trên trang chi tiết Task. */
 const INPUT_DISPLAY_ORDER: Readonly<Record<string, readonly string[]>> = {
   face_swap: ['sourceKey', 'targetKey'],
+  outfit_change: ['modelKey', 'clothingKey'],
   body_retouch: ['imageKey'],
   motion_control: ['characterKey', 'videoKey'],
   character_replace: ['characterKey', 'videoKey'],
@@ -635,6 +637,21 @@ export class TasksService {
     });
   }
 
+  async createOutfitChange(userId: string, req: OutfitChangeCreateRequest): Promise<Task> {
+    if (req.modelKey === req.clothingKey) {
+      throw new BadRequestException({
+        code: ApiErrorCode.VALIDATION_FAILED,
+        message: getApiErrorMessageVi(ApiErrorCode.VALIDATION_FAILED),
+      });
+    }
+    return this.createPipelineTask(userId, {
+      pipeline: 'outfit_change',
+      amount: PRICING_CONFIG.pipelines.outfitChangeCredits,
+      inputKeys: { modelKey: req.modelKey, clothingKey: req.clothingKey },
+      params: {},
+    });
+  }
+
   async createBodyRetouch(userId: string, req: BodyRetouchCreateRequest): Promise<Task> {
     // Phòng thủ: parse lại để áp mặc định intensity=5 và chặn giá trị sai khi gọi từ nơi khác controller.
     const parsed = BodyRetouchCreateRequestSchema.safeParse(req);
@@ -747,7 +764,7 @@ export class TasksService {
   private async createPipelineTask(
     userId: string,
     spec: {
-      pipeline: 'face_swap' | 'body_retouch' | 'motion_control' | 'character_replace';
+      pipeline: 'face_swap' | 'outfit_change' | 'body_retouch' | 'motion_control' | 'character_replace';
       amount: number;
       inputKeys: Record<string, string>;
       params: Record<string, unknown>;

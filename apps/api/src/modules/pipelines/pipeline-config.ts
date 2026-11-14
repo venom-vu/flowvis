@@ -62,6 +62,22 @@ export const PIPELINE_CONFIGS: Readonly<Record<string, PipelineConfig>> = {
     ],
     referenceInputKey: 'targetKey',
   },
+  outfit_change: {
+    pipeline: 'outfit_change',
+    workflowEnvVar: 'RUNNINGHUB_WORKFLOW_OUTFIT_CHANGE',
+    runModeEnvVar: 'RUNNINGHUB_MODE_OUTFIT_CHANGE',
+    instanceEnvVar: 'RUNNINGHUB_INSTANCE_OUTFIT_CHANGE',
+    defaultRunMode: 'ai-app',
+    // Không requiredAtStartup: môi trường chưa cấu hình vẫn khởi động; adapter unconfigured ném RH_ERROR.
+    // AI App Đổi trang phục (2012848202482978818): 107 = ảnh người mẫu, 285 = ảnh trang phục, 223 = prompt cố định.
+    inputs: [
+      { inputKey: 'modelKey', nodeId: '107', fieldName: 'image' },
+      { inputKey: 'clothingKey', nodeId: '285', fieldName: 'image' },
+    ],
+    // Prompt gốc (tiếng Trung): "Cho nhân vật ở ảnh 1 mặc quần áo ở ảnh 2".
+    fixedNodes: [{ nodeId: '223', fieldName: 'value', fieldValue: '让图一的人物穿上图二的衣服' }],
+    referenceInputKey: 'modelKey',
+  },
   body_retouch: {
     pipeline: 'body_retouch',
     workflowEnvVar: 'RUNNINGHUB_WORKFLOW_BODY_RESHAPE',

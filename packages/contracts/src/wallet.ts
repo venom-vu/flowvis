@@ -387,6 +387,7 @@ export type WalletLedgerResponse = z.infer<typeof WalletLedgerResponseSchema>;
  */
 export const PipelinePricingSchema = z.object({
   faceSwapCredits: z.literal(100),
+  outfitChangeCredits: z.literal(100),
   bodyRetouchCredits: z.literal(100),
   motionControlCreditsPerSecond: z.literal(50),
   /** Số giây Trim tối thiểu của Motion Control (tùy chọn để BE Epic 2–4 chưa trả vẫn hợp lệ; BE 5.3 phải trả 3). */

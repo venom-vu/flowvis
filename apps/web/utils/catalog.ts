@@ -18,7 +18,7 @@ export const FEATURE_CATEGORIES: readonly FeatureCategoryOption[] = [
   { id: "video", labelVi: "Chuyển động video AI", icon: "lucide:video" },
 ] as const;
 
-export type FeaturePipelineId = "face-swap" | "body-retouch" | "motion-control" | "character-replace";
+export type FeaturePipelineId = "face-swap" | "outfit-change" | "body-retouch" | "motion-control" | "character-replace";
 
 export interface AiFeatureTool {
   id: FeaturePipelineId;
@@ -95,7 +95,7 @@ export function buildAiFeatureCatalog(
 ): AiFeatureTool[] {
   const activeTierConfig = resolveTierConfig(pricing, currentTier);
   const maxVideoSeconds = activeTierConfig.maxVideoSeconds;
-  const { faceSwapCredits, bodyRetouchCredits, motionControlCreditsPerSecond } =
+  const { faceSwapCredits, outfitChangeCredits, bodyRetouchCredits, motionControlCreditsPerSecond } =
     pricing.pipelines;
   const characterReplaceCreditsPerSecond =
     pricing.pipelines.characterReplaceCreditsPerSecond;
@@ -121,6 +121,29 @@ export function buildAiFeatureCatalog(
       afterLabelVi: "Khuôn mặt đã đồng bộ AI",
       accentGradient: "from-violet-600/30 via-slate-900 to-cyan-500/20",
       inputRequirementVi: "1 ảnh khuôn mặt nguồn + 1 ảnh đích rõ mặt",
+      outputFormatVi:
+        "Ảnh PNG/JPEG chất lượng cao (kèm nhãn EXIF AI Generator)",
+    },
+    {
+      id: "outfit-change",
+      slug: "outfit-change",
+      titleVi: "Đổi Trang Phục AI",
+      subtitleVi: "Mặc thử trang phục bất kỳ lên người mẫu trong vài chục giây",
+      descriptionVi:
+        "Tải ảnh người mẫu và ảnh trang phục, AI tự động thay quần áo giữ nguyên dáng người, khuôn mặt và bối cảnh.",
+      category: "image",
+      categoryLabelVi: "Xử lý ảnh AI",
+      badgeVi: "Mới",
+      icon: "lucide:shirt",
+      billingMode: "per_run",
+      unitCredits: outfitChangeCredits,
+      priceBadgeVi: `${formatNumberVi(outfitChangeCredits)} credit / lượt`,
+      tierCapSeconds: null,
+      tierCapLabelVi: null,
+      beforeLabelVi: "Ảnh người mẫu gốc",
+      afterLabelVi: "Người mẫu đã đổi trang phục",
+      accentGradient: "from-cyan-500/25 via-slate-900 to-violet-600/25",
+      inputRequirementVi: "1 ảnh người mẫu rõ dáng + 1 ảnh trang phục cần mặc",
       outputFormatVi:
         "Ảnh PNG/JPEG chất lượng cao (kèm nhãn EXIF AI Generator)",
     },

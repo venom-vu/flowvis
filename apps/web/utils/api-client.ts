@@ -46,6 +46,8 @@ import {
   BodyRetouchCreateResponseSchema,
   FaceSwapCreateRequestSchema,
   FaceSwapCreateResponseSchema,
+  OutfitChangeCreateRequestSchema,
+  OutfitChangeCreateResponseSchema,
   INTENSITY_DEFAULT,
   INTENSITY_LABEL_ZONES,
   INTENSITY_MAX,
@@ -123,6 +125,8 @@ import {
   type BodyRetouchCreateResponse,
   type FaceSwapCreateRequest,
   type FaceSwapCreateResponse,
+  type OutfitChangeCreateRequest,
+  type OutfitChangeCreateResponse,
   type Intensity,
   type MeResponse,
   type MotionCreateRequest,
@@ -213,6 +217,8 @@ export {
   type BodyRetouchCreateResponse,
   type FaceSwapCreateRequest,
   type FaceSwapCreateResponse,
+  type OutfitChangeCreateRequest,
+  type OutfitChangeCreateResponse,
   type Intensity,
   type ReasonCode,
   type Task,
@@ -703,6 +709,23 @@ export function createMotionApiClient(options: MotionApiClientOptions = {}) {
           signal: options?.signal,
         },
         (payload) => FaceSwapCreateResponseSchema.parse(payload),
+      );
+    },
+
+    async createOutfitChangeTask(
+      rawRequest: OutfitChangeCreateRequest,
+      options?: { signal?: AbortSignal },
+    ): Promise<OutfitChangeCreateResponse> {
+      const data = OutfitChangeCreateRequestSchema.parse(rawRequest);
+      return requestLive(
+        '/tasks/outfit-change',
+        {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(data),
+          signal: options?.signal,
+        },
+        (payload) => OutfitChangeCreateResponseSchema.parse(payload),
       );
     },
 
