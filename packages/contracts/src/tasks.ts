@@ -457,9 +457,32 @@ export const MEDIA_TYPES = ['image', 'video'] as const;
 export const MediaTypeSchema = z.enum(MEDIA_TYPES);
 export type MediaType = z.infer<typeof MediaTypeSchema>;
 
+/** Một đầu vào của Task (ảnh/video người dùng đã tải lên) kèm URL ký ngắn hạn; chỉ trả khi tệp còn lưu. */
+export const TaskResultInputSchema = z.object({
+  /** Khóa trong tasks.input_keys, vd. `sourceKey`, `targetKey`, `imageKey`, `characterKey`, `videoKey`. */
+  role: z.string().min(1),
+  mediaType: MediaTypeSchema,
+  url: z.string().url(),
+});
+export type TaskResultInput = z.infer<typeof TaskResultInputSchema>;
+
+/** Tham số người dùng đã chọn khi tạo Task (chỉ các trường an toàn để hiển thị). */
+export const TaskResultParamsSchema = z.object({
+  intensity: z.number().int().optional(),
+  seconds: z.number().int().positive().optional(),
+  trimStart: z.number().int().optional(),
+  trimEnd: z.number().int().optional(),
+  aspectRatio: z.string().optional(),
+  prompt: z.string().optional(),
+});
+export type TaskResultParams = z.infer<typeof TaskResultParamsSchema>;
+
 /** Video có `posterUrl` và `durationSeconds`; ảnh không có. `sourceUrl` của Motion luôn rỗng. */
 export const TaskResultResponseSchema = z
   .object({
+    /** Đầu vào gốc của Task để trang chi tiết hiển thị lại; vắng nghĩa là BE cũ. */
+    inputs: z.array(TaskResultInputSchema).optional(),
+    params: TaskResultParamsSchema.optional(),
     /** Vắng mặt nghĩa là `image` (tương thích BE Epic 2–4 cho đến khi 5.6 điền trường này). */
     mediaType: MediaTypeSchema.optional(),
     resultUrl: z.string().url(),

@@ -147,7 +147,7 @@ describe('@flowvis/web — Thay Nhân Vật Video', () => {
       const href = (rel) => JSON.stringify(pathToFileURL(path.join(webRoot, rel)).href);
       const stubs = {
         '~/components/ImageUploader.vue': 'export default {};',
-        '~/components/TaskProgressCard.vue': 'export default {};',
+        '~/components/TaskResultViewer.vue': 'export default {};',
         '~/composables/useApiClient': 'export const useApiClient = () => ({ client: {} });',
         '~/composables/useAuthDialog': 'export const useAuthDialog = () => ({ open: () => {} });',
         '~/composables/usePricingConfig': 'export const usePricingConfig = () => ({ refreshAll: async () => {} });',

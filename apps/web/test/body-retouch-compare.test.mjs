@@ -378,6 +378,7 @@ describe('@flowvis/web — Story 4.5: [FE] So sánh trước/sau (BeforeAfterSpl
             resultUrl: opts.resultUrl ?? 'https://cdn.example.test/out/result.png',
             alt: opts.alt ?? 'Kết quả Chỉnh sửa vóc dáng',
             disabled: opts.disabled ?? false,
+            surface: opts.surface ?? 'card',
             sliderPosition: sliderPos,
             hasSource,
             handlePointerDown: () => {},
@@ -409,8 +410,18 @@ describe('@flowvis/web — Story 4.5: [FE] So sánh trước/sau (BeforeAfterSpl
 
       // Khung chứa và cấu hình touch-action
       assert.match(html, /data-testid="before-after-split-slider"/);
+      assert.match(html, /bg-cyber-surface\/90/);
       assert.match(html, /data-testid="split-slider-canvas"/);
       assert.match(html, /touch-action:\s*pan-y/i);
+
+      const recessedHtml = await renderToString(
+        createSliderApp({
+          sourceUrl: MOCK_BODY_RETOUCH_RESULT_RESPONSE.sourceUrl,
+          resultUrl: MOCK_BODY_RETOUCH_RESULT_RESPONSE.resultUrl,
+          surface: 'recessed',
+        }),
+      );
+      assert.match(recessedHtml, /bg-cyber-bg\/70/);
 
       // Lớp Before (ảnh gốc)
       assert.match(html, /data-testid="before-layer"/);
@@ -486,12 +497,12 @@ describe('@flowvis/web — Story 4.5: [FE] So sánh trước/sau (BeforeAfterSpl
     });
   });
 
-  describe('3. Trang pages/tasks/[id].vue — SSR template render cho pipeline body_retouch', () => {
+
+  describe('3. Trang pages/tasks/[id].vue — SSR template render (đầu vào + kết quả)', () => {
     let ssrRender;
 
     before(async () => {
-      const pageCode = read('pages/tasks/[id].vue');
-      const { descriptor } = parse(pageCode, { filename: 'tasks-[id].vue' });
+      const { descriptor } = parse(read('pages/tasks/[id].vue'), { filename: 'tasks-[id].vue' });
       const compiled = compileTemplate({
         id: 'test-tasks-id-page-ssr',
         filename: 'pages/tasks/[id].vue',
@@ -500,547 +511,339 @@ describe('@flowvis/web — Story 4.5: [FE] So sánh trước/sau (BeforeAfterSpl
         ssrCssVars: [],
       });
       assert.equal(compiled.errors.length, 0);
-
-      const tmpFile = path.join(
-        webRoot,
-        'test',
-        `.tmp-tasks-id-ssr-${Date.now()}.mjs`,
-      );
+      const tmpFile = path.join(webRoot, 'test', `.tmp-tasks-id-ssr-${Date.now()}.mjs`);
       fs.writeFileSync(tmpFile, compiled.code, 'utf8');
       try {
-        const mod = await import(pathToFileURL(tmpFile).href);
-        ssrRender = mod.ssrRender;
+        ssrRender = (await import(pathToFileURL(tmpFile).href)).ssrRender;
       } finally {
         fs.rmSync(tmpFile, { force: true });
       }
     });
 
-    const createTasksIdApp = ({
+    const BODY_INPUTS = [
+      { role: 'imageKey', mediaType: 'image', url: 'https://cdn.example.test/in.jpg' },
+    ];
+
+    const createApp = ({
       task = MOCK_BODY_RETOUCH_TASK_SUCCEEDED,
-      isExpiredVal = false,
-      resultData = MOCK_BODY_RETOUCH_RESULT_RESPONSE,
-      shareData = null,
-      resultErrorVi = null,
-      downloadErrorVi = null,
-      imageLoadFailed = false,
+      inputs = BODY_INPUTS,
+      params = { intensity: 7 },
+      isUnauthenticated = false,
+      taskErrorVi = null,
+      pending = false,
     } = {}) => {
+      const paramRows = params?.intensity != null ? [{ label: 'Mức điều chỉnh', value: `${params.intensity}/10` }] : [];
       const app = createSSRApp({
         ssrRender,
         setup() {
           return {
-            taskId: task.id,
+            taskAsync: { pending: { value: pending }, refresh: () => {} },
             currentTask: task,
-            isExpired: isExpiredVal,
-            isUnauthenticated: false,
-            taskAsync: { pending: { value: false }, data: { value: task } },
-            resultAsync: {
-              pending: { value: false },
-              data: { value: resultData },
-            },
-            taskErrorVi: null,
-            resultErrorVi,
-            shareData,
-            isSharing: false,
-            isRevokingShare: false,
-            shareToastMessage: null,
-            shareErrorVi: null,
-            downloadErrorVi,
-            isDownloading: false,
-            imageLoadFailed,
+            result: { inputs, params },
+            inputs,
+            params,
+            paramRows,
+            isUnauthenticated,
+            taskErrorVi,
+            isVideoPipeline: task.pipeline === 'motion_control' || task.pipeline === 'character_replace',
+            statusTone: 'tone',
+            idCopied: false,
+            inputLabelVi: (role) => role,
             getPipelineLabelVi,
-            formatTaskTimestampVi,
             getTaskStatusLabelVi,
-            getPipelineRoute: (p) =>
-              p === 'body_retouch' ? '/body-retouch' : p === 'motion_control' ? '/motion-control' : '/face-swap',
-            handleCreateNewTask: () => {},
+            formatTaskTimestampVi,
+            getPipelineRoute: (pl) => (pl === 'body_retouch' ? '/body-retouch' : pl === 'motion_control' ? '/motion-control' : '/face-swap'),
+            copyTaskId: () => {},
             handleGoBack: () => {},
-            handleRefreshResult: () => {},
-            handleImageError: () => {},
-            handleDownloadImage: () => {},
-            handleShare: () => {},
-            handleRevokeShare: () => {},
-            handleCopyShareLink: () => {},
+            handleCreateNewTask: () => {},
             openAuthDialog: () => {},
           };
         },
       });
-      app.component('Icon', {
-        props: ['name'],
-        ssrRender(ctx, push) {
-          push(`<span class="icon-${ctx.name?.replace(/[:/]/g, '-')}"></span>`);
-        },
-      });
+      app.component('Icon', { props: ['name'], ssrRender: (_c, push) => push('<i></i>') });
       app.component('NuxtLink', {
         props: ['to'],
         setup(props, { slots, attrs }) {
-          return () =>
-            h(
-              'a',
-              {
-                href: props.to || '#',
-                'data-testid': attrs['data-testid'],
-              },
-              slots.default ? slots.default() : 'MockLink',
-            );
+          return () => h('a', { href: props.to || '#', 'data-testid': attrs['data-testid'] }, slots.default ? slots.default() : '');
         },
       });
-      app.component('BeforeAfterSplitSlider', {
-        props: ['resultUrl', 'sourceUrl', 'alt'],
-        ssrRender(ctx, push) {
-          push(
-            `<div data-testid="mock-before-after-slider" data-res="${ctx.resultUrl}" data-src="${ctx.sourceUrl || ''}"></div>`,
-          );
-        },
-      });
-      app.component('TaskProgressCard', {
-        props: ['task', 'polling', 'pipelineLabelVi'],
-        ssrRender(ctx, push) {
-          push(
-            `<div data-testid="mock-task-progress-card" data-pipeline-label="${ctx.pipelineLabelVi || ''}" data-status="${ctx.task?.status}"></div>`,
-          );
-        },
+      app.component('TaskResultViewer', {
+        props: ['task'],
+        ssrRender: (ctx, push) =>
+          push(`<div data-testid="mock-task-result-viewer" data-status="${ctx.task?.status}"></div>`),
       });
       return app;
     };
 
-    it('truyền đúng pipeline-label-vi="Chỉnh sửa vóc dáng" vào TaskProgressCard khi task queued hoặc running', async () => {
-      // 1. Queued
-      const queuedHtml = await renderToString(
-        createTasksIdApp({ task: MOCK_BODY_RETOUCH_TASK_QUEUED }),
-      );
-      assert.match(queuedHtml, /data-testid="task-in-progress-view"/);
-      assert.match(queuedHtml, /data-pipeline-label="Chỉnh sửa vóc dáng"/);
-      assert.match(queuedHtml, /data-status="queued"/);
-
-      // 2. Running
-      const runningHtml = await renderToString(
-        createTasksIdApp({ task: MOCK_BODY_RETOUCH_TASK_RUNNING }),
-      );
-      assert.match(runningHtml, /data-testid="task-in-progress-view"/);
-      assert.match(runningHtml, /data-pipeline-label="Chỉnh sửa vóc dáng"/);
-      assert.match(runningHtml, /data-status="running"/);
-    });
-
-    it('khi body_retouch succeeded: hiển thị BeforeAfterSplitSlider, nút tải HD, nút chia sẻ và nút CTA dẫn tới /body-retouch', async () => {
-      const html = await renderToString(
-        createTasksIdApp({ task: MOCK_BODY_RETOUCH_TASK_SUCCEEDED }),
-      );
-
+    it('hiển thị khối đầu vào, thông tin tác vụ và TaskResultViewer (không còn UI loading riêng)', async () => {
+      const html = await renderToString(createApp());
       assert.match(html, /data-testid="result-success-view"/);
-      assert.match(html, /data-testid="mock-before-after-slider"/);
-      assert.match(html, /data-testid="download-result-button"/);
-      assert.match(html, /Tải Ảnh HD \(Không Watermark\)/);
-      assert.match(html, /data-testid="share-task-button"/);
-      assert.match(html, /Chia sẻ kết quả/);
-
-      // Nút điều hướng dẫn tới /body-retouch với nhãn "Tạo tác vụ Chỉnh sửa vóc dáng khác"
-      assert.match(html, /href="\/body-retouch"/);
-      assert.match(html, /Tạo tác vụ Chỉnh sửa vóc dáng khác/);
-      assert.doesNotMatch(html, /href="\/face-swap"/);
+      assert.match(html, /data-testid="task-inputs-card"/);
+      assert.match(html, /data-testid="task-input-imageKey"/);
+      assert.match(html, /src="https:\/\/cdn\.example\.test\/in\.jpg"/);
+      assert.match(html, /data-testid="task-info-card"/);
+      assert.match(html, /7\/10/);
+      assert.match(html, /data-testid="mock-task-result-viewer" data-status="succeeded"/);
+      assert.doesNotMatch(html, /task-in-progress-view/);
     });
 
-    it('khi face_swap succeeded: nút CTA dẫn tới /face-swap với nhãn Hoán đổi khuôn mặt', async () => {
-      const taskFaceSwap = {
-        ...MOCK_BODY_RETOUCH_TASK_SUCCEEDED,
-        id: '12345678-1234-4000-8000-000000000001',
-        pipeline: 'face_swap',
-      };
-      const html = await renderToString(
-        createTasksIdApp({ task: taskFaceSwap }),
-      );
-
-      assert.match(html, /href="\/face-swap"/);
-      assert.match(html, /Tạo tác vụ Hoán đổi khuôn mặt khác/);
-      assert.doesNotMatch(html, /href="\/body-retouch"/);
-    });
-
-    it('khi motion_control succeeded: nút CTA dẫn tới /motion-control với nhãn Điều khiển chuyển động', async () => {
-      const taskMotionControl = {
-        ...MOCK_BODY_RETOUCH_TASK_SUCCEEDED,
-        id: '12345678-1234-4000-8000-000000000002',
-        pipeline: 'motion_control',
-      };
-      const html = await renderToString(
-        createTasksIdApp({ task: taskMotionControl }),
-      );
-
-      assert.match(html, /href="\/motion-control"/);
-      assert.match(html, /Tạo tác vụ Điều khiển chuyển động khác/);
-      assert.doesNotMatch(html, /href="\/face-swap"/);
-      assert.doesNotMatch(html, /href="\/body-retouch"/);
-    });
-
-    it('khi body_retouch hết hạn 30 ngày (isExpired): hiển thị thông báo hết hạn và nút dẫn tới /body-retouch', async () => {
-      const html = await renderToString(
-        createTasksIdApp({
-          task: MOCK_BODY_RETOUCH_TASK_SUCCEEDED,
-          isExpiredVal: true,
-          resultData: null,
-        }),
-      );
-
-      assert.match(html, /data-testid="retention-expired-view"/);
-      assert.match(html, /Kết Quả Đã Hết Hạn Lưu Trữ/);
-      assert.match(html, /30 ngày/);
-      assert.match(html, /href="\/body-retouch"/);
-      assert.match(html, /Tạo tác vụ Chỉnh sửa vóc dáng mới/);
-      assert.doesNotMatch(html, /data-testid="mock-before-after-slider"/);
-    });
-
-    it('khi motion_control hết hạn 30 ngày: hiển thị thông báo hết hạn và nút dẫn tới /motion-control', async () => {
-      const html = await renderToString(
-        createTasksIdApp({
-          task: {
-            ...MOCK_BODY_RETOUCH_TASK_SUCCEEDED,
-            pipeline: 'motion_control',
-          },
-          isExpiredVal: true,
-          resultData: null,
-        }),
-      );
-
-      assert.match(html, /data-testid="retention-expired-view"/);
-      assert.match(html, /href="\/motion-control"/);
-      assert.match(html, /Tạo tác vụ Điều khiển chuyển động mới/);
-    });
-
-    it('khi ảnh lỗi hoặc link hết hạn: hiển thị banner lỗi và nút "Lấy lại link mới"', async () => {
-      const html = await renderToString(
-        createTasksIdApp({
-          task: MOCK_BODY_RETOUCH_TASK_SUCCEEDED,
-          imageLoadFailed: true,
-        }),
-      );
-
-      assert.match(html, /data-testid="result-fetch-error"/);
-      assert.match(html, /Không thể tải ảnh kết quả/);
-      assert.match(html, /Lấy lại link mới/);
-    });
-
-    it('khi downloadErrorVi có giá trị: hiển thị alert banner download-error', async () => {
-      const html = await renderToString(
-        createTasksIdApp({
-          task: MOCK_BODY_RETOUCH_TASK_SUCCEEDED,
-          downloadErrorVi: 'Không thể tải ảnh kết quả. Vui lòng thử lại sau.',
-        }),
-      );
-
-      assert.match(html, /data-testid="download-error"/);
-      assert.match(html, /Không thể tải ảnh kết quả\. Vui lòng thử lại sau\./);
-    });
-  });
-
-  describe('4. Trang pages/tasks/[id].vue — Logic script setup xử lý làm mới link ký & tải file', () => {
-    let tasksIdSetup;
-    let stubDir;
-
-    before(async () => {
-      stubDir = fs.mkdtempSync(path.join(webRoot, 'test', '.tmp-tasks-setup-'));
-      const w = (name, content) => {
-        const p = path.join(stubDir, name);
-        fs.writeFileSync(p, content, 'utf8');
-        return p;
-      };
-
-      w(
-        'imports.mjs',
-        `import { ref } from 'vue';
-export const useRoute = () => ({ params: { id: globalThis.__tasksIdTest.taskId } });
-export const useRouter = () => ({
-  push: (...args) => globalThis.__tasksIdTest.routerPush(...args),
-  back: () => globalThis.__tasksIdTest.routerBack(),
-});
-export const useHead = () => {};
-export const useAsyncData = (key, fn) => {
-  return globalThis.__tasksIdTest.asyncDataMap[key] || {
-    data: ref(null),
-    pending: ref(false),
-    error: ref(null),
-    refresh: async () => {},
-  };
-};`,
-      );
-      w('use-api-client.mjs', `export const useApiClient = () => ({ client: globalThis.__tasksIdTest.client });`);
-      w('use-auth.mjs', `import { ref } from 'vue'; export const useAuth = () => ({ isAuthenticated: ref(true), sessionChecked: ref(true) });`);
-      w('use-auth-dialog.mjs', `export const useAuthDialog = () => ({ open() {} });`);
-      w('auth-session.mjs', `export const isUnauthorizedError = () => false;`);
-      w('api-client.mjs', `export { resolveApiErrorMessageVi } from ${JSON.stringify(pathToFileURL(path.join(webRoot, 'utils/api-client.ts')).href)};`);
-      w('task-format.mjs', `export {
-  formatTaskTimestampVi,
-  getPipelineLabelVi,
-  getTaskStatusLabelVi,
-  isTaskRetentionExpired,
-} from ${JSON.stringify(pathToFileURL(path.join(webRoot, 'utils/task-format.ts')).href)};`);
-
-      const stubs = {
-        '#imports': fs.readFileSync(path.join(stubDir, 'imports.mjs'), 'utf8'),
-        '~/composables/useApiClient': fs.readFileSync(path.join(stubDir, 'use-api-client.mjs'), 'utf8'),
-        '~/composables/useAuth': fs.readFileSync(path.join(stubDir, 'use-auth.mjs'), 'utf8'),
-        '~/composables/useAuthDialog': fs.readFileSync(path.join(stubDir, 'use-auth-dialog.mjs'), 'utf8'),
-        '~/utils/auth-session': fs.readFileSync(path.join(stubDir, 'auth-session.mjs'), 'utf8'),
-        '~/utils/api-client': fs.readFileSync(path.join(stubDir, 'api-client.mjs'), 'utf8'),
-        '~/utils/task-format': fs.readFileSync(path.join(stubDir, 'task-format.mjs'), 'utf8'),
-      };
-
-      tasksIdSetup = await loadSetup('pages/tasks/[id].vue', stubs, stubDir);
-    });
-
-    after(() => {
-      if (stubDir && fs.existsSync(stubDir)) {
-        fs.rmSync(stubDir, { recursive: true, force: true });
+    it('task đang queued/running vẫn render viewer (loading nằm trong viewer)', async () => {
+      for (const [task, status] of [
+        [MOCK_BODY_RETOUCH_TASK_QUEUED, 'queued'],
+        [MOCK_BODY_RETOUCH_TASK_RUNNING, 'running'],
+      ]) {
+        const html = await renderToString(createApp({ task, inputs: [] }));
+        assert.match(html, new RegExp(`data-status="${status}"`));
+        assert.match(html, /Đầu vào sẽ hiển thị sau khi tác vụ hoàn tất/);
       }
     });
 
-    function initTasksIdSetup({
-      task = MOCK_BODY_RETOUCH_TASK_SUCCEEDED,
-      resultData = MOCK_BODY_RETOUCH_RESULT_RESPONSE,
-      onRefresh = null,
-    } = {}) {
-      const taskAsync = {
-        data: ref(task),
-        pending: ref(false),
-        error: ref(null),
-        refresh: async () => {},
-      };
-      let refreshCount = 0;
-      const resultAsync = {
-        data: ref(resultData),
-        pending: ref(false),
-        error: ref(null),
-        refresh: async () => {
-          refreshCount += 1;
-          resultAsync.data.value = {
-            ...resultData,
-            resultUrl: `https://flowvis-test.r2.cloudflarestorage.com/out/test_${refreshCount}.png`,
-          };
-          if (onRefresh) await onRefresh(refreshCount);
-        },
-      };
+    it('succeeded nhưng không còn tệp đầu vào: báo hết hạn lưu', async () => {
+      const html = await renderToString(createApp({ inputs: [] }));
+      assert.match(html, /data-testid="task-inputs-empty"/);
+    });
 
-      const pushedRoutes = [];
-      globalThis.__tasksIdTest = {
-        taskId: task.id,
+    it('video: render <video> cho đầu vào video và prompt khi có', async () => {
+      const task = { ...MOCK_BODY_RETOUCH_TASK_SUCCEEDED, pipeline: 'motion_control' };
+      const html = await renderToString(
+        createApp({
+          task,
+          inputs: [
+            { role: 'characterKey', mediaType: 'image', url: 'https://cdn.example.test/c.jpg' },
+            { role: 'videoKey', mediaType: 'video', url: 'https://cdn.example.test/v.mp4' },
+          ],
+          params: { prompt: 'nhảy múa' },
+        }),
+      );
+      assert.match(html, /<video[^>]*src="https:\/\/cdn\.example\.test\/v\.mp4"/);
+      assert.match(html, /data-testid="task-prompt"/);
+      assert.match(html, /nhảy múa/);
+      assert.match(html, /href="\/motion-control"/);
+    });
+
+    it('nút tạo tác vụ khác dẫn tới đúng công cụ', async () => {
+      const html = await renderToString(createApp());
+      assert.match(html, /data-testid="create-similar-link"/);
+      assert.match(html, /href="\/body-retouch"/);
+    });
+
+    it('chưa đăng nhập và lỗi tải Task', async () => {
+      const unauth = await renderToString(createApp({ isUnauthenticated: true }));
+      assert.match(unauth, /data-testid="result-unauthenticated"/);
+      const err = await renderToString(createApp({ taskErrorVi: 'Lỗi thử nghiệm' }));
+      assert.match(err, /data-testid="task-error-state"/);
+      assert.match(err, /Lỗi thử nghiệm/);
+    });
+  });
+
+  describe('4. Component TaskResultViewer — logic làm mới link ký, chia sẻ', () => {
+    let viewer;
+    let stubDir;
+
+    before(async () => {
+      stubDir = fs.mkdtempSync(path.join(webRoot, 'test', '.tmp-viewer-setup-'));
+      const stubs = {
+        '~/components/BeforeAfterSplitSlider.vue': 'export default {};',
+        '~/composables/useApiClient': 'export const useApiClient = () => ({ client: globalThis.__viewerTest.client });',
+        '~/utils/api-client': `export { resolveApiErrorMessageVi, getReasonCodeMessageVi } from ${JSON.stringify(pathToFileURL(path.join(webRoot, 'utils/api-client.ts')).href)};`,
+        '~/utils/task-format': `export { getPipelineLabelVi, isTaskRetentionExpired } from ${JSON.stringify(pathToFileURL(path.join(webRoot, 'utils/task-format.ts')).href)};`,
+      };
+      viewer = await loadSetup('components/TaskResultViewer.vue', stubs, stubDir);
+    });
+
+    after(() => {
+      if (stubDir) fs.rmSync(stubDir, { recursive: true, force: true });
+      delete globalThis.__viewerTest;
+    });
+
+    function init(task = MOCK_BODY_RETOUCH_TASK_SUCCEEDED) {
+      let resultCalls = 0;
+      const emitted = [];
+      globalThis.__viewerTest = {
         client: {
+          getTaskResult: async () => {
+            resultCalls += 1;
+            return { ...MOCK_BODY_RETOUCH_RESULT_RESPONSE, resultUrl: `https://cdn.example.test/out_${resultCalls}.png` };
+          },
           shareTask: async () => ({
-            token: 'share_br_abc123',
-            shareUrl: 'https://flowvis.ai/share/share_br_abc123',
+            token: 'share_abc123',
+            shareUrl: 'https://flowvis.ai/share/share_abc123',
             expiresAt: '2026-11-16T12:00:00.000Z',
           }),
           revokeTaskShare: async () => ({ revoked: true }),
         },
-        routerPush: (path) => pushedRoutes.push(path),
-        routerBack: () => {},
-        asyncDataMap: {
-          [`flowvis-task-${task.id}`]: taskAsync,
-          [`flowvis-task-result-${task.id}`]: resultAsync,
-        },
       };
-
-      const instance = tasksIdSetup.setup({}, { expose() {} });
-      return {
-        instance,
-        taskAsync,
-        resultAsync,
-        getRefreshCount: () => refreshCount,
-        pushedRoutes,
-      };
+      const props = { task, submitting: false, polling: false, pollIntervalMs: 2500, beforeLabelVi: '', afterLabelVi: '', outputFormatVi: '', showRetry: true };
+      const instance = viewer.setup(props, { emit: (...a) => emitted.push(a), expose() {} });
+      return { instance, emitted, getResultCalls: () => resultCalls };
     }
 
-    it('cơ chế handleImageError của pages/tasks/[id].vue tự động retry tối đa 1 lần, bỏ qua lỗi concurrent khi pending, và chỉ set imageLoadFailed khi lỗi result', async () => {
-      const { instance, resultAsync, getRefreshCount } = initTasksIdSetup();
-
-      // 1. Lỗi ảnh gốc lần 1: Kích hoạt refresh link mới
-      instance.handleImageError({ type: 'source', error: new Event('error') });
-      assert.equal(instance.imageRefreshAttempts.value, 1);
-      assert.equal(getRefreshCount(), 1);
-      assert.equal(instance.imageLoadFailed.value, false);
-
-      // 2. Lỗi concurrent khi resultAsync.pending.value === true: bị bỏ qua, không kích hoạt refresh hay set error
-      resultAsync.pending.value = true;
-      instance.handleImageError({ type: 'result', error: new Event('error') });
-      assert.equal(instance.imageRefreshAttempts.value, 1);
-      assert.equal(instance.imageLoadFailed.value, false);
-      resultAsync.pending.value = false;
-
-      // 3. Lỗi ảnh gốc lần 2 (khi attempts = 1): KHÔNG set imageLoadFailed vì chỉ source lỗi
-      instance.handleImageError({ type: 'source', error: new Event('error') });
-      assert.equal(instance.imageRefreshAttempts.value, 1);
-      assert.equal(instance.imageLoadFailed.value, false);
-
-      // 4. Lỗi ảnh kết quả (result) khi attempts = 1: Bật imageLoadFailed = true
-      instance.handleImageError({ type: 'result', error: new Event('error') });
-      assert.equal(instance.imageLoadFailed.value, true);
-
-      // 5. Bấm "Lấy lại link mới": handleRefreshResult đặt lại attempts về 0 và xóa cờ lỗi
-      await instance.handleRefreshResult();
-      assert.equal(instance.imageRefreshAttempts.value, 0);
-      assert.equal(instance.imageLoadFailed.value, false);
+    it('tự tải kết quả khi task succeeded và phát sự kiện result', async () => {
+      const { instance, emitted, getResultCalls } = init();
+      await new Promise((r) => setTimeout(r, 10));
+      assert.equal(getResultCalls(), 1);
+      assert.match(instance.result.value.resultUrl, /out_1\.png$/);
+      assert.ok(emitted.some(([name]) => name === 'result'));
     });
 
-    it('handleDownloadImage của pages/tasks/[id].vue đặt tên tệp đúng định dạng, bật loading/disabled state và tự động làm mới link khi gặp lỗi', async () => {
-      const { instance, resultAsync } = initTasksIdSetup();
-
-      const fetchCalls = [];
-      const originalFetch = globalThis.fetch;
-      const originalDocument = globalThis.document;
-      const originalUrl = globalThis.URL;
-
-      let downloadedFileName = null;
-
-      try {
-        globalThis.fetch = async (url) => {
-          fetchCalls.push(url);
-          if (url.includes('expired')) {
-            throw new TypeError('Failed to fetch (CORS preflight or network error)');
-          }
-          return {
-            ok: true,
-            blob: async () => new Blob(['fake_image_data'], { type: 'image/jpeg' }),
-          };
-        };
-
-        const createdLinks = [];
-        globalThis.document = {
-          createElement: (tag) => {
-            const el = {
-              tagName: tag,
-              href: '',
-              download: '',
-              click: () => {
-                downloadedFileName = el.download;
-              },
-            };
-            return el;
-          },
-          body: {
-            appendChild: (el) => createdLinks.push(el),
-            removeChild: (el) => {
-              const idx = createdLinks.indexOf(el);
-              if (idx >= 0) createdLinks.splice(idx, 1);
-            },
-          },
-        };
-
-        globalThis.URL = {
-          createObjectURL: () => 'blob:mock-url',
-          revokeObjectURL: () => {},
-        };
-
-        // Ban đầu link hết hạn
-        resultAsync.data.value = {
-          resultUrl: 'https://cdn.example.test/out/expired-result.jpg',
-          sourceUrl: 'https://cdn.example.test/in/source.jpg',
-        };
-
-        // Khi handleRefreshResult được gọi, nó làm mới data
-        resultAsync.refresh = async () => {
-          resultAsync.data.value = {
-            resultUrl: 'https://cdn.example.test/out/refreshed-result.jpg',
-            sourceUrl: 'https://cdn.example.test/in/source.jpg',
-          };
-        };
-
-        await instance.handleDownloadImage();
-
-        assert.equal(fetchCalls.length, 2);
-        assert.equal(fetchCalls[0], 'https://cdn.example.test/out/expired-result.jpg');
-        assert.equal(fetchCalls[1], 'https://cdn.example.test/out/refreshed-result.jpg');
-        // File extension .jpg suy ra từ image/jpeg
-        assert.equal(
-          downloadedFileName,
-          `flowvis-body_retouch-${MOCK_BODY_RETOUCH_TASK_SUCCEEDED.id.slice(0, 8)}.jpg`,
-        );
-        assert.equal(instance.isDownloading.value, false);
-        assert.equal(instance.downloadErrorVi.value, null);
-      } finally {
-        globalThis.fetch = originalFetch;
-        globalThis.document = originalDocument;
-        globalThis.URL = originalUrl;
-      }
+    it('handleMediaError lấy link mới tối đa 1 lần rồi mới báo lỗi', async () => {
+      const { instance, getResultCalls } = init();
+      await new Promise((r) => setTimeout(r, 10));
+      instance.handleMediaError();
+      await new Promise((r) => setTimeout(r, 10));
+      assert.equal(getResultCalls(), 2);
+      assert.equal(instance.mediaFailed.value, false);
+      instance.handleMediaError();
+      await new Promise((r) => setTimeout(r, 10));
+      assert.equal(getResultCalls(), 2);
+      assert.equal(instance.mediaFailed.value, true);
     });
 
-    it('handleDownloadImage hiển thị downloadErrorVi và reset isDownloading khi lỗi tải không thể phục hồi', async () => {
-      const { instance, resultAsync } = initTasksIdSetup();
-
-      const originalFetch = globalThis.fetch;
-      try {
-        globalThis.fetch = async () => {
-          throw new TypeError('Network error / CORS blocked');
-        };
-
-        resultAsync.data.value = {
-          resultUrl: 'https://cdn.example.test/out/broken.png',
-          sourceUrl: 'https://cdn.example.test/in/source.png',
-        };
-
-        await instance.handleDownloadImage();
-
-        assert.equal(instance.isDownloading.value, false);
-        assert.ok(instance.downloadErrorVi.value);
-      } finally {
-        globalThis.fetch = originalFetch;
-      }
-    });
-
-    it('handleCreateNewTask và getPipelineRoute điều hướng đúng trang tương ứng theo từng pipeline', () => {
-      const { instance, pushedRoutes } = initTasksIdSetup({
-        task: { ...MOCK_BODY_RETOUCH_TASK_SUCCEEDED, pipeline: 'body_retouch' },
-      });
-
-      instance.handleCreateNewTask();
-      assert.deepEqual(pushedRoutes, ['/body-retouch']);
-
-      assert.equal(instance.getPipelineRoute('body_retouch'), '/body-retouch');
-      assert.equal(instance.getPipelineRoute('motion_control'), '/motion-control');
-      assert.equal(instance.getPipelineRoute('face_swap'), '/face-swap');
-    });
-
-    it('handleShare tạo liên kết chia sẻ công khai không bao giờ lộ sourceUrl', async () => {
-      const { instance } = initTasksIdSetup();
-      await instance.handleShare();
+    it('handleCopyLink tạo liên kết chia sẻ công khai, không lộ sourceUrl', async () => {
+      const { instance } = init();
+      await instance.handleCopyLink();
       assert.ok(instance.shareData.value);
       assert.equal('sourceUrl' in instance.shareData.value, false);
-      assert.match(instance.shareData.value.shareUrl, /\/share\/share_br_abc123$/);
+      assert.match(instance.shareData.value.shareUrl, /\/share\/share_abc123$/);
+      await instance.handleRevokeShare();
+      assert.equal(instance.shareData.value, null);
+    });
+
+    it('mã nguồn: tải về đặt tên flowvis-<pipeline>-<id>, MP4 cho video', () => {
+      const raw = read('components/TaskResultViewer.vue');
+      assert.match(raw, /flowvis-\$\{localTask\.value\.pipeline\}-\$\{localTask\.value\.id\.slice\(0, 8\)\}\$\{ext\}/);
+      assert.match(raw, /'\.mp4'/);
+    });
+
+    it('SSR: chế độ embedded bỏ card ở giữa, truyền surface="recessed" và giữ tiêu đề đơn + badge trạng thái', async () => {
+      const { descriptor } = parse(read('components/TaskResultViewer.vue'), { filename: 'TaskResultViewer.vue' });
+      const compiled = compileTemplate({
+        id: 'test-task-result-viewer-ssr',
+        filename: 'components/TaskResultViewer.vue',
+        source: descriptor.template.content,
+        ssr: true,
+        ssrCssVars: [],
+      });
+      assert.equal(compiled.errors.length, 0);
+
+      const tmpFile = path.join(webRoot, 'test', `.tmp-viewer-ssr-${Date.now()}.mjs`);
+      fs.writeFileSync(tmpFile, compiled.code, 'utf8');
+      let viewerRender;
+      try {
+        viewerRender = (await import(pathToFileURL(tmpFile).href)).ssrRender;
+      } finally {
+        fs.rmSync(tmpFile, { force: true });
+      }
+
+      const renderViewer = async ({ embedded = false, withSlot = false } = {}) => {
+        const wrapper = createSSRApp({
+          setup() {
+            return {};
+          },
+          render() {
+            const ViewerShell = {
+              ssrRender: viewerRender,
+              setup() {
+                return {
+                  embedded,
+                  isWorking: false,
+                  isSucceeded: true,
+                  isFailed: false,
+                  isQueued: false,
+                  isVideo: false,
+                  isExpired: false,
+                  mediaFailed: false,
+                  resultErrorVi: null,
+                  isLoadingResult: false,
+                  submitting: false,
+                  localTask: MOCK_BODY_RETOUCH_TASK_SUCCEEDED,
+                  result: MOCK_BODY_RETOUCH_RESULT_RESPONSE,
+                  pipelineLabelVi: 'Chỉnh sửa vóc dáng',
+                  failureMessageVi: '',
+                  showRetry: true,
+                  sliderPercent: 50,
+                  isDownloading: false,
+                  isSharing: false,
+                  isRevoking: false,
+                  shareData: null,
+                  actionErrorVi: null,
+                  downloadErrorVi: null,
+                  shareErrorVi: null,
+                  toastVi: null,
+                  beforeLabelVi: '',
+                  afterLabelVi: '',
+                  outputFormatVi: '',
+                  isCancelling: false,
+                  handleCancel: () => {},
+                  handleRefreshResult: () => {},
+                  handleMediaError: () => {},
+                  handleDownload: () => {},
+                  handleCopyLink: () => {},
+                  handleRevokeShare: () => {},
+                  emit: () => {},
+                };
+              },
+            };
+            return h(
+              ViewerShell,
+              null,
+              withSlot ? { 'header-title': () => h('h2', { 'data-testid': 'custom-result-heading' }, 'Kết quả') } : {},
+            );
+          },
+        });
+        wrapper.component('Icon', { props: ['name'], ssrRender: (_c, push) => push('<i></i>') });
+        wrapper.component('NuxtLink', { props: ['to'], ssrRender: (_c, push) => push('<a></a>') });
+        wrapper.component('BeforeAfterSplitSlider', {
+          props: ['resultUrl', 'sourceUrl', 'alt', 'surface'],
+          ssrRender: (ctx, push) =>
+            push(`<div data-testid="mock-slider" data-surface="${ctx.surface || ''}"></div>`),
+        });
+        return renderToString(wrapper);
+      };
+
+      const standaloneHtml = await renderViewer({ embedded: false });
+      assert.match(standaloneHtml, /<div class="rounded-xl border border-cyber-border bg-cyber-bg\/70 p-4" data-testid="task-result-viewer"/);
+      assert.match(standaloneHtml, /So sánh Trước \/ Sau AI/);
+      assert.match(standaloneHtml, /data-surface="card"/);
+
+      const embeddedHtml = await renderViewer({ embedded: true, withSlot: true });
+      assert.match(embeddedHtml, /<div class="" data-testid="task-result-viewer"/);
+      assert.doesNotMatch(embeddedHtml, /So sánh Trước \/ Sau AI/);
+      assert.match(embeddedHtml, /data-testid="custom-result-heading"/);
+      assert.match(embeddedHtml, /data-testid="succeeded-status-badge"/);
+      assert.match(embeddedHtml, /data-surface="recessed"/);
     });
   });
 
   describe('5. Ranh giới thiết kế Slate Cyber, vùng chạm >= 48px và không emoji UTF-8', () => {
-    it('BeforeAfterSplitSlider.vue và pages/tasks/[id].vue tuân thủ vùng chạm >= 48px, Slate Cyber và không emoji UTF-8', () => {
+    it('BeforeAfterSplitSlider, TaskResultViewer và pages/tasks/[id].vue tuân thủ thiết kế', () => {
       const sliderRaw = read('components/BeforeAfterSplitSlider.vue');
-      const taskResultRaw = read('pages/tasks/[id].vue');
+      const viewerRaw = read('components/TaskResultViewer.vue');
+      const pageRaw = read('pages/tasks/[id].vue');
 
-      // 1. Slate Cyber styling tokens
-      assert.match(sliderRaw, /bg-cyber-/);
-      assert.match(sliderRaw, /border-cyber-/);
-      assert.match(sliderRaw, /text-cyber-/);
-      assert.match(taskResultRaw, /bg-cyber-/);
-      assert.match(taskResultRaw, /border-cyber-/);
-      assert.match(taskResultRaw, /text-cyber-/);
+      for (const src of [sliderRaw, viewerRaw, pageRaw]) {
+        assert.match(src, /bg-cyber-/);
+        assert.match(src, /border-cyber-/);
+        assert.match(src, /text-cyber-/);
+        assert.match(src, /touch-target/);
+      }
+      assert.match(viewerRaw, /min-h-\[48px\]/);
+      assert.match(pageRaw, /min-h-\[48px\]/);
+      assert.match(pageRaw, /<TaskResultViewer[\s\S]*embedded/);
+      assert.match(sliderRaw, /surface === 'recessed' \? 'bg-cyber-bg\/70' : 'bg-cyber-surface\/90'/);
 
-      // 2. Vùng chạm tối thiểu 48px (touch-target / min-h-[48px] / min-h-[50px])
-      assert.match(sliderRaw, /touch-target/);
-      assert.match(taskResultRaw, /touch-target/);
-      assert.match(taskResultRaw, /min-h-\[48px\]/);
-      assert.match(taskResultRaw, /min-h-\[50px\]/);
-
-      // 3. Núm trượt giữ kích thước chuẩn 36px (h-9 w-9)
       assert.match(sliderRaw, /h-9 w-9/);
       assert.match(sliderRaw, /lucide:arrow-left-right/);
 
-      // 4. Tuyệt đối không chứa emoji Unicode UTF-8 trong UI chrome
       const emojiRegex =
         /[\u{1F300}-\u{1F5FF}\u{1F600}-\u{1F64F}\u{1F680}-\u{1F6FF}\u{2600}-\u{26FF}\u{2700}-\u{27BF}\u{1F900}-\u{1F9FF}\u{1FA70}-\u{1FAFF}]/u;
-
-      assert.equal(
-        emojiRegex.test(sliderRaw),
-        false,
-        'components/BeforeAfterSplitSlider.vue không được chứa emoji UTF-8',
-      );
-      assert.equal(
-        emojiRegex.test(taskResultRaw),
-        false,
-        'pages/tasks/[id].vue không được chứa emoji UTF-8',
-      );
+      for (const [name, src] of [
+        ['BeforeAfterSplitSlider.vue', sliderRaw],
+        ['TaskResultViewer.vue', viewerRaw],
+        ['pages/tasks/[id].vue', pageRaw],
+      ]) {
+        assert.equal(emojiRegex.test(src), false, `${name} không được chứa emoji UTF-8`);
+      }
     });
   });
 });

@@ -1,6 +1,13 @@
 <script setup lang="ts">
 import { computed } from 'vue';
-import { buildPageTokens } from '~/utils/pagination';
+import {
+  Pagination,
+  PaginationContent,
+  PaginationEllipsis,
+  PaginationItem,
+  PaginationNext,
+  PaginationPrevious,
+} from '@/components/ui/pagination';
 
 const props = defineProps<{
   page: number;
@@ -12,16 +19,13 @@ const props = defineProps<{
 }>();
 const emit = defineEmits<{ prev: []; next: []; goto: [page: number] }>();
 
-// Máy chủ còn dữ liệu: thêm "…" sau trang cuối đã tải để báo còn trang sau.
-const tokens = computed(() => {
-  const list = buildPageTokens(props.page, props.pageCount);
-  return props.hasMore ? [...list, 'more' as const] : list;
-});
+const safePageCount = computed(() => Math.max(1, props.pageCount));
+const safePage = computed(() => Math.min(Math.max(1, props.page), safePageCount.value));
 
 const navBtnClass =
-  'touch-target inline-flex min-h-[48px] min-w-[48px] items-center justify-center gap-1.5 rounded-xl border border-cyber-border bg-cyber-bg px-3 text-xs font-semibold text-cyber-text transition hover:border-cyber-violet disabled:cursor-not-allowed disabled:opacity-40';
+  'touch-target min-h-[48px] min-w-[48px] gap-1.5 rounded-xl border border-cyber-border bg-cyber-bg px-3 text-xs font-semibold text-cyber-text transition hover:border-cyber-violet hover:bg-cyber-bg hover:text-cyber-text disabled:cursor-not-allowed disabled:opacity-40 sm:pr-3';
 const numBtnClass =
-  'touch-target inline-flex min-h-[48px] min-w-[48px] items-center justify-center rounded-xl border font-mono text-sm font-semibold transition disabled:cursor-not-allowed';
+  'touch-target min-h-[48px] min-w-[48px] rounded-xl border font-mono text-sm font-semibold transition disabled:cursor-not-allowed';
 </script>
 
 <template>
@@ -31,65 +35,81 @@ const numBtnClass =
     class="flex flex-wrap items-center justify-between gap-3"
   >
     <span data-testid="user-pager-label" class="font-mono text-xs text-cyber-muted">
-      Trang {{ page }} / {{ pageCount }}<template v-if="hasMore">+</template>
+      Trang {{ safePage }} / {{ safePageCount }}<template v-if="hasMore">+</template>
     </span>
 
-    <div class="flex flex-wrap items-center gap-1.5">
-      <button
-        type="button"
-        data-testid="user-pager-prev"
-        aria-label="Trang trước"
-        :disabled="!canPrev || loading"
-        :class="navBtnClass"
-        @click="emit('prev')"
-      >
-        <Icon name="lucide:chevron-left" class="h-4 w-4" />
-        <span class="hidden sm:inline">Trước</span>
-      </button>
+    <Pagination
+      as="div"
+      show-edges
+      class="mx-0 w-auto"
+      :page="safePage"
+      :total="safePageCount"
+      :items-per-page="1"
+      :sibling-count="1"
+      :disabled="Boolean(loading)"
+    >
+      <PaginationContent v-slot="{ items }" class="flex flex-wrap items-center gap-1.5">
+        <li>
+          <PaginationPrevious
+            data-testid="user-pager-prev"
+            aria-label="Trang trước"
+            :disabled="Boolean(!canPrev || loading)"
+            :class="navBtnClass"
+            @click="!loading && canPrev && emit('prev')"
+          >
+            <Icon name="lucide:chevron-left" class="h-4 w-4" />
+            <span class="hidden sm:inline">Trước</span>
+          </PaginationPrevious>
+        </li>
 
-      <template v-for="(token, idx) in tokens" :key="`${token}-${idx}`">
-        <span
-          v-if="token === 'ellipsis' || token === 'more'"
-          data-testid="user-pager-ellipsis"
-          aria-hidden="true"
-          class="inline-flex min-h-[48px] min-w-[32px] items-center justify-center font-mono text-sm text-cyber-muted"
+        <template
+          v-for="(item, index) in items"
+          :key="item.type === 'page' ? `page-${item.value}` : `ellipsis-${index}`"
         >
-          …
-        </span>
-        <button
-          v-else
-          type="button"
-          :data-testid="`user-pager-page-${token}`"
-          :aria-label="`Trang ${token}`"
-          :aria-current="token === page ? 'page' : undefined"
-          :disabled="loading"
-          :class="[
-            numBtnClass,
-            token === page
-              ? 'border-cyber-violet bg-cyber-violet/20 text-cyber-text'
-              : 'border-cyber-border bg-cyber-bg text-cyber-muted hover:border-cyber-violet hover:text-cyber-text',
-          ]"
-          @click="token !== page && emit('goto', token)"
-        >
-          {{ token }}
-        </button>
-      </template>
+          <li v-if="item.type === 'page'">
+            <PaginationItem
+              :value="item.value"
+              :is-active="item.value === safePage"
+              :data-testid="`user-pager-page-${item.value}`"
+              :aria-label="`Trang ${item.value}`"
+              :aria-current="item.value === safePage ? 'page' : undefined"
+              :disabled="Boolean(loading)"
+              :class="[
+                numBtnClass,
+                item.value === safePage
+                  ? 'border-cyber-violet bg-cyber-violet/20 text-cyber-text hover:bg-cyber-violet/25 hover:text-cyber-text'
+                  : 'border-cyber-border bg-cyber-bg text-cyber-muted hover:border-cyber-violet hover:bg-cyber-bg hover:text-cyber-text',
+              ]"
+              @click="!loading && item.value !== safePage && emit('goto', item.value)"
+            >
+              {{ item.value }}
+            </PaginationItem>
+          </li>
+          <li v-else>
+            <PaginationEllipsis
+              data-testid="user-pager-ellipsis"
+              class="text-cyber-muted"
+            />
+          </li>
+        </template>
 
-      <button
-        type="button"
-        data-testid="user-pager-next"
-        aria-label="Trang sau"
-        :disabled="!canNext || loading"
-        :class="navBtnClass"
-        @click="emit('next')"
-      >
-        <span class="hidden sm:inline">Sau</span>
-        <Icon
-          :name="loading ? 'lucide:loader-2' : 'lucide:chevron-right'"
-          class="h-4 w-4"
-          :class="{ 'animate-spin': loading }"
-        />
-      </button>
-    </div>
+        <li>
+          <PaginationNext
+            data-testid="user-pager-next"
+            aria-label="Trang sau"
+            :disabled="Boolean(!canNext || loading)"
+            :class="navBtnClass"
+            @click="!loading && canNext && emit('next')"
+          >
+            <span class="hidden sm:inline">Sau</span>
+            <Icon
+              :name="loading ? 'lucide:loader-2' : 'lucide:chevron-right'"
+              class="h-4 w-4"
+              :class="{ 'animate-spin': loading }"
+            />
+          </PaginationNext>
+        </li>
+      </PaginationContent>
+    </Pagination>
   </nav>
 </template>

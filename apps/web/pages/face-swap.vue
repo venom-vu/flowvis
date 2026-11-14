@@ -144,12 +144,10 @@ function handleReset(): void {
 
     <!-- Màn hình theo dõi tiến trình xử lý khi đã có Task -->
     <section v-if="activeTask" class="space-y-4">
-      <TaskProgressCard
+      <TaskResultViewer
         :task="activeTask"
-        pipeline-label-vi="Hoán đổi khuôn mặt"
         @update:task="activeTask = $event"
         @retry="handleReset"
-        @completed="void refreshAll()"
         @settled="void refreshAll()"
       />
     </section>

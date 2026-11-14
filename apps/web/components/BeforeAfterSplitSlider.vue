@@ -8,12 +8,15 @@ const props = withDefaults(
     alt?: string;
     disabled?: boolean;
     initialPosition?: number;
+    /** Bề mặt nền: 'card' mặc định trên nền tối, 'recessed' khi đặt trực tiếp trong card surface. */
+    surface?: 'card' | 'recessed';
   }>(),
   {
     sourceUrl: null,
     alt: 'Ảnh kết quả',
     disabled: false,
     initialPosition: 50,
+    surface: 'card',
   },
 );
 
@@ -143,7 +146,8 @@ onBeforeUnmount(() => {
 <template>
   <div
     data-testid="before-after-split-slider"
-    class="relative w-full select-none overflow-hidden rounded-2xl border border-cyber-border bg-cyber-surface/90 p-3 sm:p-4"
+    class="relative w-full select-none overflow-hidden rounded-xl border border-cyber-border p-3 sm:p-4"
+    :class="surface === 'recessed' ? 'bg-cyber-bg/70' : 'bg-cyber-surface/90'"
   >
     <!-- Khung hiển thị ảnh -->
     <div

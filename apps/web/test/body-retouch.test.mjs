@@ -715,7 +715,7 @@ describe('@flowvis/web — Story 4.4 Trang Body Retouch và thanh mức điều 
         'components/FeatureWorkspaceDialog.vue',
         {
           '~/components/ImageUploader.vue': `export default {};`,
-          '~/components/TaskProgressCard.vue': `export default {};`,
+          '~/components/TaskResultViewer.vue': `export default {};`,
           '~/composables/useApiClient': `export const useApiClient = () => ({ client: globalThis.__brDialog.client });`,
           '~/composables/useAuthDialog': `export const useAuthDialog = () => ({ open: (...args) => globalThis.__brDialog.calls.push(['openAuthDialog', ...args]) });`,
           '~/composables/usePricingConfig': `export const usePricingConfig = () => ({ refreshAll: async () => { globalThis.__brDialog.calls.push(['refreshAll']); } });`,
@@ -824,16 +824,18 @@ describe('@flowvis/web — Story 4.4 Trang Body Retouch và thanh mức điều 
             );
           },
         });
-        app.component('TaskProgressCard', {
-          props: ['task', 'pipelineLabelVi'],
+        app.component('TaskResultViewer', {
+          props: ['task', 'submitting'],
           ssrRender(ctx, push) {
             push(
-              `<div data-testid="mock-task-progress-card" data-label="${ctx.pipelineLabelVi}"></div>`,
+              `<div data-testid="mock-task-result-viewer" data-pipeline="${ctx.task ? ctx.task.pipeline : ''}"></div>`,
             );
           },
         });
 
         const html = await renderToString(app);
+        // Khung kết quả luôn có mặt trong cột phải (loading/kết quả hiển thị tại chỗ), chưa có task thì không có pipeline.
+        assert.match(html, /data-testid="mock-task-result-viewer" data-pipeline=""/);
         assert.match(html, /href="\/body-retouch"/);
         assert.match(html, /data-testid="workspace-intensity-section"/);
         assert.match(html, /data-testid="workspace-intensity-slider"/);
@@ -847,7 +849,7 @@ describe('@flowvis/web — Story 4.4 Trang Body Retouch và thanh mức điều 
           /<button[^>]*data-testid="submit-task-button"[^>]*\sdisabled(=|"|\s|>)/,
         );
 
-        // SSR render khi activeTask có giá trị: TaskProgressCard nhận pipeline-label-vi="Chỉnh sửa vóc dáng"
+        // SSR render khi activeTask có giá trị: TaskResultViewer nhận task body_retouch
         const appActive = createSSRApp({
           ssrRender,
           setup() {
@@ -905,18 +907,18 @@ describe('@flowvis/web — Story 4.4 Trang Body Retouch và thanh mức điều 
             );
           },
         });
-        appActive.component('TaskProgressCard', {
-          props: ['task', 'pipelineLabelVi'],
+        appActive.component('TaskResultViewer', {
+          props: ['task', 'submitting'],
           ssrRender(ctx, push) {
             push(
-              `<div data-testid="mock-task-progress-card" data-label="${ctx.pipelineLabelVi}"></div>`,
+              `<div data-testid="mock-task-result-viewer" data-pipeline="${ctx.task ? ctx.task.pipeline : ''}"></div>`,
             );
           },
         });
 
         const activeHtml = await renderToString(appActive);
-        assert.match(activeHtml, /data-testid="mock-task-progress-card"/);
-        assert.match(activeHtml, /data-label="Chỉnh sửa vóc dáng"/);
+        assert.match(activeHtml, /data-testid="mock-task-result-viewer"/);
+        assert.match(activeHtml, /data-pipeline="body_retouch"/);
       } finally {
         fs.rmSync(tmpFwdFile, { force: true });
       }

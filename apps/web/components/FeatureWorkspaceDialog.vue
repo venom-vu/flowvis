@@ -2,7 +2,7 @@
 import { computed, onBeforeUnmount, onMounted, ref, watch } from 'vue';
 import { MOTION_PROMPT_MAX_LENGTH, type AccountTier, type Task } from '@flowvis/contracts';
 import ImageUploader from '~/components/ImageUploader.vue';
-import TaskProgressCard from '~/components/TaskProgressCard.vue';
+import TaskResultViewer from '~/components/TaskResultViewer.vue';
 import { useApiClient } from '~/composables/useApiClient';
 import { useAuthDialog } from '~/composables/useAuthDialog';
 import { useCharacterReplace } from '~/composables/useCharacterReplace';
@@ -157,6 +157,15 @@ watch(
   { flush: 'sync' },
 );
 
+const anySubmitting = computed<boolean>(
+  () => isSubmitting.value || motionIsSubmitting.value || replaceIsSubmitting.value,
+);
+
+// Task đang xếp hàng/chạy: khóa nút tạo để tránh tạo trùng.
+const isTaskWorking = computed<boolean>(
+  () => activeTask.value?.status === 'queued' || activeTask.value?.status === 'running',
+);
+
 const isAuthenticated = computed<boolean>(() => {
   return typeof props.userBalance === 'number';
 });
@@ -203,6 +212,9 @@ const hasEnoughBalance = computed<boolean>(() => {
 });
 
 const canSubmit = computed<boolean>(() => {
+  if (isTaskWorking.value) {
+    return false;
+  }
   if (isReplace.value) {
     return (
       isAuthenticated.value &&
@@ -232,7 +244,7 @@ const canSubmit = computed<boolean>(() => {
 });
 
 async function handleSubmit(): Promise<void> {
-  if (!props.feature || isSubmitting.value) {
+  if (!props.feature || isSubmitting.value || isTaskWorking.value) {
     return;
   }
 
@@ -337,6 +349,7 @@ async function handleSubmit(): Promise<void> {
 
 function handleRetry(): void {
   activeTask.value = null;
+  submitErrorVi.value = null;
   if (isMotion.value) resetMotionState();
   if (isReplace.value) resetReplaceState();
 }
@@ -427,28 +440,8 @@ onBeforeUnmount(() => {
         </div>
       </div>
 
-      <!-- Tiến trình tác vụ khi đã tạo (TaskProgressCard) -->
-      <div v-if="activeTask" class="p-4 sm:p-6">
-        <TaskProgressCard
-          :task="activeTask"
-          :pipeline-label-vi="
-            feature.id === 'body-retouch'
-              ? 'Chỉnh sửa vóc dáng'
-              : feature.id === 'motion-control'
-                ? 'Điều khiển chuyển động'
-                : feature.id === 'character-replace'
-                  ? 'Thay nhân vật video'
-                  : 'Hoán đổi khuôn mặt'
-          "
-          @update:task="activeTask = $event"
-          @retry="handleRetry"
-          @completed="void refreshAll()"
-          @settled="void refreshAll()"
-        />
-      </div>
-
       <!-- Nội dung 2 cột trên Desktop, 1 cột trên Mobile khi chưa có activeTask -->
-      <div v-else class="grid grid-cols-1 gap-5 p-4 sm:p-6 lg:grid-cols-12">
+      <div class="grid grid-cols-1 gap-5 p-4 sm:p-6 lg:grid-cols-12">
         <!-- Cột trái: Tải tệp & Điều chỉnh thông số (Trimmer bước 1 giây cho video) -->
         <div class="space-y-3.5 lg:col-span-6">
           <!-- Trường hợp Face Swap: Yêu cầu 2 ảnh (mặt nguồn + đích) theo Story 2.11 -->
@@ -710,88 +703,18 @@ onBeforeUnmount(() => {
           </div>
         </div>
 
-        <!-- Cột phải: Slider so sánh Before / After trực quan -->
+        <!-- Cột phải: So sánh Trước / Sau AI; loading và kết quả hiển thị ngay tại đây -->
         <div class="space-y-4 lg:col-span-6">
-          <div
-            class="rounded-xl border border-cyber-border bg-cyber-bg/70 p-4"
-          >
-            <div class="mb-3 flex items-center justify-between">
-              <span class="flex items-center gap-2 text-sm font-semibold text-cyber-text">
-                <Icon name="lucide:split-square-horizontal" class="h-4 w-4 text-cyber-violet" />
-                <span>So sánh Trước / Sau AI</span>
-              </span>
-              <span class="font-mono text-xs text-cyber-cyan">
-                {{ compareSplitPercent }}%
-              </span>
-            </div>
-
-            <div
-              class="relative h-48 overflow-hidden rounded-xl border border-cyber-border bg-gradient-to-r from-slate-900 via-indigo-950 to-slate-900"
-            >
-              <!-- Lớp ảnh Trước (nền) -->
-              <div
-                class="absolute inset-0 flex flex-col justify-between bg-cyber-surface/90 p-4"
-              >
-                <div class="flex items-center justify-between">
-                  <span class="rounded bg-cyber-bg/80 px-2 py-0.5 font-mono text-[10px] uppercase text-cyber-muted">
-                    Trước xử lý
-                  </span>
-                </div>
-                <p class="text-xs font-medium text-cyber-text">
-                  {{ feature.beforeLabelVi }}
-                </p>
-              </div>
-
-              <!-- Lớp ảnh Sau (cắt theo compareSplitPercent) -->
-              <div
-                class="absolute inset-0 flex flex-col justify-between bg-cyber-cyan/15 p-4 backdrop-blur-[1px] transition-[clip-path]"
-                :style="{ clipPath: `inset(0 0 0 ${compareSplitPercent}%)` }"
-              >
-                <div class="flex items-center justify-end">
-                  <span class="rounded border border-cyber-cyan/40 bg-cyber-bg/90 px-2 py-0.5 font-mono text-[10px] uppercase text-cyber-cyan">
-                    Sau xử lý AI
-                  </span>
-                </div>
-                <p class="text-right text-xs font-medium text-cyber-cyan">
-                  {{ feature.afterLabelVi }}
-                </p>
-              </div>
-
-              <!-- Vạch chia đôi Before/After phát sáng theo DESIGN.md -->
-              <div
-                class="pointer-events-none absolute inset-y-0 w-0.5 bg-cyber-cyan shadow-[0_0_10px_#06B6D4]"
-                :style="{ left: `${compareSplitPercent}%` }"
-              >
-                <div
-                  class="absolute top-1/2 flex h-7 w-7 -translate-x-1/2 -translate-y-1/2 items-center justify-center rounded-full bg-cyber-cyan text-black shadow-md"
-                >
-                  <Icon name="lucide:arrow-left-right" class="h-3.5 w-3.5" />
-                </div>
-              </div>
-            </div>
-
-            <div class="mt-3">
-              <label
-                for="before-after-slider"
-                class="sr-only"
-              >
-                Thanh kéo so sánh trước và sau
-              </label>
-              <input
-                id="before-after-slider"
-                v-model.number="compareSplitPercent"
-                type="range"
-                min="0"
-                max="100"
-                step="1"
-                class="touch-target min-h-[48px] w-full cursor-pointer accent-cyber-violet"
-              />
-            </div>
-
-            <p class="mt-2 text-xs text-cyber-muted">
-              Đầu ra: {{ feature.outputFormatVi }}
-            </p>
-          </div>
+          <TaskResultViewer
+            :task="activeTask"
+            :submitting="anySubmitting"
+            :before-label-vi="feature.beforeLabelVi"
+            :after-label-vi="feature.afterLabelVi"
+            :output-format-vi="feature.outputFormatVi"
+            @update:task="activeTask = $event"
+            @settled="void refreshAll()"
+            @retry="handleRetry"
+          />
         </div>
       </div>
 
@@ -810,10 +733,7 @@ onBeforeUnmount(() => {
           </div>
         </div>
 
-        <div
-          v-if="!activeTask"
-          class="flex shrink-0 flex-col items-stretch gap-2 sm:flex-row sm:items-center"
-        >
+        <div class="flex shrink-0 flex-col items-stretch gap-2 sm:flex-row sm:items-center">
           <!-- Nút đăng nhập cho khách chưa đăng nhập -->
           <button
             v-if="!isAuthenticated"
@@ -844,16 +764,20 @@ onBeforeUnmount(() => {
             @click="handleSubmit"
           >
             <Icon
-              v-if="isSubmitting || (isMotion && motionIsSubmitting) || (isReplace && replaceIsSubmitting)"
+              v-if="anySubmitting || isTaskWorking"
               name="lucide:loader-2"
               class="h-4 w-4 animate-spin"
             />
             <Icon v-else name="lucide:play" class="h-4 w-4" />
             <span>
               {{
-                isSubmitting || (isMotion && motionIsSubmitting) || (isReplace && replaceIsSubmitting)
+                anySubmitting
                   ? 'Đang gửi yêu cầu...'
-                  : `Tạo Tác Vụ AI (${formatNumberVi(estimatedCredits)} CR)`
+                  : isTaskWorking
+                    ? 'Đang xử lý...'
+                    : activeTask
+                      ? `Tạo lại (${formatNumberVi(estimatedCredits)} CR)`
+                      : `Tạo Tác Vụ AI (${formatNumberVi(estimatedCredits)} CR)`
               }}
             </span>
           </button>

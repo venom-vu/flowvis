@@ -78,12 +78,10 @@ const {
     </section>
 
     <section v-if="activeTask" class="space-y-4">
-      <TaskProgressCard
+      <TaskResultViewer
         :task="activeTask"
-        pipeline-label-vi="Điều khiển chuyển động"
         @update:task="activeTask = $event"
         @retry="reset"
-        @completed="void refreshAll()"
         @settled="void refreshAll()"
       />
     </section>

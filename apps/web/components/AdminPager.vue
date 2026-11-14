@@ -8,7 +8,6 @@ import {
   PaginationNext,
   PaginationPrevious,
 } from '@/components/ui/pagination';
-import { buildPageTokens } from '~/utils/pagination';
 
 const props = defineProps<{
   page: number;
@@ -20,50 +19,59 @@ const props = defineProps<{
 }>();
 const emit = defineEmits<{ prev: []; next: []; goto: [page: number] }>();
 
-// Máy chủ còn dữ liệu: thêm "…" sau trang cuối đã tải để báo còn trang sau.
-const tokens = computed(() => {
-  const list = buildPageTokens(props.page, props.pageCount);
-  return props.hasMore ? [...list, 'more' as const] : list;
-});
+const safePageCount = computed(() => Math.max(1, props.pageCount));
+const safePage = computed(() => Math.min(Math.max(1, props.page), safePageCount.value));
 </script>
 
 <template>
   <nav aria-label="Phân trang" data-testid="admin-pager" class="flex flex-wrap items-center justify-between gap-3">
     <span class="text-sm text-muted-foreground" data-testid="admin-pager-label">
-      Trang {{ page }} / {{ pageCount }}<template v-if="hasMore">+</template>
+      Trang {{ safePage }} / {{ safePageCount }}<template v-if="hasMore">+</template>
     </span>
 
-    <Pagination as="div" :page="page" :total="pageCount" :items-per-page="1" :sibling-count="1" class="mx-0 w-auto">
-      <PaginationContent class="flex flex-wrap items-center gap-1">
+    <Pagination
+      as="div"
+      show-edges
+      class="mx-0 w-auto"
+      :page="safePage"
+      :total="safePageCount"
+      :items-per-page="1"
+      :sibling-count="1"
+      :disabled="Boolean(loading)"
+    >
+      <PaginationContent v-slot="{ items }" class="flex flex-wrap items-center gap-1">
         <li>
           <PaginationPrevious
             data-testid="admin-pager-prev"
             aria-label="Trang trước"
-            :disabled="!canPrev || loading"
-            @click="emit('prev')"
+            :disabled="Boolean(!canPrev || loading)"
+            @click="!loading && canPrev && emit('prev')"
           >
             <Icon name="lucide:chevron-left" class="h-4 w-4" />
             <span class="hidden sm:inline">Trước</span>
           </PaginationPrevious>
         </li>
 
-        <template v-for="(token, idx) in tokens" :key="`${token}-${idx}`">
-          <li v-if="token === 'ellipsis' || token === 'more'">
-            <PaginationEllipsis data-testid="admin-pager-ellipsis" />
+        <template
+          v-for="(item, index) in items"
+          :key="item.type === 'page' ? `page-${item.value}` : `ellipsis-${index}`"
+        >
+          <li v-if="item.type === 'page'">
+            <PaginationItem
+              :value="item.value"
+              :is-active="item.value === safePage"
+              :data-testid="`admin-pager-page-${item.value}`"
+              :aria-label="`Trang ${item.value}`"
+              :aria-current="item.value === safePage ? 'page' : undefined"
+              :disabled="Boolean(loading)"
+              class="font-mono"
+              @click="!loading && item.value !== safePage && emit('goto', item.value)"
+            >
+              {{ item.value }}
+            </PaginationItem>
           </li>
           <li v-else>
-            <PaginationItem
-              :value="token"
-              :is-active="token === page"
-              :data-testid="`admin-pager-page-${token}`"
-              :aria-label="`Trang ${token}`"
-              :aria-current="token === page ? 'page' : undefined"
-              :disabled="loading"
-              class="font-mono"
-              @click="token !== page && emit('goto', token)"
-            >
-              {{ token }}
-            </PaginationItem>
+            <PaginationEllipsis data-testid="admin-pager-ellipsis" />
           </li>
         </template>
 
@@ -71,8 +79,8 @@ const tokens = computed(() => {
           <PaginationNext
             data-testid="admin-pager-next"
             aria-label="Trang sau"
-            :disabled="!canNext || loading"
-            @click="emit('next')"
+            :disabled="Boolean(!canNext || loading)"
+            @click="!loading && canNext && emit('next')"
           >
             <span class="hidden sm:inline">Sau</span>
             <Icon

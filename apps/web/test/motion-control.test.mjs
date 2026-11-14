@@ -372,83 +372,15 @@ describe('@flowvis/web — Story 5.8 Motion Control', () => {
       assert.equal(MOCK_MOTION_RESULT_RESPONSE.sourceUrl, null);
     });
 
-    it('/tasks/[id] SSR: kết quả video có <video poster controls playsinline>, không có thanh so sánh; ảnh vẫn dùng slider', async () => {
-      const { descriptor } = parse(read('pages/tasks/[id].vue'), { filename: 'id.vue' });
-      const compiled = compileTemplate({
-        id: 'mc-task-id',
-        filename: 'id.vue',
-        source: descriptor.template.content,
-        ssr: true,
-        ssrCssVars: [],
-      });
-      assert.equal(compiled.errors.length, 0);
-      const file = path.join(webRoot, 'test', `.tmp-mc-id-${process.pid}.mjs`);
-      fs.writeFileSync(file, compiled.code, 'utf8');
-      try {
-        const { ssrRender } = await import(pathToFileURL(file).href);
-        const render = async (result) => {
-          const app = createSSRApp({
-            ssrRender,
-            setup() {
-              const noop = () => {};
-              return {
-                isUnauthenticated: false,
-                taskAsync: { pending: { value: false }, refresh: noop },
-                currentTask: { id: 'a', pipeline: result.mediaType === 'video' ? 'motion_control' : 'face_swap', status: 'succeeded', createdAt: new Date().toISOString(), creditCost: 100 },
-                taskErrorVi: null,
-                isExpired: false,
-                resultErrorVi: null,
-                imageLoadFailed: false,
-                resultAsync: { pending: { value: false }, data: { value: result }, refresh: noop },
-                isVideoResult: result.mediaType === 'video',
-                shareData: null,
-                shareToastMessage: null,
-                shareErrorVi: null,
-                downloadErrorVi: null,
-                isSharing: false,
-                isRevokingShare: false,
-                isDownloading: false,
-                getPipelineLabelVi: (p) => p,
-                getTaskStatusLabelVi: () => 'ok',
-                formatTaskTimestampVi: () => '-',
-                getPipelineRoute: () => '/motion-control',
-                handleVideoError: noop,
-                handleImageError: noop,
-                handleRefreshResult: noop,
-                handleDownloadImage: noop,
-                handleShare: noop,
-                handleRevokeShare: noop,
-                handleCopyShareLink: noop,
-                handleGoBack: noop,
-                handleCreateNewTask: noop,
-                openAuthDialog: noop,
-              };
-            },
-          });
-          app.component('Icon', { props: ['name'], ssrRender: (_c, push) => push('<i></i>') });
-          app.component('NuxtLink', { props: ['to'], ssrRender: (_c, push) => push('<a></a>') });
-          app.component('TaskProgressCard', { ssrRender: (_c, push) => push('<div></div>') });
-          app.component('BeforeAfterSplitSlider', {
-            ssrRender: (_c, push) => push('<div data-testid="slider-mock"></div>'),
-          });
-          return renderToString(app);
-        };
-        const videoHtml = await render(MOCK_MOTION_RESULT_RESPONSE);
-        assert.match(videoHtml, /<video[^>]*playsinline/);
-        assert.match(videoHtml, /controls/);
-        assert.match(videoHtml, /poster="https:\/\/cdn\.example\.test\/out\/signed-motion-poster\.jpg"/);
-        assert.match(videoHtml, /Tải về \(MP4\)/);
-        assert.match(videoHtml, /Chia sẻ kết quả/);
-        assert.doesNotMatch(videoHtml, /slider-mock/);
-        const imageHtml = await render({
-          resultUrl: 'https://cdn.example.test/a.jpg',
-          sourceUrl: 'https://cdn.example.test/b.jpg',
-        });
-        assert.match(imageHtml, /slider-mock/);
-        assert.doesNotMatch(imageHtml, /<video/);
-      } finally {
-        fs.rmSync(file, { force: true });
-      }
+    it('TaskResultViewer: kết quả video có <video poster controls playsinline>, nút MP4 và chia sẻ; ảnh dùng slider', () => {
+      const raw = read('components/TaskResultViewer.vue');
+      const video = raw.slice(raw.indexOf('<video'), raw.indexOf('/>', raw.indexOf('<video')));
+      assert.match(video, /:poster="result\.posterUrl"/);
+      assert.match(video, /playsinline/);
+      assert.match(video, /controls/);
+      assert.match(raw, /Tải về \(MP4\)/);
+      assert.match(raw, /Sao chép liên kết/);
+      assert.match(raw, /v-if="isVideo"[\s\S]*<BeforeAfterSplitSlider\s+v-else/);
     });
 
     it('mã nguồn: share page có og:image poster, og:video, getShareInfo; thẻ lịch sử có biểu tượng clapperboard', () => {
@@ -463,6 +395,7 @@ describe('@flowvis/web — Story 5.8 Motion Control', () => {
       assert.match(card, /durationSeconds/);
       const progress = read('components/TaskProgressCard.vue');
       assert.match(progress, /Video thường mất vài phút, bạn có thể rời trang và quay lại từ Lịch sử/);
+      assert.match(read('components/TaskResultViewer.vue'), /Video thường mất vài phút/);
     });
 
     it('trang /motion-control và dialog: dùng VideoTrimmer, composable chung, không emoji, không mockMode, link nạp dẫn /pricing', () => {
@@ -479,7 +412,7 @@ describe('@flowvis/web — Story 5.8 Motion Control', () => {
       assert.doesNotMatch(composable, /\b50\b/);
       assert.doesNotMatch(page, /(?<![/\w-])50(?![\w%])\s*(credit|cr)/i);
       const emoji = /\p{Extended_Pictographic}/u;
-      for (const src of [page, dialog, composable, read('pages/tasks/[id].vue')]) {
+      for (const src of [page, dialog, composable, read('pages/tasks/[id].vue'), read('components/TaskResultViewer.vue')]) {
         assert.equal(emoji.test(src), false);
       }
       assert.match(page, /min-h-\[48px\]/);
@@ -559,7 +492,7 @@ describe('@flowvis/web — Story 5.8 Motion Control', () => {
     it('(a) FeatureWorkspaceDialog motion-control: render VideoTrimmer + uploader nhân vật, canSubmit theo composable, submit phát sự kiện', async () => {
       const comp = await loadSetup('components/FeatureWorkspaceDialog.vue', {
         '~/components/ImageUploader.vue': 'export default {};',
-        '~/components/TaskProgressCard.vue': 'export default {};',
+        '~/components/TaskResultViewer.vue': 'export default {};',
         '~/composables/useApiClient': 'export const useApiClient = () => ({ client: {} });',
         '~/composables/useAuthDialog': 'export const useAuthDialog = () => ({ open: () => {} });',
         '~/composables/usePricingConfig': 'export const usePricingConfig = () => ({ refreshAll: async () => {} });',

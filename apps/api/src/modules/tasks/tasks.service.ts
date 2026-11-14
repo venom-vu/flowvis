@@ -35,6 +35,8 @@ import {
   type TaskResultResponse,
   type TaskStatus,
   type TierSnapshot,
+  type TaskResultInput,
+  type TaskResultParams,
 } from '@flowvis/contracts';
 import type { Queue } from 'bullmq';
 import { PrismaService, type PrismaTransactionClient } from '../../infra/prisma.service.js';
@@ -87,6 +89,26 @@ export const MAX_ACTIVE_TASKS_PER_USER = 3;
 /** Giới hạn chờ enqueue để phản hồi tạo Task luôn dưới 2 giây khi Redis treo; bộ quét sẽ enqueue lại. */
 export const ENQUEUE_TIMEOUT_MS = 1500;
 export const RESULT_URL_TTL_SECONDS = 600;
+
+/** Thứ tự hiển thị đầu vào trên trang chi tiết Task. */
+const INPUT_DISPLAY_ORDER: Readonly<Record<string, readonly string[]>> = {
+  face_swap: ['sourceKey', 'targetKey'],
+  body_retouch: ['imageKey'],
+  motion_control: ['characterKey', 'videoKey'],
+  character_replace: ['characterKey', 'videoKey'],
+};
+
+/** Chỉ lộ các tham số người dùng chọn; không lộ giá, kích thước nội bộ. */
+function pickDisplayParams(raw: unknown): TaskResultParams {
+  const p = (raw ?? {}) as Record<string, unknown>;
+  const out: TaskResultParams = {};
+  for (const k of ['intensity', 'seconds', 'trimStart', 'trimEnd'] as const) {
+    if (Number.isInteger(p[k])) out[k] = p[k] as number;
+  }
+  if (typeof p.aspectRatio === 'string') out.aspectRatio = p.aspectRatio;
+  if (typeof p.prompt === 'string' && p.prompt.length > 0) out.prompt = p.prompt;
+  return out;
+}
 
 export interface SweepRow {
   id: string;
@@ -554,6 +576,7 @@ export class TasksService {
       throw this.apiError(ConflictException, ApiErrorCode.CONFLICT);
     }
     const resultUrl = await this.storage.presignGet(row.resultKey, RESULT_URL_TTL_SECONDS);
+    const [inputs, params] = [await this.presignInputs(taskId, row.pipeline, row.inputKeys), pickDisplayParams(row.params)];
 
     if (row.resultKey.endsWith('.mp4')) {
       const seconds = ((row.params ?? {}) as Record<string, unknown>).seconds;
@@ -561,24 +584,40 @@ export class TasksService {
         throw new Error(`Task ${taskId} thiếu params.seconds hợp lệ`);
       }
       const posterUrl = await this.storage.presignGet(row.resultKey.replace(/\.mp4$/, '.jpg'), RESULT_URL_TTL_SECONDS);
-      return { mediaType: 'video', resultUrl, sourceUrl: null, posterUrl, durationSeconds: seconds as number };
+      return { mediaType: 'video', resultUrl, sourceUrl: null, posterUrl, durationSeconds: seconds as number, inputs, params };
     }
 
     let sourceUrl: string | null = null;
     const refKey = this.pipelines.getConfig(row.pipeline)?.referenceInputKey;
-    const sourceKey = refKey
-      ? ((row.inputKeys ?? {}) as Record<string, string | undefined>)[refKey]
-      : undefined;
-    if (sourceKey) {
+    const refInput = refKey ? inputs.find((i) => i.role === refKey) : undefined;
+    if (refInput) sourceUrl = refInput.url;
+    return { resultUrl, sourceUrl, inputs, params };
+  }
+
+  /** URL ký cho các đầu vào còn lưu (đã quá hạn dọn dẹp thì bỏ qua, không báo lỗi). */
+  private async presignInputs(
+    taskId: string,
+    pipeline: string,
+    inputKeys: unknown,
+  ): Promise<TaskResultInput[]> {
+    const keys = (inputKeys ?? {}) as Record<string, string | undefined>;
+    const order = INPUT_DISPLAY_ORDER[pipeline] ?? Object.keys(keys);
+    const out: TaskResultInput[] = [];
+    for (const role of order) {
+      const key = keys[role];
+      if (!key) continue;
       try {
-        if (await this.storage.head(sourceKey)) {
-          sourceUrl = await this.storage.presignGet(sourceKey, RESULT_URL_TTL_SECONDS);
-        }
+        if (!(await this.storage.head(key))) continue;
+        out.push({
+          role,
+          mediaType: role === 'videoKey' ? 'video' : 'image',
+          url: await this.storage.presignGet(key, RESULT_URL_TTL_SECONDS),
+        });
       } catch (err) {
-        this.logger.warn(`Không kiểm tra được ảnh gốc của Task ${taskId}: ${String(err)}`);
+        this.logger.warn(`Không ký được đầu vào ${role} của Task ${taskId}: ${String(err)}`);
       }
     }
-    return { resultUrl, sourceUrl };
+    return out;
   }
 
   private apiError(
