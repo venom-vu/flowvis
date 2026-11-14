@@ -25,7 +25,11 @@ import { isTerminal } from './task-transitions.js';
 import { PrepareError, videoTrim } from './video-trim.service.js';
 import { TASKS_QUEUE, TasksService } from './tasks.service.js';
 
-export const WORKER_CONCURRENCY = 2;
+/** Số job BullMQ chạy song song; đặt bằng RH_MAX_CONCURRENT để job chờ cổng không phá thứ tự Priority. Mặc định 2 cho dev/test. */
+export const WORKER_CONCURRENCY = (() => {
+  const n = Number.parseInt(process.env.WORKER_CONCURRENCY ?? '', 10);
+  return Number.isFinite(n) && n > 0 ? n : 2;
+})();
 const RH_CALL_TIMEOUT_MS = 10_000;
 const DEFAULT_DEADLINE_MS = 180_000;
 

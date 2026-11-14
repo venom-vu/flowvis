@@ -71,11 +71,12 @@ describe('Story 4.2: [BE] Tạo Task Body Retouch', () => {
   const users = [];
   let submits, outputsQueue;
 
-  async function newUser({ balance = 500, locked = false } = {}) {
+  async function newUser({ balance = 500, locked = false, tierPack = null } = {}) {
     const n = users.length;
     const u = await prisma.user.create({ data: { googleId: `br-${runId}-${n}`, email: `br-${runId}-${n}@flowvis.vn`, tosVersion: 'tos-v7', lockedAt: locked ? new Date() : null } });
     users.push(u.id);
     if (balance > 0) await prisma.$transaction((t) => new WalletService().grant(t, u.id, balance));
+    if (tierPack) await pool.query('UPDATE users SET tier_pack=$1 WHERE id=$2', [tierPack, u.id]);
     return { id: u.id, token: jwt.sign({ sub: u.id, email: u.email, role: 'user' }) };
   }
   async function key(user) {
@@ -186,7 +187,7 @@ describe('Story 4.2: [BE] Tạo Task Body Retouch', () => {
     assert.equal((await res.json()).code, ApiErrorCode.INSUFFICIENT_CREDIT);
     assert.deepEqual(await countFor(poor), { tasks: 0, ledger: 0 });
 
-    const busy = await newUser({ balance: 1000 });
+    const busy = await newUser({ balance: 1000, tierPack: 'pro' });
     for (let i = 0; i < 3; i++) assert.equal((await post(busy, { imageKey: await key(busy) })).status, 201);
     res = await post(busy, { imageKey: await key(busy) });
     assert.equal((await res.json()).code, ApiErrorCode.TASK_LIMIT);

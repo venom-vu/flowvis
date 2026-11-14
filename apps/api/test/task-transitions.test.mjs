@@ -78,13 +78,14 @@ describe('Story 2.4: [BE] Máy trạng thái Task bằng compare-and-set', () =>
   const runId = crypto.randomBytes(4).toString('hex');
   const users = [];
 
-  async function newUser(balance = 500) {
+  async function newUser(balance = 500, tierPack = null) {
     const n = users.length;
     const u = await prisma.user.create({
       data: { googleId: `tr-${runId}-${n}`, email: `tr-${runId}-${n}@flowvis.vn`, tosVersion: 'tos-v7' },
     });
     users.push(u.id);
     if (balance > 0) await prisma.$transaction((t) => new WalletService().grant(t, u.id, balance));
+    if (tierPack) await prisma.$executeRaw`UPDATE users SET tier_pack = ${tierPack} WHERE id = ${u.id}::uuid`;
     return { id: u.id, token: jwt.sign({ sub: u.id, email: u.email, role: 'user' }) };
   }
   async function createTask(user) {
@@ -439,7 +440,7 @@ describe('Story 2.4: [BE] Máy trạng thái Task bằng compare-and-set', () =>
   });
 
   it('GET Task queued: queuePosition theo FIFO', async () => {
-    const u = await newUser(1000);
+    const u = await newUser(1000, 'starter');
     const x = await createTask(u);
     const y = await createTask(u);
     const tx = await (await api(u, 'GET', `/tasks/${x}`)).json();

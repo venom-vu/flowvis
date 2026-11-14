@@ -260,6 +260,18 @@ function dismissCreateError(): void {
               <li class="flex items-center gap-2">
                 <span aria-hidden="true">-</span>
                 <span>
+                  Chạy đồng thời:
+                  <strong
+                    :data-testid="`tier-max-active-${tierItem.tier}`"
+                    class="font-mono text-cyber-text"
+                  >
+                    {{ formatNumberVi(tierItem.maxActiveTasks) }} tác vụ
+                  </strong>
+                </span>
+              </li>
+              <li class="flex items-center gap-2">
+                <span aria-hidden="true">-</span>
+                <span>
                   Thứ tự ưu tiên:
                   <strong class="font-mono text-cyber-text">
                     #{{ tierItem.priority }}

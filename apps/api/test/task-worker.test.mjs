@@ -80,11 +80,12 @@ describe('Story 2.5: [BE] Worker xử lý Task qua RunningHub', () => {
     getObjectImpl = async () => Buffer.from('img');
   }
 
-  async function newUser(balance = 5000) {
+  async function newUser(balance = 5000, tierPack = null) {
     const n = users.length;
     const u = await prisma.user.create({ data: { googleId: `w-${runId}-${n}`, email: `w-${runId}-${n}@flowvis.vn`, tosVersion: 'tos-v7' } });
     users.push(u.id);
     await prisma.$transaction((t) => new WalletService().grant(t, u.id, balance));
+    if (tierPack) await pool.query('UPDATE users SET tier_pack=$1 WHERE id=$2', [tierPack, u.id]);
     return { id: u.id, token: jwt.sign({ sub: u.id, email: u.email, role: 'user' }) };
   }
   async function createTask(user) {
@@ -254,14 +255,16 @@ describe('Story 2.5: [BE] Worker xử lý Task qua RunningHub', () => {
     assert.equal((await row(id)).deadline_at.getTime(), before);
   });
 
-  it('quá hạn khôi phục: RH_TIMEOUT và PREP_TIMEOUT', async () => {
+  it('quá hạn khôi phục: deadline_at không còn hết hạn Task; PREP_TIMEOUT vẫn hết hạn', async () => {
     reset(); await clearGate();
     const u = await newUser();
     const a = await createTask(u);
     await svc.transition(a, 'queued', 'running');
-    await upd(a, `deadline_at=now()-interval '1 second'`);
+    await upd(a, `deadline_at=now()-interval '1 second', runninghub_task_id='rh-late'`);
+    outputsQueue = [{ status: 'SUCCESS', fileUrl: 'http://x/y.png', consumeMoney: 1 }];
     await worker.processTask(a);
-    assert.equal((await row(a)).reason_code, 'RH_TIMEOUT');
+    assert.notEqual((await row(a)).reason_code, 'RH_TIMEOUT', 'deadline_at đã qua không làm timed_out');
+    assert.equal(ingestCalls.length, 1, 'vẫn nhận kết quả RunningHub trả muộn');
     const b = await createTask(u);
     await svc.transition(b, 'queued', 'running');
     await upd(b, `prep_deadline_at=now()-interval '1 second'`);
@@ -284,7 +287,7 @@ describe('Story 2.5: [BE] Worker xử lý Task qua RunningHub', () => {
 
   it('cổng đầy: Task thứ ba chờ; có slot thì chạy; orphan tính vào cổng', async () => {
     reset(); await clearGate();
-    const u = await newUser();
+    const u = await newUser(5000, 'pro');
     const a = await createTask(u), b = await createTask(u), c = await createTask(u);
     for (const x of [a, b]) {
       await svc.transition(x, 'queued', 'running');
@@ -307,7 +310,7 @@ describe('Story 2.5: [BE] Worker xử lý Task qua RunningHub', () => {
 
   it('quá gate_deadline => RH_GATE_TIMEOUT', async () => {
     reset(); await clearGate();
-    const u = await newUser();
+    const u = await newUser(5000, 'pro');
     const a = await createTask(u), b = await createTask(u), c = await createTask(u);
     for (const x of [a, b]) {
       await svc.transition(x, 'queued', 'running');
@@ -522,7 +525,7 @@ describe('Story 2.5: [BE] Worker xử lý Task qua RunningHub', () => {
     assert.equal((await ledger(id, 'RELEASED')).length, 1);
   });
 
-  it('poll quá deadline_at => RH_TIMEOUT + orphan', async () => {
+  it('poll quá deadline_at: vẫn chờ RunningHub, nhận kết quả SUCCESS đến muộn', async () => {
     reset(); await clearGate();
     outputsQueue = [{ status: 'RUNNING' }];
     const u = await newUser();
@@ -530,10 +533,11 @@ describe('Story 2.5: [BE] Worker xử lý Task qua RunningHub', () => {
     const p = worker.processTask(id);
     await new Promise((r) => setTimeout(r, 200));
     await upd(id, `deadline_at=now()-interval '1 second'`);
+    await new Promise((r) => setTimeout(r, 200));
+    assert.equal((await row(id)).status, 'running', 'quá deadline_at không làm hết hạn Task');
+    outputsQueue = [{ status: 'SUCCESS', fileUrl: 'http://x/y.png', consumeMoney: 1 }];
     await p;
-    const r = await row(id);
-    assert.equal(r.reason_code, 'RH_TIMEOUT');
-    assert.ok(r.rh_orphan_until);
+    assert.equal(ingestCalls.length, 1);
   });
 
   it('loadInputs truyền signal của Task vào storage.getObject', async () => {
@@ -717,7 +721,7 @@ describe('Story 2.5: [BE] Worker xử lý Task qua RunningHub', () => {
 
   it('recordCost: reported khi có costUsd, estimated khi chỉ có giây, bỏ qua khi không có gì, bỏ qua khi không còn running', async () => {
     reset(); await clearGate();
-    const u = await newUser();
+    const u = await newUser(5000, 'creator');
     const mk = async (inst) => {
       const id = await createTask(u);
       await upd(id, `status='running', running_at=now()${inst ? `, instance_type='${inst}'` : ''}`);

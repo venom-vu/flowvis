@@ -357,3 +357,9 @@
 - source_spec: `_bmad-output/implementation-artifacts/spec-video-character-replacement.md`
   summary: Hủy hoặc bỏ qua kết quả submit đang bay khi đóng dialog hoặc đổi tính năng (Character Replacement, mẫu giống Motion Control).
   evidence: Chưa xác minh (maybe-false, mức medium): `clearState()` không đặt lại `isSubmitting` hay vô hiệu hóa promise; cần thử thủ công đóng dialog giữa lúc gửi để xem task cũ có xuất hiện sai ngữ cảnh không.
+
+## Deferred from: code review of uncommitted changes, cap Task theo hạng và concurrency worker (2026-11-14)
+
+- source_spec: không có (review chế độ no-spec)
+  summary: Khóa ffmpeg dùng chung (`FifoLock`, `video-trim.service.ts`) và `prep_deadline_at` 120 giây có thể gây `PREP_TIMEOUT` khi nhiều Task video vào bước chuẩn bị cùng lúc; `PREP_TIMEOUT` tính vào ngắt mạch (`SYSTEM_FAILURE_REASONS`), 5 lần liên tiếp sẽ tạm dừng nhận Task.
+  evidence: Chưa xác minh trên production (mức low đến medium, hạ từ medium). Đo trên máy dev 8 nhân, video 1280x720: clip 3 giây cắt 0,35 giây, 10 giây 1,08 giây, 20 giây 1,65 giây, nên 85 task video vào cùng lúc chờ tối đa khoảng 140 giây so với hạn 120 giây. Cần đo ffmpeg trên máy production và theo dõi số `PREP_TIMEOUT` khi nâng `WORKER_CONCURRENCY` lên 85. Nếu xảy ra, hướng sửa là nâng hạn chuẩn bị (`tasks.service.ts` dòng 179) hoặc tính hạn từ lúc lấy được khóa.

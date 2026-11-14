@@ -275,15 +275,15 @@ describe('Story 5.6: [BE] Nhập kết quả video, ảnh bìa và chia sẻ', (
     assert.equal((await row(t.id)).status, 'succeeded');
   });
 
-  it('params thiếu seconds: failed/INTERNAL_ERROR, RELEASED, không tải', async () => {
+  it('params thiếu seconds: không còn chặn, vẫn tải và chốt (ingestor không đọc seconds)', async () => {
     const u = await newUser();
     const t = await runningTask(u);
     await pool.query(`UPDATE tasks SET params='{}' WHERE id=$1`, [t.id]);
     let n = 0;
     fetchImpl = async () => { n++; return asResponse(good); };
     await ingest(t);
-    assert.equal(n, 0);
-    await expectFailed(t, 'INTERNAL_ERROR');
+    assert.equal(n, 1);
+    assert.equal((await row(t.id)).status, 'succeeded');
   });
 
   it('tải lỗi 3 lần: OUTPUT_UPLOAD_ERROR', async () => {
@@ -296,15 +296,15 @@ describe('Story 5.6: [BE] Nhập kết quả video, ảnh bìa và chia sẻ', (
     await expectFailed(t, 'OUTPUT_UPLOAD_ERROR');
   });
 
-  it('quá deadline_at: OUTPUT_UPLOAD_ERROR, không tải', async () => {
+  it('quá deadline_at: RunningHub đã SUCCESS thì vẫn tải và chốt, không bỏ dở vì hạn', async () => {
     const u = await newUser();
     const t = await runningTask(u);
     await pool.query(`UPDATE tasks SET deadline_at = now() - interval '1 second' WHERE id=$1`, [t.id]);
     let n = 0;
     fetchImpl = async () => { n++; return asResponse(good); };
     await ingest(t);
-    assert.equal(n, 0);
-    await expectFailed(t, 'OUTPUT_UPLOAD_ERROR');
+    assert.equal(n, 1);
+    assert.equal((await row(t.id)).status, 'succeeded');
   });
 
   it('Content-Length vượt 100 MB: OUTPUT_UPLOAD_ERROR', async () => {

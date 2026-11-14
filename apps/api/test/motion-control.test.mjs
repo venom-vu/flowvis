@@ -263,7 +263,7 @@ describe('Story 5.3: [BE] Tạo Task Motion Control', () => {
     res = await post(poor, { characterKey: await img(poor), videoKey: await vid(poor), trimStart: 0, trimEnd: 4 });
     assert.equal((await res.json()).code, ApiErrorCode.INSUFFICIENT_CREDIT);
     assert.equal((await pool.query(`SELECT count(*)::int n FROM tasks WHERE user_id=$1`, [poor.id])).rows[0].n, 0);
-    const busy = await newUser({ balance: 5000 });
+    const busy = await newUser({ balance: 5000, tierPack: 'pro' });
     const c = await img(busy); const v = await vid(busy);
     for (let i = 0; i < 3; i++) assert.equal((await post(busy, { characterKey: c, videoKey: v, trimStart: 0, trimEnd: 3 })).status, 201);
     res = await post(busy, { characterKey: c, videoKey: v, trimStart: 0, trimEnd: 3 });

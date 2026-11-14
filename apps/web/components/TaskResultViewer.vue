@@ -1,20 +1,20 @@
 <script setup lang="ts">
-import { computed, onBeforeUnmount, ref, watch } from "vue";
+import { computed, onBeforeUnmount, ref, watch } from 'vue';
 import type {
   Task,
   TaskResultResponse,
   TaskShareResponse,
-} from "@flowvis/contracts";
-import BeforeAfterSplitSlider from "~/components/BeforeAfterSplitSlider.vue";
-import { useApiClient } from "~/composables/useApiClient";
+} from '@flowvis/contracts';
+import BeforeAfterSplitSlider from '~/components/BeforeAfterSplitSlider.vue';
+import { useApiClient } from '~/composables/useApiClient';
 import {
   getReasonCodeMessageVi,
   resolveApiErrorMessageVi,
-} from "~/utils/api-client";
+} from '~/utils/api-client';
 import {
   getPipelineLabelVi,
   isTaskRetentionExpired,
-} from "~/utils/task-format";
+} from '~/utils/task-format';
 
 /**
  * Khung kết quả dùng chung: loading khi tạo/chạy Task, hiển thị Trước/Sau khi xong,
@@ -40,16 +40,16 @@ const props = withDefaults(
     submitting: false,
     polling: true,
     pollIntervalMs: 2500,
-    beforeLabelVi: "",
-    afterLabelVi: "",
-    outputFormatVi: "",
+    beforeLabelVi: '',
+    afterLabelVi: '',
+    outputFormatVi: '',
     showRetry: true,
     embedded: false,
   },
 );
 
 const emit = defineEmits<{
-  "update:task": [task: Task];
+  'update:task': [task: Task];
   result: [result: TaskResultResponse | null];
   settled: [task: Task];
   retry: [];
@@ -70,35 +70,35 @@ let pollCount = 0;
 let disposed = false;
 
 const status = computed(() => localTask.value?.status ?? null);
-const isQueued = computed<boolean>(() => status.value === "queued");
-const isRunning = computed<boolean>(() => status.value === "running");
-const isSucceeded = computed<boolean>(() => status.value === "succeeded");
+const isQueued = computed<boolean>(() => status.value === 'queued');
+const isRunning = computed<boolean>(() => status.value === 'running');
+const isSucceeded = computed<boolean>(() => status.value === 'succeeded');
 const isFailed = computed<boolean>(
   () =>
-    status.value === "failed" ||
-    status.value === "timed_out" ||
-    status.value === "cancelled",
+    status.value === 'failed' ||
+    status.value === 'timed_out' ||
+    status.value === 'cancelled',
 );
 const isWorking = computed<boolean>(
   () => props.submitting || isQueued.value || isRunning.value,
 );
 const isVideo = computed<boolean>(
   () =>
-    result.value?.mediaType === "video" ||
-    localTask.value?.pipeline === "motion_control" ||
-    localTask.value?.pipeline === "character_replace",
+    result.value?.mediaType === 'video' ||
+    localTask.value?.pipeline === 'motion_control' ||
+    localTask.value?.pipeline === 'character_replace',
 );
 const isExpired = computed<boolean>(() =>
   localTask.value ? isTaskRetentionExpired(localTask.value.createdAt) : false,
 );
 const pipelineLabelVi = computed<string>(() =>
-  localTask.value ? getPipelineLabelVi(localTask.value.pipeline) : "",
+  localTask.value ? getPipelineLabelVi(localTask.value.pipeline) : '',
 );
 const failureMessageVi = computed<string>(() => {
   const t = localTask.value;
-  if (!t) return "";
-  if (t.status === "cancelled")
-    return "Tác vụ đã được hủy theo yêu cầu của bạn.";
+  if (!t) return '';
+  if (t.status === 'cancelled')
+    return 'Tác vụ đã được hủy theo yêu cầu của bạn.';
   return getReasonCodeMessageVi(t.reasonCode, t.pipeline);
 });
 
@@ -116,7 +116,7 @@ function schedulePoll(): void {
     disposed ||
     !props.polling ||
     !t ||
-    (t.status !== "queued" && t.status !== "running")
+    (t.status !== 'queued' && t.status !== 'running')
   ) {
     return;
   }
@@ -129,9 +129,9 @@ function schedulePoll(): void {
       if (disposed || localTask.value?.id !== updated.id) return;
       actionErrorVi.value = null;
       localTask.value = updated;
-      emit("update:task", updated);
-      if (updated.status !== "queued" && updated.status !== "running") {
-        emit("settled", updated);
+      emit('update:task', updated);
+      if (updated.status !== 'queued' && updated.status !== 'running') {
+        emit('settled', updated);
       }
     } catch (error: unknown) {
       // Mạng chập chờn không làm dừng vòng thăm dò.
@@ -143,13 +143,13 @@ function schedulePoll(): void {
 
 async function loadResult(): Promise<void> {
   const t = localTask.value;
-  if (!t || t.status !== "succeeded" || isExpired.value) return;
+  if (!t || t.status !== 'succeeded' || isExpired.value) return;
   isLoadingResult.value = true;
   resultErrorVi.value = null;
   try {
     result.value = await client.getTaskResult(t.id);
     mediaFailed.value = false;
-    emit("result", result.value);
+    emit('result', result.value);
   } catch (error: unknown) {
     resultErrorVi.value = resolveApiErrorMessageVi(error);
   } finally {
@@ -185,7 +185,7 @@ watch(
       mediaFailed.value = false;
       shareData.value = null;
       pollCount = 0;
-      emit("result", null);
+      emit('result', null);
     }
   },
 );
@@ -199,7 +199,7 @@ watch(
   () => {
     schedulePoll();
     if (
-      localTask.value?.status === "succeeded" &&
+      localTask.value?.status === 'succeeded' &&
       !result.value &&
       !isLoadingResult.value
     ) {
@@ -224,8 +224,8 @@ async function handleCancel(): Promise<void> {
     const cancelled = await client.cancelTask(localTask.value.id);
     stopPolling();
     localTask.value = cancelled;
-    emit("update:task", cancelled);
-    emit("settled", cancelled);
+    emit('update:task', cancelled);
+    emit('settled', cancelled);
   } catch (error: unknown) {
     actionErrorVi.value = resolveApiErrorMessageVi(error);
   } finally {
@@ -238,9 +238,9 @@ const isDownloading = ref<boolean>(false);
 const downloadErrorVi = ref<string | null>(null);
 
 function resolveImageExtension(mimeType?: string): string {
-  if (mimeType === "image/jpeg") return ".jpg";
-  if (mimeType === "image/webp") return ".webp";
-  return ".png";
+  if (mimeType === 'image/jpeg') return '.jpg';
+  if (mimeType === 'image/webp') return '.webp';
+  return '.png';
 }
 
 async function handleDownload(): Promise<void> {
@@ -259,14 +259,14 @@ async function handleDownload(): Promise<void> {
     if (!response) {
       await loadResult();
       url = result.value?.resultUrl;
-      if (!url) throw new Error("Không thể làm mới đường dẫn tải về");
+      if (!url) throw new Error('Không thể làm mới đường dẫn tải về');
       response = await fetch(url);
-      if (!response.ok) throw new Error("Không thể tải kết quả");
+      if (!response.ok) throw new Error('Không thể tải kết quả');
     }
     const blob = await response.blob();
-    const ext = isVideo.value ? ".mp4" : resolveImageExtension(blob.type);
+    const ext = isVideo.value ? '.mp4' : resolveImageExtension(blob.type);
     const blobUrl = URL.createObjectURL(blob);
-    const a = document.createElement("a");
+    const a = document.createElement('a');
     a.href = blobUrl;
     a.download = `flowvis-${localTask.value.pipeline}-${localTask.value.id.slice(0, 8)}${ext}`;
     document.body.appendChild(a);
@@ -300,7 +300,7 @@ onBeforeUnmount(() => {
 });
 
 async function writeClipboard(text: string): Promise<boolean> {
-  if (typeof navigator === "undefined" || !navigator.clipboard) return false;
+  if (typeof navigator === 'undefined' || !navigator.clipboard) return false;
   try {
     await navigator.clipboard.writeText(text);
     return true;
@@ -317,7 +317,7 @@ async function handleCopyLink(): Promise<void> {
     try {
       const res = await client.shareTask(localTask.value.id);
       const shareUrl =
-        typeof window !== "undefined"
+        typeof window !== 'undefined'
           ? `${window.location.origin}/share/${res.token}`
           : res.shareUrl;
       shareData.value = { ...res, shareUrl };
@@ -331,7 +331,7 @@ async function handleCopyLink(): Promise<void> {
   const url = shareData.value.shareUrl;
   showToast(
     (await writeClipboard(url))
-      ? "Đã sao chép liên kết chia sẻ."
+      ? 'Đã sao chép liên kết chia sẻ.'
       : `Liên kết chia sẻ: ${url}`,
   );
 }
@@ -343,7 +343,7 @@ async function handleRevokeShare(): Promise<void> {
   try {
     await client.revokeTaskShare(localTask.value.id);
     shareData.value = null;
-    showToast("Đã ngừng chia sẻ liên kết công khai.");
+    showToast('Đã ngừng chia sẻ liên kết công khai.');
   } catch (err) {
     shareErrorVi.value = resolveApiErrorMessageVi(err);
   } finally {

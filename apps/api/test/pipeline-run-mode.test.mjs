@@ -16,10 +16,10 @@ afterEach(() => {
 describe('PipelinesService.getRunMode: chọn ai-app hoặc workflow theo env', () => {
   const svc = new PipelinesService();
 
-  it('để trống thì dùng mặc định: face_swap là ai-app, body_retouch là workflow', () => {
+  it('để trống thì dùng mặc định: face_swap và body_retouch đều là ai-app', () => {
     for (const k of VARS) delete process.env[k];
     assert.equal(svc.getRunMode(PIPELINE_CONFIGS.face_swap), 'ai-app');
-    assert.equal(svc.getRunMode(PIPELINE_CONFIGS.body_retouch), 'workflow');
+    assert.equal(svc.getRunMode(PIPELINE_CONFIGS.body_retouch), 'ai-app');
   });
 
   it('mỗi chức năng chọn độc lập qua biến của chính nó', () => {

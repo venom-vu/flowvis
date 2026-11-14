@@ -1059,6 +1059,13 @@ export const useApiClient = () => ({
         assert.doesNotMatch(guestHtml, /data-testid="tier-current-badge-Pro"/);
         assert.doesNotMatch(guestHtml, /data-testid="tier-current-badge-Creator"/);
         assert.match(guestHtml, /Thứ tự ưu tiên:/);
+        assert.match(guestHtml, /Chạy đồng thời:/);
+        for (const [tier, cap] of [['FREE', 1], ['Starter', 2], ['Pro', 3], ['Creator', 5]]) {
+          assert.match(
+            guestHtml,
+            new RegExp(`data-testid="tier-max-active-${tier}"[^>]*>\\s*${cap} tác vụ`),
+          );
+        }
         assert.doesNotMatch(guestHtml, /data-testid="pricing-topup-history"/);
 
         // 2. Khi đã đăng nhập: hiển thị thêm Lịch Sử Đơn Nạp Credit ngay trên trang pricing

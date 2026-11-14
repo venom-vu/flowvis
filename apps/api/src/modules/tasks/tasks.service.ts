@@ -48,7 +48,7 @@ import { AccountLockedException } from '../auth/guards/account-locked.guard.js';
 import { STORAGE_PORT, type StoragePort } from '../../ports/index.js';
 import { PipelinesService } from '../pipelines/pipelines.service.js';
 import { UploadsService } from '../storage/uploads.service.js';
-import { PRICING_CONFIG } from '../wallet/tier.js';
+import { PRICING_CONFIG, tierFromPack } from '../wallet/tier.js';
 import { WalletService } from '../wallet/wallet.service.js';
 
 /** Lỗi hệ thống tính vào ngắt mạch (Story 6.2). */
@@ -85,7 +85,6 @@ export interface TaskPipelineStatsRow {
 }
 
 export const TASKS_QUEUE = 'tasks';
-export const MAX_ACTIVE_TASKS_PER_USER = 3;
 /** Giới hạn chờ enqueue để phản hồi tạo Task luôn dưới 2 giây khi Redis treo; bộ quét sẽ enqueue lại. */
 export const ENQUEUE_TIMEOUT_MS = 1500;
 export const RESULT_URL_TTL_SECONDS = 600;
@@ -770,8 +769,8 @@ export class TasksService {
     const amount = spec.amount;
 
     const { snapshot, task } = await this.prisma.$transaction(async (tx) => {
-      const rows = await tx.$queryRaw<Array<{ tos_version: string; locked_at: Date | null }>>`
-        SELECT tos_version, locked_at FROM users WHERE id = ${userId}::uuid FOR UPDATE`;
+      const rows = await tx.$queryRaw<Array<{ tos_version: string; locked_at: Date | null; tier_pack: string | null }>>`
+        SELECT tos_version, locked_at, tier_pack FROM users WHERE id = ${userId}::uuid FOR UPDATE`;
       if (rows.length !== 1) {
         throw new BadRequestException({
           code: ApiErrorCode.VALIDATION_FAILED,
@@ -782,7 +781,8 @@ export class TasksService {
       const active = await tx.task.count({
         where: { userId, status: { in: ['queued', 'running'] } },
       });
-      if (active >= MAX_ACTIVE_TASKS_PER_USER) throw new TaskLimitException();
+      const tierCfg = PRICING_CONFIG.tiers.find((t) => t.tier === tierFromPack(rows[0].tier_pack))!;
+      if (active >= tierCfg.maxActiveTasks) throw new TaskLimitException();
 
       const snapshot: TierSnapshot = await this.wallet.hold(tx, userId, taskId, amount);
       spec.postHold?.(snapshot);

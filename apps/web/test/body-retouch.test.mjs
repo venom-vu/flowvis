@@ -469,11 +469,11 @@ describe('@flowvis/web — Story 4.4 Trang Body Retouch và thanh mức điều 
               );
             },
           });
-          app.component('TaskProgressCard', {
-            props: ['task', 'pipelineLabelVi'],
+          app.component('TaskResultViewer', {
+            props: ['task'],
             ssrRender(ctx, push) {
               push(
-                `<div data-testid="mock-task-progress-card" data-label="${ctx.pipelineLabelVi}"></div>`,
+                `<div data-testid="mock-task-result-viewer" data-pipeline="${ctx.task ? ctx.task.pipeline : ''}"></div>`,
               );
             },
           });
@@ -521,10 +521,10 @@ describe('@flowvis/web — Story 4.4 Trang Body Retouch và thanh mức điều 
           /<button[^>]*data-testid="create-body-retouch-button"[^>]*\sdisabled(=|"|\s|>)/,
         );
 
-        // 5. Khi đã có activeTask: hiển thị TaskProgressCard với pipeline-label-vi="Chỉnh sửa vóc dáng"
+        // 5. Khi đã có activeTask: trang giao cho TaskResultViewer với task body_retouch
         const activeTaskHtml = await renderPage({ hasTask: true });
-        assert.match(activeTaskHtml, /data-testid="mock-task-progress-card"/);
-        assert.match(activeTaskHtml, /data-label="Chỉnh sửa vóc dáng"/);
+        assert.match(activeTaskHtml, /data-testid="mock-task-result-viewer"/);
+        assert.match(activeTaskHtml, /data-pipeline="body_retouch"/);
       } finally {
         fs.rmSync(tmpPageFile, { force: true });
       }

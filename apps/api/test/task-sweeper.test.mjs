@@ -268,20 +268,21 @@ describe('Story 2.7: [BE] Bộ quét Task treo và hạn chót', () => {
     await queue.remove(id);
   });
 
-  it('Kết quả muộn: Task đã timed_out thì worker bỏ qua, không CAPTURED', async () => {
+  it('Task đã qua cổng và quá deadline_at: sweeper không hết hạn, worker vẫn nhận kết quả muộn', async () => {
     await clean();
     const id = await running(await newUser());
     await upd(id, `deadline_at = now() - interval '1 second', runninghub_task_id = 'rh-1'`);
     await sweeper.sweep();
+    assert.equal((await row(id)).status, 'running', 'deadline_at không còn làm Task hết hạn');
+    assert.equal((await ledger(id, 'RELEASED')).length, 0);
     let outputsCalled = 0;
     worker.rh = { outputs: async () => { outputsCalled++; return { status: 'SUCCESS', fileUrl: 'http://x/y.png' }; } };
+    worker.ingestor = { ingest: async () => {} };
     await worker.processTask(id);
-    assert.equal(outputsCalled, 0);
-    assert.equal((await ledger(id, 'CAPTURED')).length, 0);
-    assert.equal((await ledger(id, 'RELEASED')).length, 1);
+    assert.equal(outputsCalled, 1, 'worker vẫn poll và nhận kết quả RunningHub');
   });
 
-  it('abortTask dừng ingest đang chờ putObject', async () => {
+  it('abortTask dừng ingest đang chờ putObject (Task bị chốt từ nơi khác)', async () => {
     await clean();
     const id = await running(await newUser());
     await upd(id, `deadline_at = now() + interval '2 minutes', runninghub_task_id = 'rh-1'`);
@@ -298,13 +299,10 @@ describe('Story 2.7: [BE] Bộ quét Task treo và hạn chót', () => {
     worker.controllers.set(id, ctrl);
     const p = worker.processTask(id, ctrl.signal);
     await startedP;
-    await upd(id, `deadline_at = now() - interval '1 second'`);
-    await sweeper.sweep();
+    assert.equal(worker.abortTask(id), true);
     await Promise.race([p, new Promise((_, rej) => setTimeout(() => rej(new Error('processTask không dừng')), 3000))]);
     worker.controllers.delete(id);
     assert.equal(ctrl.signal.aborted, true);
-    assert.equal((await row(id)).status, 'timed_out');
-    assert.equal((await ledger(id, 'RELEASED')).length, 1);
   });
 
   it('sweep không chạy chồng chu kỳ', async () => {

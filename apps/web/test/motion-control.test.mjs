@@ -201,6 +201,8 @@ describe('@flowvis/web — Story 5.8 Motion Control', () => {
         videoKey: MOCK_MOTION_CREATE_REQUEST.videoKey,
         trimStart: 0,
         trimEnd: 5,
+        aspectRatio: '9:16',
+        prompt: '',
       });
       assert.equal(mc.activeTask.value.id, MOCK_MOTION_TASK_QUEUED.id);
       assert.equal(mc.isSubmitting.value, false);

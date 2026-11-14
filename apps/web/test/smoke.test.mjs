@@ -1509,13 +1509,14 @@ describe('@flowvis/web — Header cố định, popover tài khoản và đăng 
     assert.doesNotMatch(history, /GET \/wallet\/ledger|Sổ cái bất biến/);
   });
 
-  it('popover có Thông tin tài khoản, Lịch sử (sang /history) và Đăng xuất', () => {
+  it('popover có Lịch sử (sang /history) và Đăng xuất; mục Thông tin tài khoản đang tắt', () => {
     const popover = read('components/AccountPopover.vue');
     assert.match(popover, /data-testid="account-button"/);
-    assert.match(popover, /data-testid="menu-account-info"/);
-    assert.match(popover, /openAuthDialog\('account'\)/);
+    // Mục "Thông tin tài khoản" đã được comment tắt: không được render nút này.
+    const live = popover.replace(/<!--[\s\S]*?-->/g, '');
+    assert.doesNotMatch(live, /data-testid="menu-account-info"/);
     assert.match(popover, /data-testid="menu-history"/);
-    assert.match(popover, /navigateTo\('\/history'\)/);
+    assert.match(popover, /navigateTo\(['"]\/history['"]\)/);
     assert.match(popover, /data-testid="logout-button"/);
     assert.match(popover, /Escape/);
     assert.match(popover, /pointerdown/);
@@ -2534,7 +2535,7 @@ describe('@flowvis/web — Story 2.10 Thành phần tải ảnh có cam kết To
               push('<div data-testid="mock-uploader"></div>');
             },
           });
-          app.component('TaskProgressCard', {
+          app.component('TaskResultViewer', {
             props: ['task'],
             ssrRender(_ctx, push) {
               push('<div data-testid="mock-task-progress-card"></div>');
@@ -2682,7 +2683,7 @@ describe('@flowvis/web — Story 2.10 Thành phần tải ảnh có cam kết To
               push(`<div data-testid="mock-uploader-${ctx.idPrefix || 'default'}"></div>`);
             },
           });
-          app.component('TaskProgressCard', {
+          app.component('TaskResultViewer', {
             props: ['task'],
             ssrRender(_ctx, push) {
               push('<div data-testid="mock-task-progress-card"></div>');
@@ -3199,7 +3200,7 @@ describe('@flowvis/web — Story 2.10 Thành phần tải ảnh có cam kết To
       }
     });
 
-    it('pages/tasks/[id].vue SSR render trạng thái thành công (nút tải HD, chia sẻ) và trạng thái hết hạn lưu 30 ngày', async () => {
+    it('pages/tasks/[id].vue SSR render khung Đầu vào/Thông tin và giao kết quả cho TaskResultViewer', async () => {
       const pageSfc = fs.readFileSync(
         path.join(webRoot, 'pages/tasks/[id].vue'),
         'utf8',
@@ -3271,6 +3272,13 @@ describe('@flowvis/web — Story 2.10 Thành phần tải ảnh có cam kết To
                 handleRevokeShare: () => {},
                 handleCopyShareLink: () => {},
                 openAuthDialog: () => {},
+                inputs: [],
+                params: null,
+                paramRows: [],
+                statusTone: '',
+                idCopied: false,
+                copyTaskId: () => {},
+                handleCreateNewTask: () => {},
               };
             },
           });
@@ -3295,34 +3303,32 @@ describe('@flowvis/web — Story 2.10 Thành phần tải ảnh có cam kết To
               push('<div data-testid="mock-before-after-slider"></div>');
             },
           });
-          app.component('TaskProgressCard', {
-            props: ['task'],
-            ssrRender(_ctx, push) {
-              push('<div data-testid="mock-task-progress-card"></div>');
+          app.component('TaskResultViewer', {
+            props: ['task', 'embedded'],
+            ssrRender(ctx, push) {
+              push(
+                `<div data-testid="mock-task-result-viewer" data-status="${ctx.task ? ctx.task.status : ''}"></div>`,
+              );
             },
           });
           return app;
         };
 
-        // 1. Succeeded: có Trước/Sau slider, nút tải HD và nút chia sẻ
+        // 1. Succeeded: trang dựng khung Đầu vào + Thông tin và giao phần kết quả cho TaskResultViewer
         const succHtml = await renderToString(
           makeResultApp({ isSucceeded: true, isExpiredVal: false }),
         );
         assert.match(succHtml, /data-testid="result-success-view"/);
-        assert.match(succHtml, /data-testid="mock-before-after-slider"/);
-        assert.match(succHtml, /data-testid="download-result-button"/);
-        assert.match(succHtml, /Tải Ảnh HD \(Không Watermark\)/);
-        assert.match(succHtml, /data-testid="share-task-button"/);
-        assert.match(succHtml, /Chia sẻ kết quả/);
+        assert.match(succHtml, /data-testid="task-inputs-card"/);
+        assert.match(succHtml, /data-testid="mock-task-result-viewer"[^>]*data-status="succeeded"/);
+        assert.match(succHtml, /data-testid="create-similar-link"/);
 
-        // 2. Expired: có thông báo hết hạn lưu 30 ngày, không có slider
-        const expHtml = await renderToString(
-          makeResultApp({ isSucceeded: true, isExpiredVal: true }),
+        // 2. Failed: vẫn giao cho TaskResultViewer xử lý, trang không tự vẽ slider/nút tải/chia sẻ
+        const failHtml = await renderToString(
+          makeResultApp({ isSucceeded: false, isExpiredVal: false }),
         );
-        assert.match(expHtml, /data-testid="retention-expired-view"/);
-        assert.match(expHtml, /Kết Quả Đã Hết Hạn Lưu Trữ/);
-        assert.match(expHtml, /30 ngày/);
-        assert.doesNotMatch(expHtml, /data-testid="mock-before-after-slider"/);
+        assert.match(failHtml, /data-testid="mock-task-result-viewer"[^>]*data-status="failed"/);
+        assert.doesNotMatch(failHtml, /data-testid="(download-result-button|share-task-button|retention-expired-view)"/);
       } finally {
         if (fs.existsSync(tmpResultPageFile)) {
           fs.unlinkSync(tmpResultPageFile);
@@ -3356,7 +3362,13 @@ describe('@flowvis/web — Story 2.10 Thành phần tải ảnh có cam kết To
       assert.match(tasksIndexPageRaw, /min-h-\[48px\]/);
       assert.match(tasksResultPageRaw, /touch-target/);
       assert.match(tasksResultPageRaw, /min-h-\[48px\]/);
-      assert.match(tasksResultPageRaw, /min-h-\[50px\]/);
+      // Nút tải/chia sẻ kết quả nay nằm trong TaskResultViewer (trang chỉ nhúng component này)
+      const viewerRaw = fs.readFileSync(
+        path.join(webRoot, 'components/TaskResultViewer.vue'),
+        'utf8',
+      );
+      assert.match(viewerRaw, /touch-target/);
+      assert.match(viewerRaw, /min-h-\[48px\]/);
 
       // 2. Không chứa emoji UTF-8 trong UI chrome
       const emojiRegex =

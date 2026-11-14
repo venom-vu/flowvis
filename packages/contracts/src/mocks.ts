@@ -77,6 +77,7 @@ export const DEFAULT_PRICING_CONFIG: PricingConfigResponse = {
       priceVnd: 0,
       credits: 500,
       maxVideoSeconds: 5,
+      maxActiveTasks: 1,
       priority: 10,
     },
     {
@@ -85,6 +86,7 @@ export const DEFAULT_PRICING_CONFIG: PricingConfigResponse = {
       priceVnd: 49_000,
       credits: 5_000,
       maxVideoSeconds: 10,
+      maxActiveTasks: 2,
       priority: 3,
     },
     {
@@ -93,6 +95,7 @@ export const DEFAULT_PRICING_CONFIG: PricingConfigResponse = {
       priceVnd: 99_000,
       credits: 12_000,
       maxVideoSeconds: 15,
+      maxActiveTasks: 3,
       priority: 2,
     },
     {
@@ -101,6 +104,7 @@ export const DEFAULT_PRICING_CONFIG: PricingConfigResponse = {
       priceVnd: 199_000,
       credits: 30_000,
       maxVideoSeconds: 20,
+      maxActiveTasks: 5,
       priority: 1,
     },
   ],
@@ -499,6 +503,8 @@ export const MOCK_MOTION_CREATE_REQUEST: MotionCreateRequest = {
   videoKey: `in/${MOCK_USER_ID}/60000000-0000-4000-8000-000000000003`,
   trimStart: 2,
   trimEnd: 7,
+  aspectRatio: '9:16',
+  prompt: '',
 };
 
 export const MOCK_UPLOAD_VIDEO_CONFIRM_RESPONSE: UploadConfirmVideoResponse = {
