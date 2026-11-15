@@ -134,6 +134,7 @@ async function copyTaskId(): Promise<void> {
 function getPipelineRoute(pipeline?: string): string {
   if (pipeline === 'body_retouch') return '/body-retouch';
   if (pipeline === 'outfit_change') return '/outfit-change';
+  if (pipeline === 'person_replace') return '/person-replace';
   if (pipeline === 'motion_control') return '/motion-control';
   return '/face-swap';
 }

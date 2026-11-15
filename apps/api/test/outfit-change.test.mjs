@@ -17,7 +17,7 @@ describe('outfit_change: cấu hình pipeline RunningHub', () => {
   });
 
   it('dùng ai-app, không bắt buộc cấu hình khi khởi động, ảnh kết quả theo kích thước ảnh người mẫu', () => {
-    assert.equal(cfg.defaultRunMode, 'ai-app');
+    assert.equal(cfg.runMode, 'ai-app');
     assert.equal(cfg.workflowEnvVar, 'RUNNINGHUB_WORKFLOW_OUTFIT_CHANGE');
     assert.equal(cfg.requiredAtStartup, undefined);
     assert.equal(cfg.referenceInputKey, 'modelKey');
@@ -25,5 +25,19 @@ describe('outfit_change: cấu hình pipeline RunningHub', () => {
 
   it('giá 100 credit mỗi lượt', () => {
     assert.equal(PRICING_CONFIG.pipelines.outfitChangeCredits, 100);
+  });
+});
+
+describe('person_replace: cấu hình pipeline RunningHub', () => {
+  const cfg = PIPELINE_CONFIGS.person_replace;
+
+  it('ánh xạ node ảnh gốc (22), nhân vật mới (35) và độ phân giải tối đa 1280 (49)', () => {
+    assert.deepEqual(cfg.inputs, [
+      { inputKey: 'sceneKey', nodeId: '22', fieldName: 'image' },
+      { inputKey: 'personKey', nodeId: '35', fieldName: 'image' },
+    ]);
+    assert.deepEqual(cfg.fixedNodes, [{ nodeId: '49', fieldName: 'value', fieldValue: '1280' }]);
+    assert.equal(cfg.workflowEnvVar, 'RUNNINGHUB_WORKFLOW_PERSON_REPLACE');
+    assert.equal(PRICING_CONFIG.pipelines.personReplaceCredits, 100);
   });
 });

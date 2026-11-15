@@ -48,6 +48,8 @@ import {
   FaceSwapCreateResponseSchema,
   OutfitChangeCreateRequestSchema,
   OutfitChangeCreateResponseSchema,
+  PersonReplaceCreateRequestSchema,
+  PersonReplaceCreateResponseSchema,
   INTENSITY_DEFAULT,
   INTENSITY_LABEL_ZONES,
   INTENSITY_MAX,
@@ -125,6 +127,8 @@ import {
   type FaceSwapCreateResponse,
   type OutfitChangeCreateRequest,
   type OutfitChangeCreateResponse,
+  type PersonReplaceCreateRequest,
+  type PersonReplaceCreateResponse,
   type Intensity,
   type MeResponse,
   type MotionCreateRequest,
@@ -211,6 +215,8 @@ export {
   type FaceSwapCreateResponse,
   type OutfitChangeCreateRequest,
   type OutfitChangeCreateResponse,
+  type PersonReplaceCreateRequest,
+  type PersonReplaceCreateResponse,
   type Intensity,
   type ReasonCode,
   type Task,
@@ -718,6 +724,23 @@ export function createMotionApiClient(options: MotionApiClientOptions = {}) {
           signal: options?.signal,
         },
         (payload) => OutfitChangeCreateResponseSchema.parse(payload),
+      );
+    },
+
+    async createPersonReplaceTask(
+      rawRequest: PersonReplaceCreateRequest,
+      options?: { signal?: AbortSignal },
+    ): Promise<PersonReplaceCreateResponse> {
+      const data = PersonReplaceCreateRequestSchema.parse(rawRequest);
+      return requestLive(
+        '/tasks/person-replace',
+        {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(data),
+          signal: options?.signal,
+        },
+        (payload) => PersonReplaceCreateResponseSchema.parse(payload),
       );
     },
 

@@ -44,6 +44,7 @@ describe('Giá máy RunningHub và ước tính chi phí', () => {
         'RUNNINGHUB_INSTANCE_FACE_SWAP',
         'RUNNINGHUB_INSTANCE_MOTION_CONTROL',
         'RUNNINGHUB_INSTANCE_OUTFIT_CHANGE',
+        'RUNNINGHUB_INSTANCE_PERSON_REPLACE',
       ],
     );
     process.env.RUNNINGHUB_INSTANCE_MOTION_CONTROL = ' Plus ';

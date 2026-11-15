@@ -65,6 +65,7 @@ export const DEFAULT_PRICING_CONFIG: PricingConfigResponse = {
   pipelines: {
     faceSwapCredits: 100,
   outfitChangeCredits: 100,
+    personReplaceCredits: 100,
     bodyRetouchCredits: 100,
     motionControlCreditsPerSecond: 50,
     motionControlMinSeconds: 3,

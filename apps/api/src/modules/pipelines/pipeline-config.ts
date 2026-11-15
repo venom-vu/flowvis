@@ -74,6 +74,20 @@ export const PIPELINE_CONFIGS: Readonly<Record<string, PipelineConfig>> = {
     fixedNodes: [{ nodeId: '223', fieldName: 'value', fieldValue: '让图一的人物穿上图二的衣服' }],
     referenceInputKey: 'modelKey',
   },
+  person_replace: {
+    pipeline: 'person_replace',
+    workflowEnvVar: 'RUNNINGHUB_WORKFLOW_PERSON_REPLACE',
+    instanceEnvVar: 'RUNNINGHUB_INSTANCE_PERSON_REPLACE',
+    runMode: 'ai-app',
+    // Không requiredAtStartup: môi trường chưa cấu hình vẫn khởi động; adapter unconfigured ném RH_ERROR.
+    // AI App Đổi người trong ảnh (1977229030422388737): 22 = ảnh gốc, 35 = nhân vật mới thay vào ảnh gốc, 49 = độ phân giải tối đa.
+    // Không đặt referenceInputKey: workflow giới hạn cạnh dài 1280 nên kích thước kết quả có thể khác ảnh gốc.
+    inputs: [
+      { inputKey: 'sceneKey', nodeId: '22', fieldName: 'image' },
+      { inputKey: 'personKey', nodeId: '35', fieldName: 'image' },
+    ],
+    fixedNodes: [{ nodeId: '49', fieldName: 'value', fieldValue: '1280' }],
+  },
   body_retouch: {
     pipeline: 'body_retouch',
     workflowEnvVar: 'RUNNINGHUB_WORKFLOW_BODY_RESHAPE',

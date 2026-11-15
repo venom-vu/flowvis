@@ -18,7 +18,7 @@ export const FEATURE_CATEGORIES: readonly FeatureCategoryOption[] = [
   { id: "video", labelVi: "Chuyển động video AI", icon: "lucide:video" },
 ] as const;
 
-export type FeaturePipelineId = "face-swap" | "outfit-change" | "body-retouch" | "motion-control";
+export type FeaturePipelineId = "face-swap" | "outfit-change" | "person-replace" | "body-retouch" | "motion-control";
 
 export interface AiFeatureTool {
   id: FeaturePipelineId;
@@ -95,7 +95,7 @@ export function buildAiFeatureCatalog(
 ): AiFeatureTool[] {
   const activeTierConfig = resolveTierConfig(pricing, currentTier);
   const maxVideoSeconds = activeTierConfig.maxVideoSeconds;
-  const { faceSwapCredits, outfitChangeCredits, bodyRetouchCredits, motionControlCreditsPerSecond } =
+  const { faceSwapCredits, outfitChangeCredits, personReplaceCredits, bodyRetouchCredits, motionControlCreditsPerSecond } =
     pricing.pipelines;
 
   return [
@@ -142,6 +142,29 @@ export function buildAiFeatureCatalog(
       afterLabelVi: "Người mẫu đã đổi trang phục",
       accentGradient: "from-cyan-500/25 via-slate-900 to-violet-600/25",
       inputRequirementVi: "1 ảnh người mẫu rõ dáng + 1 ảnh trang phục cần mặc",
+      outputFormatVi:
+        "Ảnh PNG/JPEG chất lượng cao (kèm nhãn EXIF AI Generator)",
+    },
+    {
+      id: "person-replace",
+      slug: "person-replace",
+      titleVi: "Đổi Người Trong Ảnh AI",
+      subtitleVi: "Thay nhân vật trong ảnh bằng người khác, giữ nguyên bối cảnh",
+      descriptionVi:
+        "Tải ảnh gốc và ảnh nhân vật mới, AI thay người trong ảnh gốc bằng nhân vật mới, giữ nguyên bối cảnh và bố cục.",
+      category: "image",
+      categoryLabelVi: "Xử lý ảnh AI",
+      badgeVi: "Mới",
+      icon: "lucide:user-round-cog",
+      billingMode: "per_run",
+      unitCredits: personReplaceCredits,
+      priceBadgeVi: `${formatNumberVi(personReplaceCredits)} credit / lượt`,
+      tierCapSeconds: null,
+      tierCapLabelVi: null,
+      beforeLabelVi: "Ảnh gốc",
+      afterLabelVi: "Ảnh đã đổi người",
+      accentGradient: "from-violet-600/25 via-slate-900 to-cyan-500/25",
+      inputRequirementVi: "1 ảnh gốc + 1 ảnh nhân vật mới rõ nét",
       outputFormatVi:
         "Ảnh PNG/JPEG chất lượng cao (kèm nhãn EXIF AI Generator)",
     },
