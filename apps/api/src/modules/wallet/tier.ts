@@ -15,14 +15,16 @@ export const PRICING_CONFIG: PricingConfigResponse = {
   freeQueueTimeoutMinutes: 15,
   pipelines: {
     faceSwapCredits: 100,
+    outfitChangeCredits: 100,
     bodyRetouchCredits: 100,
     motionControlCreditsPerSecond: 50,
+    motionControlMinSeconds: 3,
   },
   tiers: [
-    { tier: 'FREE', packId: null, priceVnd: 0, credits: 500, maxVideoSeconds: 5, priority: 10 },
-    { tier: 'Starter', packId: 'starter', priceVnd: 49_000, credits: 5_000, maxVideoSeconds: 10, priority: 3 },
-    { tier: 'Pro', packId: 'pro', priceVnd: 99_000, credits: 12_000, maxVideoSeconds: 15, priority: 2 },
-    { tier: 'Creator', packId: 'creator', priceVnd: 199_000, credits: 30_000, maxVideoSeconds: 20, priority: 1 },
+    { tier: 'FREE', packId: null, priceVnd: 0, credits: 500, maxVideoSeconds: 5, maxActiveTasks: 1, priority: 10 },
+    { tier: 'Starter', packId: 'starter', priceVnd: 49_000, credits: 5_000, maxVideoSeconds: 10, maxActiveTasks: 2, priority: 3 },
+    { tier: 'Pro', packId: 'pro', priceVnd: 99_000, credits: 12_000, maxVideoSeconds: 15, maxActiveTasks: 3, priority: 2 },
+    { tier: 'Creator', packId: 'creator', priceVnd: 199_000, credits: 30_000, maxVideoSeconds: 20, maxActiveTasks: 5, priority: 1 },
   ],
   topupPacks: [
     { id: 'starter', tier: 'Starter', name: 'Starter', priceVnd: 49_000, credits: 5_000, maxVideoSeconds: 10, priority: 3 },

@@ -32,6 +32,9 @@ const emit = defineEmits<{
 const { client } = useApiClient();
 
 const localTask = ref<Task | null>(props.task);
+const isVideoPipeline = computed<boolean>(
+  () => localTask.value?.pipeline === 'motion_control',
+);
 const isCancelling = ref<boolean>(false);
 const isFetching = ref<boolean>(false);
 const actionErrorVi = ref<string | null>(null);
@@ -229,6 +232,13 @@ onBeforeUnmount(() => {
         được cập nhật tự động. Bạn có thể rời trang, tác vụ vẫn sẽ tiếp tục chạy
         ngầm và lưu trong mục Lịch Sử.
       </p>
+      <p
+        v-if="isVideoPipeline"
+        data-testid="video-duration-note"
+        class="text-xs font-semibold text-cyber-cyan"
+      >
+        Video thường mất vài phút, bạn có thể rời trang và quay lại từ Lịch sử.
+      </p>
 
       <div
         v-if="actionErrorVi"
@@ -302,8 +312,11 @@ onBeforeUnmount(() => {
       </div>
 
       <p class="text-xs leading-relaxed text-cyber-muted sm:text-sm">
-        AI đang phân tích khuôn mặt, căn chỉnh góc xoay và tái tạo biểu cảm chi
-        tiết. Quá trình này thường diễn ra trong khoảng 10–25 giây.
+        {{
+          localTask?.pipeline === 'body_retouch'
+            ? 'AI đang phân tích tỷ lệ cơ thể và tinh chỉnh vóc dáng theo mức độ đã chọn. Quá trình này thường diễn ra trong khoảng 10–25 giây.'
+            : 'AI đang phân tích khuôn mặt, căn chỉnh góc xoay và tái tạo biểu cảm chi tiết. Quá trình này thường diễn ra trong khoảng 10–25 giây.'
+        }}
       </p>
 
       <div
@@ -329,10 +342,10 @@ onBeforeUnmount(() => {
           </span>
           <div>
             <h3 class="font-display text-sm font-bold text-cyber-emerald sm:text-base">
-              Hoán đổi khuôn mặt thành công!
+              {{ pipelineLabelVi }} thành công!
             </h3>
             <p class="text-xs text-cyber-muted">
-              Hình ảnh chất lượng cao đã sẵn sàng
+              {{ isVideoPipeline ? 'Video đã sẵn sàng' : 'Hình ảnh chất lượng cao đã sẵn sàng' }}
             </p>
           </div>
         </div>
@@ -348,7 +361,7 @@ onBeforeUnmount(() => {
 
       <p class="text-xs leading-relaxed text-cyber-muted sm:text-sm">
         Tác vụ đã hoàn tất và kết quả đã được lưu trữ an toàn trên máy chủ đám
-        mây. Bạn có thể xem kết quả trực tiếp hoặc tải ảnh về thiết bị.
+        mây. Bạn có thể xem kết quả trực tiếp hoặc tải về thiết bị.
       </p>
 
       <div class="flex flex-wrap items-center justify-end gap-2.5 pt-1">
@@ -359,7 +372,7 @@ onBeforeUnmount(() => {
           @click="handleRetry"
         >
           <Icon name="lucide:plus" class="h-4 w-4 text-cyber-cyan" />
-          <span>Tạo ảnh mới</span>
+          <span>{{ isVideoPipeline ? 'Tạo video mới' : 'Tạo ảnh mới' }}</span>
         </button>
 
         <NuxtLink

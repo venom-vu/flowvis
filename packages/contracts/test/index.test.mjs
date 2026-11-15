@@ -4,6 +4,20 @@ import path from 'node:path';
 import { describe, it } from 'node:test';
 import { fileURLToPath } from 'node:url';
 import {
+  motionPrice,
+  MotionCreateRequestSchema,
+  MotionCreateResponseSchema,
+  MOCK_MOTION_CREATE_REQUEST,
+  MOCK_MOTION_TASKS_BY_STATUS,
+  MOCK_MOTION_RESULT_RESPONSE,
+  MOCK_UPLOAD_VIDEO_CONFIRM_RESPONSE,
+  MOCK_SHARE_INFO_VIDEO_RESPONSE,
+  MOCK_SHARE_INFO_IMAGE_RESPONSE,
+  ShareInfoResponseSchema,
+  UploadConfirmVideoResponseSchema,
+  VALIDATION_REASONS,
+  ValidationDetailsSchema,
+  getValidationReasonMessageVi,
   API_ERROR_MESSAGES_VI,
   MAX_OPEN_TOPUPS,
   TopupConfirmTransferRequestSchema,
@@ -19,6 +33,7 @@ import {
   AuthRefreshResponseSchema,
   CONTRACTS_PACKAGE_VERSION,
   FaceSwapCreateRequestSchema,
+  OutfitChangeCreateRequestSchema,
   ConfirmedUploadKeySchema,
   RawUploadKeySchema,
   ImageMetaSchema,
@@ -90,6 +105,50 @@ import {
   TopupSchema,
   TopupStatusSchema,
   getTopupStatusLabelVi,
+  BodyRetouchCreateRequestSchema,
+  BodyRetouchCreateResponseSchema,
+  IntensitySchema,
+  INTENSITY_MIN,
+  INTENSITY_MAX,
+  INTENSITY_DEFAULT,
+  getIntensityLabelVi,
+  TASK_PIPELINES,
+  MOCK_BODY_RETOUCH_CREATE_REQUEST,
+  MOCK_BODY_RETOUCH_TASKS_BY_STATUS,
+  MOCK_BODY_RETOUCH_RESULT_RESPONSE,
+  SystemStatusResponseSchema,
+  OpsStatusResponseSchema,
+  OpsResumeRequestSchema,
+  AdminStatsQuerySchema,
+  AdminStatsResponseSchema,
+  AdminAuditResponseSchema,
+  AdminAdjustRequestSchema,
+  AdminUserLockRequestSchema,
+  AdminTaskLookupQuerySchema,
+  AdminTaskTakedownRequestSchema,
+  AdminUserSearchResponseSchema,
+  AdminUserLedgerResponseSchema,
+  AdminTaskLookupResponseSchema,
+  CONTENT_REMOVED_MESSAGE_VI,
+  AdminUserLockResponseSchema,
+  AdminAdjustResponseSchema,
+  AdminTaskTakedownResponseSchema,
+  AdminUserSearchQuerySchema,
+  AdminUserLedgerQuerySchema,
+  AdminAuditQuerySchema,
+  MOCK_ADMIN_USER,
+  MOCK_ADMIN_USER_LOCKED,
+  MOCK_SYSTEM_STATUS_NORMAL,
+  MOCK_SYSTEM_STATUS_PAUSED,
+  MOCK_OPS_STATUS_NORMAL,
+  MOCK_OPS_STATUS_PAUSED,
+  MOCK_OPS_STATUS_BUDGET_EXHAUSTED,
+  MOCK_ADMIN_STATS_RESPONSE,
+  MOCK_ADMIN_USER_SEARCH_RESPONSE,
+  MOCK_ADMIN_USER_LEDGER_RESPONSE,
+  MOCK_ADMIN_ADJUST_REQUEST,
+  MOCK_ADMIN_TASK_LOOKUP_RESPONSE,
+  MOCK_ADMIN_AUDIT_RESPONSE,
 } from '../dist/index.js';
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
@@ -758,6 +817,17 @@ describe('@flowvis/contracts', () => {
       );
     });
 
+    it('resultKey nhận đuôi .mp4 của video và từ chối đuôi khác', () => {
+      const u = '81000000-0000-4000-8000-000000000003';
+      const key = (suffix) => `out/${u}/${u}${suffix}`;
+      const ok = (suffix) => TaskSchema.safeParse({ ...MOCK_TASKS_BY_STATUS.succeeded, resultKey: key(suffix) }).success;
+      assert.equal(ok(''), true);
+      assert.equal(ok('.mp4'), true);
+      assert.equal(ok('.exe'), false);
+      assert.equal(ok('.mp4x'), false);
+      assert.equal(ok('.mp4.mp4'), false);
+    });
+
     it('enforces Task invariants', () => {
       const bad = [
         { ...MOCK_TASKS_BY_STATUS.failed, reasonCode: undefined },
@@ -849,6 +919,78 @@ describe('@flowvis/contracts', () => {
       assert.equal(getReasonCodeMessageVi('NO_FACE', 'body_retouch'), getReasonCodeMessageVi('NO_FACE'));
       assert.equal(getReasonCodeMessageVi('FOO'), 'Tác vụ không thành công. Vui lòng thử lại sau.');
       for (const c of REASON_CODES) assert.ok(getReasonCodeMessageVi(c).length > 0);
+    });
+  });
+
+  describe('Epic 4 contracts', () => {
+    const KEY = 'in/10000000-0000-4000-8000-000000000001/60000000-0000-4000-8000-000000000001';
+
+    it('exports pipelines and intensity constants', () => {
+      assert.deepEqual([...TASK_PIPELINES], ['face_swap', 'body_retouch', 'motion_control', 'outfit_change']);
+      assert.deepEqual([INTENSITY_MIN, INTENSITY_MAX, INTENSITY_DEFAULT], [1, 10, 5]);
+    });
+
+    it('validates outfit change request (2 keys, strict)', () => {
+      const KEY2 = 'in/10000000-0000-4000-8000-000000000001/60000000-0000-4000-8000-000000000002';
+      assert.ok(OutfitChangeCreateRequestSchema.safeParse({ modelKey: KEY, clothingKey: KEY2 }).success);
+      assert.equal(OutfitChangeCreateRequestSchema.safeParse({ modelKey: KEY }).success, false);
+      assert.equal(
+        OutfitChangeCreateRequestSchema.safeParse({ modelKey: KEY, clothingKey: KEY2, credit: 1 }).success,
+        false,
+      );
+    });
+
+    it('parses valid request and defaults intensity to 5', () => {
+      assert.equal(BodyRetouchCreateRequestSchema.parse({ imageKey: KEY, intensity: 8 }).intensity, 8);
+      assert.equal(BodyRetouchCreateRequestSchema.parse({ imageKey: KEY }).intensity, 5);
+      for (const n of [1, 10]) assert.ok(IntensitySchema.safeParse(n).success);
+    });
+
+    it('rejects invalid intensity with Vietnamese error on intensity', () => {
+      for (const v of [0, 11, 5.5, '5', null]) {
+        const r = BodyRetouchCreateRequestSchema.safeParse({ imageKey: KEY, intensity: v });
+        assert.equal(r.success, false);
+        assert.deepEqual(r.error.issues[0].path, ['intensity']);
+        assert.match(r.error.issues[0].message, /^Mức điều chỉnh (phải là số nguyên từ 1 đến 10|tối thiểu là 1|tối đa là 10)\.$/);
+      }
+    });
+
+    it('rejects bad imageKey and unknown fields', () => {
+      for (const body of [
+        { imageKey: KEY.replace('in/', 'in-raw/'), intensity: 5 },
+        { intensity: 5 },
+      ]) {
+        const r = BodyRetouchCreateRequestSchema.safeParse(body);
+        assert.equal(r.success, false);
+        assert.deepEqual(r.error.issues[0].path, ['imageKey']);
+      }
+      assert.equal(BodyRetouchCreateRequestSchema.safeParse({ imageKey: KEY, consent: true }).success, false);
+      assert.equal(BodyRetouchCreateRequestSchema.safeParse({ imageKey: KEY, credits: 1 }).success, false);
+    });
+
+    it('labels intensity zones', () => {
+      const exp = { 1: 'Uốn nhẹ dáng', 3: 'Uốn nhẹ dáng', 4: 'Tự nhiên', 7: 'Tự nhiên', 8: 'Đường cong tối đa', 10: 'Đường cong tối đa' };
+      for (const [n, l] of Object.entries(exp)) assert.equal(getIntensityLabelVi(Number(n)), l);
+      for (const n of [0, 11, 5.5, NaN]) assert.equal(getIntensityLabelVi(n), null);
+    });
+
+    it('has per-pipeline NO_POSE messages', () => {
+      const body = getReasonCodeMessageVi('NO_POSE', 'body_retouch');
+      assert.equal(body, 'Không tìm thấy người trong ảnh. Vui lòng chọn ảnh có người rõ thân.');
+      assert.notEqual(body, getReasonCodeMessageVi('NO_POSE', 'motion_control'));
+      assert.notEqual(body, getReasonCodeMessageVi('NO_POSE'));
+    });
+
+    it('mocks match schemas', () => {
+      assert.ok(BodyRetouchCreateRequestSchema.safeParse(MOCK_BODY_RETOUCH_CREATE_REQUEST).success);
+      assert.deepEqual(Object.keys(MOCK_BODY_RETOUCH_TASKS_BY_STATUS).sort(), [...TASK_STATUSES].sort());
+      for (const t of Object.values(MOCK_BODY_RETOUCH_TASKS_BY_STATUS)) {
+        assert.equal(t.pipeline, 'body_retouch');
+        assert.ok(BodyRetouchCreateResponseSchema.safeParse(t).success);
+      }
+      assert.equal(MOCK_BODY_RETOUCH_TASKS_BY_STATUS.failed.reasonCode, 'NO_POSE');
+      const r = TaskResultResponseSchema.parse(MOCK_BODY_RETOUCH_RESULT_RESPONSE);
+      assert.ok(r.sourceUrl);
     });
   });
 
@@ -967,6 +1109,198 @@ describe('@flowvis/contracts', () => {
       for (const c of ['TOPUP_LIMIT', 'BANK_REF_DUPLICATE', 'TOPUP_STATE_INVALID', 'TOPUP_QR_EXPIRED']) {
         assert.ok(API_ERROR_MESSAGES_VI[c].length > 0);
       }
+    });
+  });
+
+  describe('Epic 5 contracts', () => {
+    const K = MOCK_MOTION_CREATE_REQUEST;
+
+    it('prices motion at 50 per whole second', () => {
+      assert.equal(motionPrice(1), 50);
+      assert.equal(motionPrice(20), 1000);
+      for (const bad of [0, -1, 1.5, NaN]) assert.throws(() => motionPrice(bad));
+      assert.ok(TASK_PIPELINES.includes('motion_control'));
+    });
+
+    it('validates motion create request', () => {
+      assert.equal(MotionCreateRequestSchema.safeParse(K).success, true);
+      for (const v of [1.5, -1, '2']) {
+        const r = MotionCreateRequestSchema.safeParse({ ...K, trimStart: v });
+        assert.equal(r.success, false);
+        assert.ok(r.error.issues.some((i) => i.path[0] === 'trimStart'));
+      }
+      for (const f of ['credits', 'price', 'consent']) {
+        assert.equal(MotionCreateRequestSchema.safeParse({ ...K, [f]: 1 }).success, false);
+      }
+    });
+
+    it('validates video upload declaration and confirm', () => {
+      const mb = 1024 * 1024;
+      assert.equal(UploadCreateRequestSchema.safeParse({ mimeType: 'video/mp4', sizeBytes: 100 * mb }).success, true);
+      assert.equal(UploadCreateRequestSchema.safeParse({ mimeType: 'video/quicktime', sizeBytes: mb }).success, true);
+      assert.equal(UploadCreateRequestSchema.safeParse({ mimeType: 'video/webm', sizeBytes: mb }).success, false);
+      assert.equal(UploadCreateRequestSchema.safeParse({ mimeType: 'video/mp4', sizeBytes: 100 * mb + 1 }).success, false);
+      assert.equal(UploadCreateRequestSchema.safeParse({ mimeType: 'image/png', sizeBytes: mb }).success, true);
+      assert.equal(UploadConfirmVideoResponseSchema.safeParse(MOCK_UPLOAD_VIDEO_CONFIRM_RESPONSE).success, true);
+    });
+
+    it('review fixes', () => {
+      const gif = UploadCreateRequestSchema.safeParse({ mimeType: 'image/gif', sizeBytes: 1000 });
+      assert.equal(gif.error.issues[0].message, 'Chỉ hỗ trợ ảnh JPG, PNG hoặc WebP.');
+      const webm = UploadCreateRequestSchema.safeParse({ mimeType: 'video/webm', sizeBytes: 1000 });
+      assert.equal(webm.error.issues[0].message, 'Chỉ hỗ trợ video MP4 hoặc MOV.');
+      assert.equal(UploadCreateRequestSchema.safeParse(null).success, false);
+      assert.equal(getValidationReasonMessageVi('TRIM_EXCEEDS_CAP'), 'Dữ liệu không hợp lệ.');
+      assert.equal(
+        MotionCreateResponseSchema.safeParse({ ...MOCK_MOTION_TASKS_BY_STATUS.running, pipeline: 'face_swap' }).success,
+        false,
+      );
+      assert.equal(
+        TaskResultResponseSchema.safeParse({ ...MOCK_MOTION_RESULT_RESPONSE, sourceUrl: 'https://x.test/a.mp4' }).success,
+        false,
+      );
+    });
+
+    it('validates video results and share info', () => {
+      assert.equal(TaskResultResponseSchema.safeParse(MOCK_MOTION_RESULT_RESPONSE).success, true);
+      const { posterUrl, durationSeconds: _d, ...noExtra } = MOCK_MOTION_RESULT_RESPONSE;
+      const r1 = TaskResultResponseSchema.safeParse(noExtra);
+      assert.equal(r1.success, false);
+      assert.ok(r1.error.issues.some((i) => i.path[0] === 'posterUrl'));
+      assert.ok(r1.error.issues.some((i) => i.path[0] === 'durationSeconds'));
+      const r2 = TaskResultResponseSchema.safeParse({ ...MOCK_BODY_RETOUCH_RESULT_RESPONSE, posterUrl });
+      assert.equal(r2.success, false);
+      assert.equal(TaskResultResponseSchema.safeParse(MOCK_BODY_RETOUCH_RESULT_RESPONSE).success, true);
+      assert.equal(ShareInfoResponseSchema.safeParse(MOCK_SHARE_INFO_VIDEO_RESPONSE).success, true);
+      assert.equal(ShareInfoResponseSchema.safeParse(MOCK_SHARE_INFO_IMAGE_RESPONSE).success, true);
+      assert.equal(ShareInfoResponseSchema.safeParse({ mediaType: 'video' }).success, false);
+    });
+
+    it('validates reasons and messages', () => {
+      assert.equal(VALIDATION_REASONS.length, 10);
+      for (const reason of VALIDATION_REASONS) {
+        const d = reason === 'TRIM_EXCEEDS_CAP' ? { reason, cap: 10 } : { reason };
+        assert.equal(ValidationDetailsSchema.safeParse(d).success, true, reason);
+        assert.ok(getValidationReasonMessageVi(reason, 10).length > 0);
+      }
+      assert.equal(ValidationDetailsSchema.safeParse({ reason: 'NOPE' }).success, false);
+      assert.equal(ValidationDetailsSchema.safeParse({ reason: 'TRIM_EXCEEDS_CAP' }).success, false);
+      assert.equal(getValidationReasonMessageVi('TRIM_EXCEEDS_CAP', 10), 'Gói của bạn cho phép tối đa 10 giây');
+      assert.equal(
+        getReasonCodeMessageVi('NO_POSE', 'motion_control'),
+        'Không nhận diện được chuyển động cơ thể trong video mẫu',
+      );
+      assert.equal(
+        getReasonCodeMessageVi('NO_FACE', 'motion_control'),
+        'Không nhận diện được nhân vật trong ảnh. Vui lòng chọn ảnh toàn thân rõ người.',
+      );
+      assert.notEqual(getReasonCodeMessageVi('NO_FACE', 'motion_control'), getReasonCodeMessageVi('NO_FACE', 'face_swap'));
+    });
+
+    it('mocks parse against schemas', () => {
+      for (const t of Object.values(MOCK_MOTION_TASKS_BY_STATUS)) {
+        assert.equal(MotionCreateResponseSchema.safeParse(t).success, true, t.status);
+      }
+      assert.equal(Object.keys(MOCK_MOTION_TASKS_BY_STATUS).length, 6);
+      assert.equal(PricingConfigResponseSchema.safeParse(MOCK_PRICING_CONFIG_RESPONSE).success, true);
+      assert.equal(MOCK_PRICING_CONFIG_RESPONSE.pipelines.motionControlMinSeconds, 3);
+    });
+  });
+
+  describe('Epic 6 contracts', () => {
+    const uuid = '90000000-0000-4000-8000-0000000000c1';
+    it('system status is a strict boolean only', () => {
+      assert.equal(SystemStatusResponseSchema.safeParse({ intakePaused: true }).success, true);
+      assert.equal(SystemStatusResponseSchema.safeParse({ intakePaused: true, reason: 'x' }).success, false);
+    });
+    it('adjust request', () => {
+      const ok = { amount: 300, reason: 'Bù', requestId: uuid };
+      assert.equal(AdminAdjustRequestSchema.safeParse(ok).success, true);
+      assert.equal(AdminAdjustRequestSchema.safeParse({ ...ok, amount: -50 }).success, true);
+      for (const bad of [
+        { ...ok, amount: 0 },
+        { ...ok, amount: 1.5 },
+        { amount: 300, reason: 'Bù' },
+        { ...ok, reason: '' },
+        { ...ok, reason: '   ' },
+      ]) {
+        assert.equal(AdminAdjustRequestSchema.safeParse(bad).success, false);
+      }
+      assert.equal(AdminUserLockRequestSchema.safeParse({ reason: '  ' }).success, false);
+      assert.equal(AdminTaskTakedownRequestSchema.safeParse({ reason: ' ok ' }).data.reason, 'ok');
+    });
+    it('lookup requires exactly one key', () => {
+      const id = '70000000-0000-4000-8000-000000000003';
+      const url = 'https://example.com/s/abc';
+      assert.equal(AdminTaskLookupQuerySchema.safeParse({ taskId: id }).success, true);
+      assert.equal(AdminTaskLookupQuerySchema.safeParse({ shareUrl: url }).success, true);
+      assert.equal(AdminTaskLookupQuerySchema.safeParse({ taskId: id, shareUrl: url }).success, false);
+      assert.equal(AdminTaskLookupQuerySchema.safeParse({}).success, false);
+    });
+    it('stats query', () => {
+      const base = { from: '2026-11-01T00:00:00.000Z', to: '2026-11-02T00:00:00.000Z' };
+      assert.equal(AdminStatsQuerySchema.parse(base).scope, 'real');
+      assert.equal(AdminStatsQuerySchema.safeParse({ ...base, scope: 'benchmark' }).success, true);
+      assert.equal(AdminStatsQuerySchema.safeParse({ ...base, scope: 'all' }).success, false);
+      assert.equal(AdminStatsQuerySchema.safeParse({ from: base.to, to: base.from }).success, false);
+      assert.equal(AdminStatsQuerySchema.safeParse({ ...base, imagePrice: 0 }).success, false);
+      assert.equal(AdminStatsQuerySchema.safeParse({ ...base, motionPricePerSecond: '40' }).success, true);
+    });
+    it('resume body is empty strict', () => {
+      assert.equal(OpsResumeRequestSchema.safeParse({}).success, true);
+      assert.equal(OpsResumeRequestSchema.safeParse({ a: 1 }).success, false);
+    });
+    it('new validation reasons and task filesRemovedAt', () => {
+      for (const reason of ['REASON_REQUIRED', 'TASK_NOT_FINISHED', 'ADJUST_OVER_LIMIT', 'ADJUST_INSUFFICIENT_BALANCE']) {
+        assert.equal(ValidationDetailsSchema.safeParse({ reason }).success, true, reason);
+        assert.equal(ValidationDetailsSchema.safeParse({ reason, cap: 5 }).success, false, reason);
+        assert.notEqual(getValidationReasonMessageVi(reason), 'Dữ liệu không hợp lệ.');
+      }
+      assert.equal(ValidationDetailsSchema.safeParse({ reason: 'LẠ' }).success, false);
+      assert.equal(CONTENT_REMOVED_MESSAGE_VI, 'Nội dung đã bị gỡ do vi phạm hoặc theo yêu cầu');
+      const t = MOCK_TASKS_BY_STATUS.succeeded;
+      assert.equal(TaskSchema.safeParse(t).success, true);
+      assert.equal(TaskSchema.safeParse({ ...t, filesRemovedAt: '2026-11-11T00:00:00.000Z' }).success, true);
+      assert.equal(TaskSchema.safeParse({ ...t, filesRemovedAt: null }).success, true);
+    });
+    it('paged responses reject hasMore mismatch', () => {
+      assert.equal(AdminAuditResponseSchema.safeParse({ ...MOCK_ADMIN_AUDIT_RESPONSE, hasMore: true }).success, false);
+      assert.equal(AdminUserLedgerResponseSchema.safeParse({ ...MOCK_ADMIN_USER_LEDGER_RESPONSE, nextCursor: 'x' }).success, false);
+    });
+    it('response and query schemas are pinned', () => {
+      assert.equal(AdminUserLockResponseSchema.safeParse(MOCK_ADMIN_USER_LOCKED).success, true);
+      const entry = MOCK_ADMIN_USER_LEDGER_RESPONSE.items[0];
+      assert.equal(AdminAdjustResponseSchema.safeParse({ user: MOCK_ADMIN_USER, entry }).success, true);
+      assert.equal(AdminAdjustResponseSchema.safeParse({ user: MOCK_ADMIN_USER }).success, false);
+      const ts = '2026-11-11T00:00:00.000Z';
+      assert.equal(AdminTaskTakedownResponseSchema.safeParse({ taskId: MOCK_ADMIN_TASK_LOOKUP_RESPONSE.id, filesRemovedAt: ts }).success, true);
+      assert.equal(AdminTaskTakedownResponseSchema.safeParse({ taskId: MOCK_ADMIN_TASK_LOOKUP_RESPONSE.id, filesRemovedAt: null }).success, false);
+      assert.equal(AdminUserSearchQuerySchema.safeParse({ email: '   ' }).success, false);
+      assert.equal(AdminUserSearchQuerySchema.safeParse({ email: 'a@b.co' }).success, true);
+      for (const schema of [AdminUserLedgerQuerySchema, AdminAuditQuerySchema]) {
+        assert.equal(schema.parse({}).pageSize, 20);
+        assert.equal(schema.safeParse({ pageSize: 0 }).success, false);
+        assert.equal(schema.safeParse({ pageSize: 101 }).success, false);
+      }
+      const adj = { amount: 300, reason: 'Bù', requestId: uuid };
+      assert.equal(AdminAdjustRequestSchema.safeParse({ ...adj, amount: 2 ** 60 }).success, false);
+    });
+    it('ApiErrorCode is unchanged by Epic 6', () => {
+      assert.equal(Object.values(ApiErrorCode).length, 15);
+    });
+    it('mocks parse against schemas', () => {
+      for (const m of [MOCK_SYSTEM_STATUS_NORMAL, MOCK_SYSTEM_STATUS_PAUSED]) {
+        assert.equal(SystemStatusResponseSchema.safeParse(m).success, true);
+      }
+      for (const m of [MOCK_OPS_STATUS_NORMAL, MOCK_OPS_STATUS_PAUSED, MOCK_OPS_STATUS_BUDGET_EXHAUSTED]) {
+        assert.equal(OpsStatusResponseSchema.safeParse(m).success, true);
+      }
+      assert.equal(AdminStatsResponseSchema.safeParse(MOCK_ADMIN_STATS_RESPONSE).success, true);
+      assert.equal(AdminUserSearchResponseSchema.safeParse(MOCK_ADMIN_USER_SEARCH_RESPONSE).success, true);
+      assert.equal(AdminUserLedgerResponseSchema.safeParse(MOCK_ADMIN_USER_LEDGER_RESPONSE).success, true);
+      assert.equal(AdminAdjustRequestSchema.safeParse(MOCK_ADMIN_ADJUST_REQUEST).success, true);
+      assert.equal(AdminTaskLookupResponseSchema.safeParse(MOCK_ADMIN_TASK_LOOKUP_RESPONSE).success, true);
+      assert.equal(AdminAuditResponseSchema.safeParse(MOCK_ADMIN_AUDIT_RESPONSE).success, true);
     });
   });
 });

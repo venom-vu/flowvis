@@ -72,6 +72,9 @@ function noisy(w, h, fmt) {
 }
 const asResponse = (buf, headers = {}) => new Response(buf, { status: 200, headers });
 
+process.env.RUNNINGHUB_WORKFLOW_BODY_RESHAPE ??= 'wf-body';
+process.env.RUNNINGHUB_WORKFLOW_MOTION ??= 'wf-motion';
+
 describe('Story 2.6: [BE] Nhập kết quả về R2 và chốt tiền', () => {
   let app, baseUrl, pool, prisma, jwt, svc, worker, ingestor;
   const runId = crypto.randomBytes(4).toString('hex');
@@ -335,34 +338,30 @@ describe('Story 2.6: [BE] Nhập kết quả về R2 và chốt tiền', () => {
       assert.equal(outKeys().length, 1);
     });
 
-    it('quá deadline_at giữa các lần thử: dừng thử, OUTPUT_UPLOAD_ERROR, RELEASED', async () => {
+    it('quá deadline_at giữa các lần thử: vẫn thử tiếp đủ số lần rồi OUTPUT_UPLOAD_ERROR, RELEASED', async () => {
       reset(); await clearGate();
-      process.env.RH_OUTPUT_RETRY_MS = '200';
-      try {
-        fetchImpl = async () => { throw new Error('mạng lỗi'); };
-        const u = await newUser();
-        const t = await runningTask(u);
-        await pool.query(`UPDATE tasks SET deadline_at = now() + interval '100 milliseconds' WHERE id=$1`, [t.id]);
-        await ingest(t);
-        const r = await row(t.id);
-        assert.equal(fetchCalls, 1, 'không bắt đầu lần mới sau deadline');
-        assert.equal(r.status, 'failed');
-        assert.equal(r.reason_code, 'OUTPUT_UPLOAD_ERROR');
-        assert.equal(r.gpu_coins, 4);
-        assert.equal((await ledger(t.id, 'RELEASED')).length, 1);
-      } finally { process.env.RH_OUTPUT_RETRY_MS = '5'; }
+      process.env.RH_OUTPUT_RETRY_MS = '5';
+      fetchImpl = async () => { throw new Error('mạng lỗi'); };
+      const u = await newUser();
+      const t = await runningTask(u);
+      await pool.query(`UPDATE tasks SET deadline_at = now() + interval '1 millisecond' WHERE id=$1`, [t.id]);
+      await ingest(t);
+      const r = await row(t.id);
+      assert.equal(fetchCalls, 3, 'deadline_at không còn cắt các lần thử');
+      assert.equal(r.status, 'failed');
+      assert.equal(r.reason_code, 'OUTPUT_UPLOAD_ERROR');
+      assert.equal(r.gpu_coins, 4);
+      assert.equal((await ledger(t.id, 'RELEASED')).length, 1);
     });
 
-    it('deadline_at đã qua từ đầu: không tải, OUTPUT_UPLOAD_ERROR', async () => {
+    it('deadline_at đã qua từ đầu: vẫn tải, không bỏ dở vì hạn', async () => {
       reset(); await clearGate();
       const u = await newUser();
       const t = await runningTask(u);
       await pool.query(`UPDATE tasks SET deadline_at = now() - interval '1 second' WHERE id=$1`, [t.id]);
       await ingest(t);
-      assert.equal(fetchCalls, 0);
-      const r = await row(t.id);
-      assert.equal(r.reason_code, 'OUTPUT_UPLOAD_ERROR');
-      assert.equal((await ledger(t.id, 'RELEASED')).length, 1);
+      assert.equal(fetchCalls, 1);
+      assert.equal((await row(t.id)).status, 'succeeded');
     });
 
     it('chỉ chấp nhận http(s): file:// và URL hỏng không gọi fetch', async () => {
@@ -462,7 +461,17 @@ describe('Story 2.6: [BE] Nhập kết quả về R2 và chốt tiền', () => {
     it('ảnh rỗng', () => expectInvalid('rỗng', Buffer.alloc(0)));
     it('ảnh toàn đen', async () => expectInvalid('đen', await solid(40, 60, 'png', { r: 0, g: 0, b: 0 })));
     it('ảnh gần đen (max kênh = 8) vẫn bị loại', async () => expectInvalid('gần đen', await solid(40, 60, 'png', { r: 8, g: 8, b: 8 })));
-    it('ảnh khác cỡ ảnh đích', async () => expectInvalid('lệch cỡ', await solid(41, 60, 'png')));
+    it('ảnh khác cỡ ảnh đích: co giãn về cỡ ảnh đích, vẫn succeeded', async () => {
+      reset(); await clearGate();
+      fetchImpl = async () => asResponse(await solid(41, 60, 'png'));
+      const u = await newUser();
+      const t = await createTask(u);
+      await worker.processTask(t.id);
+      const r = await row(t.id);
+      assert.equal(r.status, 'succeeded');
+      const saved = await sharp(store.get(r.result_key).body).metadata();
+      assert.equal(`${saved.width}x${saved.height}`, '40x60');
+    });
     it('ảnh hợp lệ nhưng định dạng không hỗ trợ (GIF): OUTPUT_INVALID', async () => {
       const gif = await sharp({
         create: { width: 40, height: 60, channels: 3, background: { r: 100, g: 100, b: 100 } },
@@ -471,10 +480,18 @@ describe('Story 2.6: [BE] Nhập kết quả về R2 và chốt tiền', () => {
         .toBuffer();
       await expectInvalid('gif', gif);
     });
-    it('ảnh bị xoay EXIF thành khác cỡ', async () => {
+    it('ảnh bị xoay EXIF thành khác cỡ: co giãn về cỡ ảnh đích, vẫn succeeded', async () => {
       // 40x60 điểm ảnh + orientation 6 => hiển thị 60x40, khác ảnh đích 40x60.
+      reset(); await clearGate();
       const body = await sharp(await noisy(40, 60, 'jpeg')).withMetadata({ orientation: 6 }).jpeg().toBuffer();
-      await expectInvalid('xoay', body);
+      fetchImpl = async () => asResponse(body);
+      const u = await newUser();
+      const t = await createTask(u);
+      await worker.processTask(t.id);
+      const r = await row(t.id);
+      assert.equal(r.status, 'succeeded');
+      const saved = await sharp(store.get(r.result_key).body).metadata();
+      assert.equal(`${saved.width}x${saved.height}`, '40x60');
     });
 
     it('ảnh sáng một kênh (max kênh = 9) hợp lệ — ranh giới độ đen', async () => {
@@ -552,7 +569,7 @@ describe('Story 2.6: [BE] Nhập kết quả về R2 và chốt tiền', () => {
       const res = await get(t.id, u.token);
       assert.equal(res.status, 200);
       const body = await res.json();
-      assert.deepEqual(Object.keys(body).sort(), ['resultUrl', 'sourceUrl']);
+      assert.deepEqual(Object.keys(body).sort(), ['inputs', 'params', 'resultUrl', 'sourceUrl']);
       assert.equal(body.resultUrl, `https://r2.example.test/${r.result_key}?X-Amz-Expires=600`);
       assert.equal(body.sourceUrl, `https://r2.example.test/${t.targetKey}?X-Amz-Expires=600`);
       assert.ok(!JSON.stringify(body).includes('rh.example.test'));
@@ -631,6 +648,11 @@ describe('Story 2.6: [BE] Nhập kết quả về R2 và chốt tiền', () => {
   describe('cấu hình', () => {
     it('Face Swap dùng ảnh đích làm ảnh tham chiếu', () => {
       assert.equal(PIPELINE_CONFIGS.face_swap.referenceInputKey, 'targetKey');
+    });
+
+    it('Body Retouch dùng ảnh đầu vào làm ảnh tham chiếu', () => {
+      assert.equal(PIPELINE_CONFIGS.body_retouch.referenceInputKey, 'imageKey');
+      assert.ok(PIPELINE_CONFIGS.body_retouch.inputs.some((i) => i.inputKey === 'imageKey'));
     });
 
     it('configure-bucket có lifecycle out/ 30 ngày', () => {

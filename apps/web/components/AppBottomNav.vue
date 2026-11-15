@@ -48,7 +48,7 @@ function isTabActive(targetPath: string): boolean {
   <nav
     aria-label="Điều hướng di động"
     data-testid="app-bottom-nav"
-    class="fixed inset-x-0 bottom-0 z-40 border-t border-cyber-border bg-cyber-bg/95 pb-[env(safe-area-inset-bottom)] backdrop-blur lg:hidden"
+    class="fixed inset-x-0 bottom-0 z-40 border-t border-cyber-border bg-cyber-bg pb-[env(safe-area-inset-bottom)] lg:hidden"
   >
     <div class="mx-auto grid max-w-md grid-cols-4 px-2 py-1">
       <NuxtLink

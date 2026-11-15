@@ -35,6 +35,7 @@ const TIER_SPECS: Record<
     packId: TopupPackId | null;
     priority: 10 | 3 | 2 | 1;
     maxVideoSeconds: 5 | 10 | 15 | 20;
+    maxActiveTasks: 1 | 2 | 3 | 5;
     priceVnd: number;
     credits: number;
   }
@@ -43,6 +44,7 @@ const TIER_SPECS: Record<
     packId: null,
     priority: 10,
     maxVideoSeconds: 5,
+    maxActiveTasks: 1,
     priceVnd: 0,
     credits: 500,
   },
@@ -50,6 +52,7 @@ const TIER_SPECS: Record<
     packId: 'starter',
     priority: 3,
     maxVideoSeconds: 10,
+    maxActiveTasks: 2,
     priceVnd: 49_000,
     credits: 5_000,
   },
@@ -57,6 +60,7 @@ const TIER_SPECS: Record<
     packId: 'pro',
     priority: 2,
     maxVideoSeconds: 15,
+    maxActiveTasks: 3,
     priceVnd: 99_000,
     credits: 12_000,
   },
@@ -64,6 +68,7 @@ const TIER_SPECS: Record<
     packId: 'creator',
     priority: 1,
     maxVideoSeconds: 20,
+    maxActiveTasks: 5,
     priceVnd: 199_000,
     credits: 30_000,
   },
@@ -382,8 +387,11 @@ export type WalletLedgerResponse = z.infer<typeof WalletLedgerResponseSchema>;
  */
 export const PipelinePricingSchema = z.object({
   faceSwapCredits: z.literal(100),
+  outfitChangeCredits: z.literal(100),
   bodyRetouchCredits: z.literal(100),
   motionControlCreditsPerSecond: z.literal(50),
+  /** Số giây Trim tối thiểu của Motion Control (tùy chọn để BE Epic 2–4 chưa trả vẫn hợp lệ; BE 5.3 phải trả 3). */
+  motionControlMinSeconds: z.literal(3).optional(),
 });
 export type PipelinePricing = z.infer<typeof PipelinePricingSchema>;
 
@@ -399,6 +407,13 @@ export const TierConfigSchema = z
       z.literal(15),
       z.literal(20),
     ]),
+    /** Số Task active (queued + running) tối đa của một user thuộc Tier này. */
+    maxActiveTasks: z.union([
+      z.literal(1),
+      z.literal(2),
+      z.literal(3),
+      z.literal(5),
+    ]),
     priority: z.union([
       z.literal(10),
       z.literal(3),
@@ -408,6 +423,13 @@ export const TierConfigSchema = z
   })
   .superRefine((val, ctx) => {
     const spec = TIER_SPECS[val.tier];
+    if (val.maxActiveTasks !== spec.maxActiveTasks) {
+      ctx.addIssue({
+        code: z.ZodIssueCode.custom,
+        path: ['maxActiveTasks'],
+        message: `Tier ${val.tier} bắt buộc có maxActiveTasks = ${spec.maxActiveTasks}`,
+      });
+    }
     if (val.packId !== spec.packId) {
       ctx.addIssue({
         code: z.ZodIssueCode.custom,

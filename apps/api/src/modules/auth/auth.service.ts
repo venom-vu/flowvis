@@ -4,6 +4,7 @@ import {
   ConflictException,
   Injectable,
   Logger,
+  NotFoundException,
   ServiceUnavailableException,
   UnauthorizedException,
 } from '@nestjs/common';
@@ -15,7 +16,7 @@ import {
   type AuthGoogleCallbackQuery,
   type UserRole,
 } from '@flowvis/contracts';
-import { PrismaService } from '../../infra/prisma.service.js';
+import { PrismaService, type PrismaTransactionClient } from '../../infra/prisma.service.js';
 import { RedisService } from '../../infra/redis.service.js';
 import { GoogleOAuthService, type GoogleUserProfile } from './google-oauth.service.js';
 import {
@@ -73,6 +74,73 @@ export class AuthService {
     private readonly googleOAuthService: GoogleOAuthService,
     private readonly walletService: WalletService,
   ) {}
+
+  /** Id user theo danh sách email (không phân biệt hoa thường). */
+  async findUserIdsByEmails(emails: string[]): Promise<string[]> {
+    const lowered = emails.map((e) => e.trim().toLowerCase()).filter(Boolean);
+    if (lowered.length === 0) return [];
+    const rows = await this.prisma.$queryRaw<Array<{ id: string }>>`
+      SELECT id FROM users WHERE lower(email) = ANY(${lowered}::text[])`;
+    return rows.map((r) => r.id);
+  }
+
+  /** Tài khoản tạo trong [from, to], theo nhóm user của `userIds`. */
+  async listUsersCreatedBetween(
+    from: Date,
+    to: Date,
+    userIds: string[],
+    benchmark: boolean,
+  ): Promise<Array<{ id: string; createdAt: Date }>> {
+    const rows = await this.prisma.$queryRaw<Array<{ id: string; created_at: Date }>>`
+      SELECT id, created_at FROM users
+      WHERE created_at >= ${from}::timestamptz AND created_at <= ${to}::timestamptz
+        AND ((id = ANY(${userIds}::uuid[])) = ${benchmark}::boolean)`;
+    return rows.map((r) => ({ id: r.id, createdAt: r.created_at }));
+  }
+
+  /** Đếm tài khoản cho trang thống kê Admin: tổng, bị khóa, admin, theo gói và tài khoản mới theo ngày (giờ VN). */
+  async countUsersForStats(signupsSince: Date): Promise<{
+    total: number;
+    locked: number;
+    admins: number;
+    byPack: Array<{ pack: string | null; count: number }>;
+    signupsByDay: Array<{ date: string; count: number }>;
+  }> {
+    const [totals, byPack, byDay] = await Promise.all([
+      this.prisma.$queryRaw<Array<{ total: number; locked: number; admins: number }>>`
+        SELECT COUNT(*)::int AS total,
+               COUNT(*) FILTER (WHERE locked_at IS NOT NULL)::int AS locked,
+               COUNT(*) FILTER (WHERE role = 'admin')::int AS admins
+        FROM users`,
+      this.prisma.$queryRaw<Array<{ pack: string | null; count: number }>>`
+        SELECT tier_pack AS pack, COUNT(*)::int AS count FROM users GROUP BY tier_pack`,
+      this.prisma.$queryRaw<Array<{ date: string; count: number }>>`
+        SELECT to_char(created_at AT TIME ZONE 'Asia/Ho_Chi_Minh', 'YYYY-MM-DD') AS date, COUNT(*)::int AS count
+        FROM users WHERE created_at >= ${signupsSince}::timestamptz
+        GROUP BY 1 ORDER BY 1`,
+    ]);
+    const t = totals[0] ?? { total: 0, locked: 0, admins: 0 };
+    return { total: t.total, locked: t.locked, admins: t.admins, byPack, signupsByDay: byDay };
+  }
+
+  /** Khóa tài khoản trong transaction của bên gọi: khóa dòng, đặt locked_at, thu hồi mọi refresh token. Trả lockedAt trước đó. */
+  async lockAccount(tx: PrismaTransactionClient, userId: string): Promise<{ before: Date | null; after: Date }> {
+    const rows = await tx.$queryRaw<Array<{ locked_at: Date | null }>>`SELECT locked_at FROM users WHERE id = ${userId}::uuid FOR UPDATE`;
+    if (rows.length !== 1) throw new NotFoundException({ code: ApiErrorCode.NOT_FOUND, message: getApiErrorMessageVi(ApiErrorCode.NOT_FOUND) });
+    const after = rows[0].locked_at ?? new Date();
+    await tx.user.update({ where: { id: userId }, data: { lockedAt: after } });
+    await tx.refreshToken.updateMany({ where: { userId, revokedAt: null }, data: { revokedAt: new Date() } });
+    return { before: rows[0].locked_at, after };
+  }
+
+  /** Mở khóa tài khoản trong transaction của bên gọi. */
+  async unlockAccount(tx: PrismaTransactionClient, userId: string): Promise<{ before: Date | null }> {
+    const rows = await tx.$queryRaw<Array<{ locked_at: Date | null }>>`SELECT locked_at FROM users WHERE id = ${userId}::uuid FOR UPDATE`;
+    if (rows.length !== 1) throw new NotFoundException({ code: ApiErrorCode.NOT_FOUND, message: getApiErrorMessageVi(ApiErrorCode.NOT_FOUND) });
+    await tx.user.update({ where: { id: userId }, data: { lockedAt: null } });
+    return { before: rows[0].locked_at };
+  }
+
 
   private getJwtSecret(): string {
     return (

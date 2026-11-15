@@ -45,6 +45,12 @@ Script đặt CORS chỉ cho `FRONTEND_URL` (PUT/GET/HEAD) và lifecycle: `in-ra
 
 Presigned PUT ký kèm `Content-Type` và `Content-Length`: client phải PUT đúng `Content-Type` trả về trong `headers` và body có độ dài đúng bằng `sizeBytes` đã khai báo (không dùng chunked/stream), nếu không R2 trả 403.
 
+Tiền tố `db-backup/` (sao lưu PostgreSQL, Story 6.7) không nằm trong quy tắc lifecycle nào; chỉ job sao lưu giữ 7 bản mới nhất. Mã hóa phía ứng dụng và khóa R2 riêng cho sao lưu nằm ngoài MVP (R2 mã hóa lưu trữ mặc định). Xem `deploy/RESTORE.md`.
+
+## Smoke test Body Retouch (Story 4.6)
+
+`apps/api/test/smoke-body-retouch.test.mjs` dựng stack bốn container (project `flowvis-smoke-bd`, api `3105`, Postgres `15436`, Redis `16383`); RunningHub giả (`3197`), S3/R2 giả (`3198`), Google giả (`3199`) chạy trong tiến trình test. Chạy: `RUN_COMPOSE_E2E=1 pnpm --filter @flowvis/api test`. Kịch bản: thành công `intensity` 8 (500 -> 400, RH nhận `smoke-workflow-body-reshape` với node `10/image` và `20/intensity` = `8`, `/result` có `sourceUrl`), `NO_POSE` (failed, RELEASED, thông báo Body Retouch), chung hàng đợi với Face Swap (không quá 2 Task đồng thời, mỗi Task một HOLD và một CAPTURED), ảnh gốc hết hạn (xóa đối tượng `in/` khỏi S3 giả nên `sourceUrl` là `null`), rồi `reconcile.js`. Benchmark Epic 6 phải có ít nhất một ảnh nhạy cảm chạy qua Body Retouch.
+
 ## Smoke test nạp tiền (Story 3.8)
 
 `apps/api/test/smoke-topup.test.mjs` dựng stack bốn container (project `flowvis-smoke-tp`, api `3104`, Postgres `15435`, Redis `16382`). Google giả (cổng `3199`) và Discord webhook giả (cổng `3196`) chạy trong tiến trình test. Chạy: `RUN_COMPOSE_E2E=1 pnpm --filter @flowvis/api test` (cần Docker). Kịch bản: đường thành công (Discord nhận đúng 1 thông báo, +12.000 credit, Tier Pro, đúng 1 dòng `TOPUP`), `bank_ref` trùng, xác nhận lúc 23:30 giờ VN (`approve_by` 08:15 hôm sau, quá hạn QR vẫn `pending`), QR hết hạn (`expired`, `TOPUP_QR_EXPIRED`), hai Admin duyệt song song, rồi `reconcile.js`.
@@ -52,3 +58,11 @@ Presigned PUT ký kèm `Content-Type` và `Content-Length`: client phải PUT đ
 Biến chỉ có tác dụng khi `NODE_ENV=test` (bị bỏ qua ở production): `TOPUP_QR_TTL_MS` (rút hạn QR), `TOPUP_FAKE_NOW` (ISO, giả đồng hồ tính `approve_by`), `TOPUP_SWEEP_INTERVAL` (chu kỳ bộ quét, ms). Biến cấu hình thật: `TOPUP_BANK_BIN`, `TOPUP_BANK_ACCOUNT_NO`, `TOPUP_BANK_ACCOUNT_NAME`, `DISCORD_WEBHOOK_URL`, `ADMIN_EMAILS` (xem `deploy/.env.example`; giá trị smoke là giả).
 
 Cảnh báo quá hạn duyệt đơn nạp dùng cột `overdue_notify_attempts` (tối đa 5 lượt, giãn 60 giây giữa các lượt); Discord sập kéo dài thì dừng sau lượt thứ 5 và ghi log lỗi. `TOPUP_BANK_BIN` phải đủ 6 chữ số và `TOPUP_BANK_ACCOUNT_NO` 6 đến 19 chữ số, sai định dạng thì tạo/hiển thị đơn trả 500 và ghi log.
+
+## Cắt video bằng ffmpeg (Story 5.4)
+
+Worker cắt video Motion Control ở bước chuẩn bị: một ffmpeg mỗi lúc (khóa FIFO trong tiến trình worker), chạy với `nice -n 19`, thư mục tạm riêng cho từng Task trong `$TMPDIR/flowvis-trim` và xóa khi xong, khi lỗi, khi hủy và khi worker khởi động. Cần đĩa trống tối thiểu 3 lần kích thước video đầu vào. Việc đo CPU và đĩa thật trên VPS 4 vCPU thuộc bước kiểm thử ffmpeg của Epic 6.
+
+## Smoke test Motion Control (Story 5.9)
+
+`apps/api/test/smoke-motion-control.test.mjs` dựng stack bốn container (project `flowvis-smoke-mt`, api `3106`, Postgres `15437`, Redis `16384`); RunningHub giả (`3197`), S3/R2 giả (`3198`), Google giả (`3199`) chạy trong tiến trình test. Cần `ffmpeg` trên máy chạy test (video mẫu và video kết quả giả sinh bằng `ffmpeg -f lavfi`, H.264, 24 FPS, 720x1280). Kiểm tra payload RH giả (`smoke-workflow-motion`, node `1/image`, `2/video`), giá, Cap, ví, hàng đợi, nhập kết quả, chia sẻ, thư mục tạm (`$TMPDIR/flowvis-trim` trong worker phải rỗng) và `reconcile.js`. `RH_DEADLINE_MS` (chỉ có tác dụng khi `NODE_ENV=test`) được rút ngắn để thử quá hạn 360 giây. Epic 6 còn phải xác nhận `nodeId`/`fieldName` thật của workflow Motion và đo tải ffmpeg trên VPS.

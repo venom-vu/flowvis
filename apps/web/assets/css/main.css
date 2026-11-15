@@ -17,6 +17,56 @@
   --touch-target-min: 48px;
 }
 
+/* Biến màu shadcn, dùng cho shadcn-vue (Dialog render qua Portal nên phải đặt ở :root); tông trung tính #0A0A0A, viền mảnh */
+:root {
+  --background: 0 0% 4%;
+  --foreground: 0 0% 93%;
+  --card: 0 0% 7%;
+  --card-foreground: 0 0% 93%;
+  --popover: 0 0% 9%;
+  --popover-foreground: 0 0% 93%;
+  --primary: 0 0% 93%;
+  --primary-foreground: 0 0% 4%;
+  --secondary: 0 0% 12%;
+  --secondary-foreground: 0 0% 93%;
+  --muted: 0 0% 10%;
+  --muted-foreground: 0 0% 71%;
+  --accent: 0 0% 12%;
+  --accent-foreground: 0 0% 93%;
+  --destructive: 358 100% 70%;
+  --destructive-foreground: 0 0% 98%;
+  --border: 0 0% 18%;
+  --input: 0 0% 23%;
+  --ring: 0 0% 42%;
+  --radius: 0.5rem;
+  /* Màu chart (shadcn chart + Unovis); categorical đã kiểm tra CVD trên nền tối */
+  --chart-1: 212 77% 55%;
+  --chart-2: 18 73% 49%;
+}
+
+/* Ghi đè bằng html:root / :root.dark (specificity >= 0,1,1) để không bị Unovis injectGlobal(:root) ghi đè lúc runtime. */
+html:root,
+:root.dark {
+  --vis-primary-color: var(--chart-1);
+  --vis-secondary-color: var(--chart-2);
+  --vis-text-color: var(--muted-foreground);
+  --vis-tooltip-background-color: transparent;
+  --vis-tooltip-border-color: transparent;
+  --vis-tooltip-text-color: hsl(var(--popover-foreground));
+  --vis-tooltip-shadow-color: transparent;
+  --vis-tooltip-box-shadow: none;
+  --vis-tooltip-backdrop-filter: none;
+  --vis-tooltip-padding: 0;
+  --vis-tooltip-border-radius: 0.75rem;
+  --vis-crosshair-line-stroke-color: hsl(var(--muted-foreground) / 0.5);
+  --vis-crosshair-circle-stroke-color: hsl(var(--background));
+  --vis-axis-grid-color: hsl(var(--border));
+  --vis-axis-tick-color: hsl(var(--border));
+  --vis-axis-tick-label-color: hsl(var(--muted-foreground));
+  --vis-axis-label-color: hsl(var(--muted-foreground));
+  --vis-legend-label-color: hsl(var(--muted-foreground));
+}
+
 *,
 *::before,
 *::after {
@@ -36,6 +86,12 @@ body {
   -webkit-font-smoothing: antialiased;
 }
 
+html:has([data-testid='layout-admin']),
+body:has([data-testid='layout-admin']) {
+  background-color: hsl(var(--background));
+  color: hsl(var(--foreground));
+}
+
 #__nuxt {
   min-height: 100dvh;
   max-width: 100vw;
@@ -45,6 +101,80 @@ body {
 .lucide-icon svg,
 .iconify svg {
   stroke-width: 2;
+}
+
+/* Ghi đè trực tiếp wrapper Unovis Tooltip (specificity 0,1,1, không nằm trong @layer) để tránh khung trắng kép. */
+html [data-flowvis-chart-tooltip] {
+  background-color: transparent;
+  border-color: transparent;
+  border-width: 0;
+  padding: 0;
+  box-shadow: none;
+  backdrop-filter: none;
+  color: hsl(var(--popover-foreground));
+}
+
+@layer base {
+  /* Tailwind v3 mặc định viền #e5e7eb (gần như trắng); shadcn cần viền theo biến --border. */
+  *,
+  ::before,
+  ::after {
+    border-color: hsl(var(--border));
+  }
+
+  /* Đảm bảo nền đặc cho các thanh cố định và bố cục quản trị ngay cả khi JIT chưa tải lại token. */
+  [data-testid='layout-admin'],
+  [data-testid='layout-admin'] > header,
+  [data-testid='admin-left-sidebar'] {
+    background-color: hsl(var(--background));
+    color: hsl(var(--foreground));
+  }
+
+  [data-testid='app-top-header'],
+  [data-testid='app-bottom-nav'] {
+    background-color: #0F172A;
+  }
+
+  [data-testid='chart-tooltip'] {
+    background-color: hsl(var(--popover));
+    color: hsl(var(--popover-foreground));
+    border-color: hsl(var(--border));
+    box-shadow: 0 12px 28px -6px rgba(0, 0, 0, 0.75);
+  }
+
+  [data-reka-popper-content-wrapper] > div {
+    background-color: hsl(var(--popover));
+    color: hsl(var(--popover-foreground));
+    border-color: hsl(var(--border));
+    box-shadow: 0 12px 28px -6px rgba(0, 0, 0, 0.75);
+  }
+
+  [data-reka-popper-content-wrapper] [data-highlighted] {
+    background-color: hsl(var(--accent));
+    color: hsl(var(--accent-foreground));
+  }
+
+  [role='dialog'],
+  [role='alertdialog'] {
+    background-color: hsl(var(--background));
+    color: hsl(var(--foreground));
+    border-color: hsl(var(--border));
+  }
+
+  /* Tắt viền focus trắng/xanh mặc định của trình duyệt trên toàn bộ điều khiển. */
+  *:focus,
+  *:focus-visible {
+    outline: none;
+  }
+
+  /* Chỉ giữ viền focus mảnh bằng --ring khi điều hướng bàn phím cho link/nút; input tự giữ viền riêng. */
+  a:focus-visible,
+  button:focus-visible,
+  summary:focus-visible,
+  [role='button']:focus-visible,
+  [tabindex]:not([tabindex='-1']):focus-visible {
+    box-shadow: 0 0 0 1px hsl(var(--ring));
+  }
 }
 
 @layer components {

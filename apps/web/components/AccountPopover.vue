@@ -1,19 +1,22 @@
 <script setup lang="ts">
-import { onBeforeUnmount, onMounted, ref, watch } from 'vue';
-import { navigateTo, useRoute } from '#imports';
-import { useAuth } from '~/composables/useAuth';
-import { useAuthDialog } from '~/composables/useAuthDialog';
+import { onBeforeUnmount, onMounted, ref, watch } from "vue";
+import { navigateTo, useRoute } from "#imports";
+import { useAuth } from "~/composables/useAuth";
+// import { useAuthDialog } from "~/composables/useAuthDialog";
+
+import type { UserRole } from "@flowvis/contracts";
 
 withDefaults(
   defineProps<{
     email?: string | null;
+    role?: UserRole | null;
   }>(),
-  { email: null },
+  { email: null, role: null },
 );
 
 const route = useRoute();
 const { logout } = useAuth();
-const { open: openAuthDialog } = useAuthDialog();
+// const { open: openAuthDialog } = useAuthDialog();
 
 const isOpen = ref(false);
 const rootEl = ref<HTMLElement | null>(null);
@@ -33,30 +36,39 @@ function close(restoreFocus = false): void {
 function handleOutsidePointer(event: PointerEvent): void {
   if (!isOpen.value) return;
   const target = event.target;
-  if (rootEl.value && target instanceof Node && !rootEl.value.contains(target)) {
+  if (
+    rootEl.value &&
+    target instanceof Node &&
+    !rootEl.value.contains(target)
+  ) {
     close();
   }
 }
 
 function handleKeydown(event: KeyboardEvent): void {
-  if (isOpen.value && event.key === 'Escape') {
+  if (isOpen.value && event.key === "Escape") {
     close(true);
   }
 }
 
-function showAccountInfo(): void {
-  close();
-  openAuthDialog('account');
-}
+// function showAccountInfo(): void {
+//   close();
+//   openAuthDialog("account");
+// }
 
 function goToHistory(): void {
   close();
-  void navigateTo('/history');
+  void navigateTo("/history");
 }
 
 function goToTasks(): void {
   close();
-  void navigateTo('/tasks');
+  void navigateTo("/tasks");
+}
+
+function goToAdmin(): void {
+  close();
+  void navigateTo("/admin");
 }
 
 async function handleLogout(): Promise<void> {
@@ -71,13 +83,13 @@ watch(
 );
 
 onMounted(() => {
-  document.addEventListener('pointerdown', handleOutsidePointer);
-  document.addEventListener('keydown', handleKeydown);
+  document.addEventListener("pointerdown", handleOutsidePointer);
+  document.addEventListener("keydown", handleKeydown);
 });
 
 onBeforeUnmount(() => {
-  document.removeEventListener('pointerdown', handleOutsidePointer);
-  document.removeEventListener('keydown', handleKeydown);
+  document.removeEventListener("pointerdown", handleOutsidePointer);
+  document.removeEventListener("keydown", handleKeydown);
 });
 </script>
 
@@ -111,7 +123,7 @@ onBeforeUnmount(() => {
         {{ email }}
       </p>
 
-      <button
+      <!-- <button
         type="button"
         role="menuitem"
         data-testid="menu-account-info"
@@ -120,7 +132,7 @@ onBeforeUnmount(() => {
       >
         <Icon name="lucide:user-round" class="h-4 w-4 shrink-0 text-cyber-violet" />
         <span>Thông tin tài khoản</span>
-      </button>
+      </button> -->
 
       <button
         type="button"
@@ -129,7 +141,10 @@ onBeforeUnmount(() => {
         class="touch-target flex min-h-[48px] w-full items-center gap-3 rounded-xl px-3 py-2 text-left text-sm transition hover:bg-cyber-bg"
         @click="goToTasks"
       >
-        <Icon name="lucide:history" class="h-4 w-4 shrink-0 text-cyber-violet" />
+        <Icon
+          name="lucide:history"
+          class="h-4 w-4 shrink-0 text-cyber-violet"
+        />
         <span>Lịch sử tác vụ</span>
       </button>
 
@@ -140,8 +155,26 @@ onBeforeUnmount(() => {
         class="touch-target flex min-h-[48px] w-full items-center gap-3 rounded-xl px-3 py-2 text-left text-sm transition hover:bg-cyber-bg"
         @click="goToHistory"
       >
-        <Icon name="lucide:clock-3" class="h-4 w-4 shrink-0 text-cyber-violet" />
+        <Icon
+          name="lucide:clock-3"
+          class="h-4 w-4 shrink-0 text-cyber-violet"
+        />
         <span>Biến động credit</span>
+      </button>
+
+      <button
+        v-if="role === 'admin'"
+        type="button"
+        role="menuitem"
+        data-testid="menu-admin"
+        class="touch-target flex min-h-[48px] w-full items-center gap-3 rounded-xl px-3 py-2 text-left text-sm transition hover:bg-cyber-bg"
+        @click="goToAdmin"
+      >
+        <Icon
+          name="lucide:terminal"
+          class="h-4 w-4 shrink-0 text-cyber-violet"
+        />
+        <span>Quản trị</span>
       </button>
 
       <button

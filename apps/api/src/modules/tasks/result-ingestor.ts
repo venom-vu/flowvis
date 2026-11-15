@@ -1,4 +1,8 @@
 import crypto from 'node:crypto';
+import fs from 'node:fs';
+import path from 'node:path';
+import { Readable, Transform } from 'node:stream';
+import { pipeline as streamPipeline } from 'node:stream/promises';
 import { Inject, Injectable, Logger } from '@nestjs/common';
 import type { ReasonCode } from '@flowvis/contracts';
 import sharp, { type ChannelStats, type Metadata } from 'sharp';
@@ -10,8 +14,11 @@ import {
 } from '../../ports/index.js';
 import { PipelinesService } from '../pipelines/pipelines.service.js';
 import { TasksService } from './tasks.service.js';
+import { buildLocalFfprobeArgs, run, videoTrim } from './video-trim.service.js';
 
 export const OUTPUT_MAX_BYTES = 20 * 1024 * 1024;
+export const VIDEO_OUTPUT_MAX_BYTES = 100 * 1024 * 1024;
+const VIDEO_DIR_NAME = 'ingest';
 export const OUTPUT_FETCH_TIMEOUT_MS = 30_000;
 export const OUTPUT_MAX_ATTEMPTS = 3;
 const BLACK_MAX = 8;
@@ -28,6 +35,27 @@ type FetchFn = (url: string, init: { signal: AbortSignal; redirect?: 'manual' | 
 class OutputInvalidError extends Error {}
 class OutputAbortedError extends Error {}
 class OutputRetriesExhaustedError extends Error {}
+class FfmpegError extends Error {}
+
+/**
+ * Hàm thuần: kết quả chỉ cần có ít nhất một luồng video xem được. FPS, độ phân giải, độ dài do workflow
+ * RunningHub quyết định; RunningHub đã SUCCESS thì không từ chối vì các thuộc tính này.
+ */
+export function evaluateIngestProbe(json: unknown): string | null {
+  const data = (json ?? {}) as {
+    streams?: Array<{ codec_type?: string; codec_name?: string; width?: number; height?: number }>;
+  };
+  const video = (data.streams ?? []).find((x) => x.codec_type === 'video');
+  if (!video) return 'không có luồng video';
+  if (!(Number(video.width) > 0) || !(Number(video.height) > 0)) return 'kích thước video không hợp lệ';
+  return null;
+}
+
+/** Codec khác H.264 thì mã hóa lại sang H.264 để mọi trình duyệt phát được. */
+export function needsReencode(json: unknown): boolean {
+  const streams = ((json ?? {}) as { streams?: Array<{ codec_type?: string; codec_name?: string }> }).streams ?? [];
+  return streams.find((x) => x.codec_type === 'video')?.codec_name !== 'h264';
+}
 
 function retryDelayMs(): number {
   const n = Number.parseInt(process.env.RH_OUTPUT_RETRY_MS ?? '', 10);
@@ -112,7 +140,7 @@ export class ResultIngestorService implements ResultIngestor {
     const gpuCoins = clampCoins(consumeMoney);
     const row = await this.tasks.getWorkerRow(task.id);
     if (!row || row.status !== 'running') return;
-    const deadlineAt = row.deadlineAt ?? null;
+    const deadlineAt: Date | null = null; // RunningHub đã SUCCESS thì không bỏ dở vì hạn
 
     const fail = (reason: ReasonCode) =>
       this.tasks.transition(task.id, 'running', 'failed', reason, { gpuCoins });
@@ -126,6 +154,11 @@ export class ResultIngestorService implements ResultIngestor {
     }
     if (url.protocol !== 'http:' && url.protocol !== 'https:') {
       await fail('OUTPUT_UPLOAD_ERROR');
+      return;
+    }
+
+    if (row.pipeline === 'motion_control') {
+      await this.ingestVideo(task, row, url, gpuCoins, deadlineAt, signal);
       return;
     }
 
@@ -183,6 +216,190 @@ export class ResultIngestorService implements ResultIngestor {
       await this.safeDelete(resultKey);
       throw err;
     }
+  }
+
+  /** Nhánh video (Motion Control): tải ra file, ffprobe, remux gắn thẻ, ảnh bìa, ghi R2, chốt. */
+  private async ingestVideo(
+    task: IngestTask,
+    row: { userId: string; params: unknown },
+    url: URL,
+    gpuCoins: number | undefined,
+    deadlineAt: Date | null,
+    signal: AbortSignal,
+  ): Promise<void> {
+    const fail = (reason: ReasonCode) =>
+      this.tasks.transition(task.id, 'running', 'failed', reason, { gpuCoins });
+    const root = path.join(videoTrim.tmpRoot, VIDEO_DIR_NAME);
+    let dir: string | undefined;
+    const keys: string[] = [];
+    try {
+      try {
+        await fs.promises.mkdir(root, { recursive: true });
+        dir = await fs.promises.mkdtemp(path.join(root, `${task.id.replace(/[^A-Za-z0-9-]/g, '')}-`));
+      } catch (err) {
+        this.logger.warn(`Không tạo được thư mục tạm cho Task ${task.id}: ${String(err)}`);
+        await fail('OUTPUT_UPLOAD_ERROR');
+        return;
+      }
+      const name = crypto.randomUUID();
+      const inFile = path.join(dir, `${name}-in`);
+      const outFile = path.join(dir, `${name}-out.mp4`);
+      const posterFile = path.join(dir, `${name}-poster.jpg`);
+
+      // 1. Tải ra file
+      let bytes: number;
+      try {
+        bytes = await this.withRetry(task.id, 'tải kết quả video', deadlineAt, signal, () =>
+          this.downloadToFile(url.toString(), inFile, signal, deadlineAt),
+        );
+      } catch (err) {
+        if (err instanceof OutputAbortedError) throw err;
+        await fail('OUTPUT_UPLOAD_ERROR');
+        return;
+      }
+      if (bytes === 0) {
+        await fail('OUTPUT_INVALID');
+        return;
+      }
+
+      // 2-4. ffprobe, remux, ảnh bìa dưới khóa ffmpeg
+      try {
+        await videoTrim.runExclusive(signal, async () => {
+          let probe: unknown;
+          try {
+            probe = JSON.parse(await run('ffprobe', buildLocalFfprobeArgs(inFile), signal));
+          } catch (err) {
+            if (signal.aborted) throw err;
+            throw new OutputInvalidError(`ffprobe không đọc được: ${String(err)}`);
+          }
+          const bad = evaluateIngestProbe(probe);
+          if (bad) throw new OutputInvalidError(bad);
+          try {
+            await run(
+              'nice',
+              ['-n', '19', 'ffmpeg', '-hide_banner', '-loglevel', 'error', '-y', '-i', inFile, '-map', '0:v:0',
+                ...(needsReencode(probe)
+                  ? ['-c:v', 'libx264', '-pix_fmt', 'yuv420p', '-preset', 'veryfast', '-crf', '20']
+                  : ['-c', 'copy']),
+                '-metadata', `comment=${EXIF_COMMENT}`, '-metadata', `software=${EXIF_SOFTWARE}`,
+                '-movflags', '+faststart+use_metadata_tags', outFile],
+              signal,
+            );
+            await run(
+              'nice',
+              ['-n', '19', 'ffmpeg', '-hide_banner', '-loglevel', 'error', '-y', '-i', outFile, '-frames:v', '1', '-q:v', '2', posterFile],
+              signal,
+            );
+          } catch (err) {
+            if (signal.aborted) throw err;
+            throw new FfmpegError(String(err));
+          }
+        });
+      } catch (err) {
+        if (signal.aborted) throw new OutputAbortedError();
+        if (err instanceof OutputInvalidError) {
+          this.logger.warn(`Kết quả video Task ${task.id} không hợp lệ: ${err.message}`);
+          await fail('OUTPUT_INVALID');
+          return;
+        }
+        if (err instanceof FfmpegError) {
+          this.logger.warn(`ffmpeg lỗi với Task ${task.id}: ${err.message}`);
+          await fail('FFMPEG_ERROR');
+          return;
+        }
+        this.logger.warn(`Không xử lý được video Task ${task.id}: ${String(err)}`);
+        await fail('FFMPEG_ERROR');
+        return;
+      }
+
+      // 5. Ghi R2
+      const base = `out/${row.userId}/${crypto.randomUUID()}`;
+      const resultKey = `${base}.mp4`;
+      const posterKey = `${base}.jpg`;
+      try {
+        const video = await fs.promises.readFile(outFile);
+        const poster = await fs.promises.readFile(posterFile);
+        keys.push(resultKey);
+        await this.withRetry(task.id, 'ghi R2 (video)', deadlineAt, signal, () =>
+          this.storage.putObject(resultKey, video, 'video/mp4', signal),
+        );
+        keys.push(posterKey);
+        await this.withRetry(task.id, 'ghi R2 (ảnh bìa)', deadlineAt, signal, () =>
+          this.storage.putObject(posterKey, poster, 'image/jpeg', signal),
+        );
+      } catch (err) {
+        await this.deleteAll(keys);
+        if (err instanceof OutputAbortedError) throw err;
+        await fail('OUTPUT_UPLOAD_ERROR');
+        return;
+      }
+
+      this.logger.log(`Task ${task.id}: đã lưu video ${resultKey}, chốt succeeded`);
+      // 6. Chốt
+      try {
+        const { applied } = await this.tasks.transition(task.id, 'running', 'succeeded', null, { resultKey, gpuCoins });
+        if (!applied) await this.deleteAll(keys);
+      } catch (err) {
+        await this.deleteAll(keys);
+        throw err;
+      }
+    } finally {
+      if (dir) await fs.promises.rm(dir, { recursive: true, force: true }).catch(() => {});
+    }
+  }
+
+  private async deleteAll(keys: string[]): Promise<void> {
+    for (const k of keys) await this.safeDelete(k);
+  }
+
+  /** Mở phản hồi theo chuyển hướng thủ công, chặn host nội bộ. */
+  private async openResponse(url: string, signal: AbortSignal): Promise<Response> {
+    let current = url;
+    let res: Response | undefined;
+    for (let hop = 0; hop <= MAX_REDIRECTS; hop++) {
+      if (!isPublicHttpUrl(current)) throw new Error('URL kết quả trỏ tới địa chỉ nội bộ hoặc không hợp lệ');
+      res = await this.fetchFn(current, { signal, redirect: 'manual' });
+      const loc = res.status >= 300 && res.status < 400 ? res.headers.get('location') : null;
+      if (!loc) break;
+      await res.body?.cancel().catch(() => {});
+      current = new URL(loc, current).toString();
+      res = undefined;
+    }
+    if (!res) throw new Error('Quá nhiều lần chuyển hướng');
+    if (!res.ok) throw new Error(`HTTP ${res.status}`);
+    return res;
+  }
+
+  /** Tải theo luồng ra file (trần 100 MB); trả số byte đã ghi. */
+  private async downloadToFile(url: string, file: string, signal: AbortSignal, deadlineAt: Date | null): Promise<number> {
+    const remaining = deadlineAt ? deadlineAt.getTime() - Date.now() : Infinity;
+    const timeoutMs = Math.max(1, Math.min(OUTPUT_FETCH_TIMEOUT_MS * 10, remaining));
+    const combined = AbortSignal.any([signal, AbortSignal.timeout(timeoutMs)]);
+    const res = await this.openResponse(url, combined);
+    const declared = Number(res.headers.get('content-length'));
+    if (Number.isFinite(declared) && declared > VIDEO_OUTPUT_MAX_BYTES) {
+      await res.body?.cancel().catch(() => {});
+      throw new Error('Video vượt quá 100 MB');
+    }
+    if (!res.body) {
+      await fs.promises.writeFile(file, Buffer.alloc(0));
+      return 0;
+    }
+    let total = 0;
+    const limiter = new Transform({
+      transform(chunk: Buffer, _enc, cb) {
+        total += chunk.length;
+        if (total > VIDEO_OUTPUT_MAX_BYTES) cb(new Error('Video vượt quá 100 MB'));
+        else cb(null, chunk);
+      },
+    });
+    await streamPipeline(
+      Readable.fromWeb(res.body as import('node:stream/web').ReadableStream),
+      limiter,
+      fs.createWriteStream(file),
+      { signal: combined },
+    );
+    return total;
   }
 
   /** Thử tối đa OUTPUT_MAX_ATTEMPTS lần; không bắt đầu lần mới khi quá deadline_at hoặc signal đã hủy. */
@@ -285,15 +502,18 @@ export class ResultIngestorService implements ResultIngestor {
       throw new OutputInvalidError('ảnh toàn đen');
     }
 
+    // Workflow có thể trả ảnh khác kích thước (vd. làm tròn bội số 64): RunningHub đã thành công thì không báo lỗi, đưa về đúng kích thước ảnh tham chiếu.
+    let target: { width: number; height: number } | undefined;
     const refKey = this.pipelines.getConfig(pipeline)?.referenceInputKey;
     if (refKey) {
       const key = ((inputKeys ?? {}) as Record<string, string | undefined>)[refKey];
       if (!key) throw new Error(`Thiếu ảnh tham chiếu ${refKey}`);
       const refMeta = await sharp(await this.storage.getObject(key, signal)).metadata();
       const ref = displaySize(refMeta);
-      if (ref.width !== size.width || ref.height !== size.height) {
-        throw new OutputInvalidError(
-          `kích thước ${size.width}x${size.height} khác ảnh tham chiếu ${ref.width}x${ref.height}`,
+      if (ref.width && ref.height && (ref.width !== size.width || ref.height !== size.height)) {
+        target = { width: ref.width, height: ref.height };
+        this.logger.warn(
+          `Kích thước kết quả ${size.width}x${size.height} khác ảnh tham chiếu ${ref.width}x${ref.height}, co giãn về ${ref.width}x${ref.height}`,
         );
       }
     }
@@ -303,6 +523,7 @@ export class ResultIngestorService implements ResultIngestor {
       .rotate()
       .keepIccProfile()
       .withExif({ IFD0: { Software: EXIF_SOFTWARE }, IFD2: { UserComment: EXIF_COMMENT } });
+    if (target) pipe = pipe.resize(target.width, target.height, { fit: 'cover', kernel: 'lanczos3' });
     if (meta.format === 'png') pipe = pipe.png();
     else if (meta.format === 'jpeg') pipe = pipe.jpeg({ quality: JPEG_WEBP_QUALITY });
     else pipe = pipe.webp({ quality: JPEG_WEBP_QUALITY });

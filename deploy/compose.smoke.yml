@@ -12,6 +12,8 @@ x-smoke-env: &smoke-env
   GOOGLE_USERINFO_URL: ${GOOGLE_USERINFO_URL:-http://host.docker.internal:3199/userinfo}
   RUNNINGHUB_BASE_URL: ${RUNNINGHUB_BASE_URL:-http://host.docker.internal:3197}
   RUNNINGHUB_WORKFLOW_FACESWAP: smoke-workflow-faceswap
+  RUNNINGHUB_WORKFLOW_BODY_RESHAPE: smoke-workflow-body-reshape
+  RUNNINGHUB_WORKFLOW_MOTION: smoke-workflow-motion
   RH_POLL_INTERVAL_MS: "300"
   RH_DEADLINE_MS: ${RH_DEADLINE_MS:-10000}
   RESULT_URL_ALLOW_HOSTS: host.docker.internal
@@ -30,6 +32,8 @@ x-smoke-env: &smoke-env
   TOPUP_FAKE_NOW: ${TOPUP_FAKE_NOW:-}
   TOPUP_SWEEP_INTERVAL: ${TOPUP_SWEEP_INTERVAL:-}
   MOTION_SMOKE: "1"
+  # Story 6.10: email nhận báo cáo vi phạm cho bản build FE dùng trong smoke vận hành (API không đọc biến này).
+  NUXT_PUBLIC_REPORT_EMAIL: ${NUXT_PUBLIC_REPORT_EMAIL:-abuse@smoke.test}
 
 services:
   nestjs-api:

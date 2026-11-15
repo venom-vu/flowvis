@@ -15,6 +15,7 @@ export class PrismaService extends PrismaClient implements OnModuleDestroy {
     const pool = new pg.Pool({
       connectionString,
       connectionTimeoutMillis: 2000,
+      max: Number.parseInt(process.env.DB_POOL_MAX ?? '', 10) || 10,
     });
     pool.on('error', () => {
       // Prevent unhandled idle client error events from crashing the process

@@ -6,7 +6,12 @@ import {
   type AuthLogoutResponse,
   type AuthRefreshResponse,
 } from './auth.js';
-import type {
+import {
+  motionPrice,
+  type BodyRetouchCreateRequest,
+  type MotionCreateRequest,
+  type MotionCreateResponse,
+  type ShareInfoResponse,
   FaceSwapCreateRequest,
   Task,
   TaskListResponse,
@@ -16,6 +21,20 @@ import type {
   TaskStatus,
 } from './tasks.js';
 import type {
+  AdminAdjustRequest,
+  AdminTaskLookupResponse,
+  AdminUser,
+  AdminUserLedgerResponse,
+  AdminUserStatsResponse,
+  AdminUserSearchResponse,
+} from './admin.js';
+import type {
+  AdminAuditResponse,
+  AdminStatsResponse,
+  OpsStatusResponse,
+  SystemStatusResponse,
+} from './ops.js';
+import type {
   AdminTopup,
   AdminTopupListResponse,
   Topup,
@@ -23,6 +42,7 @@ import type {
   TopupStatus,
 } from './topups.js';
 import type {
+  UploadConfirmVideoResponse,
   UploadConfirmResponse,
   UploadCreateRequest,
   UploadCreateResponse,
@@ -44,8 +64,10 @@ export const DEFAULT_PRICING_CONFIG: PricingConfigResponse = {
   freeQueueTimeoutMinutes: 15,
   pipelines: {
     faceSwapCredits: 100,
+  outfitChangeCredits: 100,
     bodyRetouchCredits: 100,
     motionControlCreditsPerSecond: 50,
+    motionControlMinSeconds: 3,
   },
   tiers: [
     {
@@ -54,6 +76,7 @@ export const DEFAULT_PRICING_CONFIG: PricingConfigResponse = {
       priceVnd: 0,
       credits: 500,
       maxVideoSeconds: 5,
+      maxActiveTasks: 1,
       priority: 10,
     },
     {
@@ -62,6 +85,7 @@ export const DEFAULT_PRICING_CONFIG: PricingConfigResponse = {
       priceVnd: 49_000,
       credits: 5_000,
       maxVideoSeconds: 10,
+      maxActiveTasks: 2,
       priority: 3,
     },
     {
@@ -70,6 +94,7 @@ export const DEFAULT_PRICING_CONFIG: PricingConfigResponse = {
       priceVnd: 99_000,
       credits: 12_000,
       maxVideoSeconds: 15,
+      maxActiveTasks: 3,
       priority: 2,
     },
     {
@@ -78,6 +103,7 @@ export const DEFAULT_PRICING_CONFIG: PricingConfigResponse = {
       priceVnd: 199_000,
       credits: 30_000,
       maxVideoSeconds: 20,
+      maxActiveTasks: 5,
       priority: 1,
     },
   ],
@@ -390,10 +416,12 @@ export const MOCK_TASK_LIST_RESPONSE: TaskListResponse = {
 };
 
 export const MOCK_TASK_RESULT_RESPONSE: TaskResultResponse = {
+  mediaType: 'image',
   resultUrl: 'https://cdn.example.test/out/signed-result.jpg',
   sourceUrl: 'https://cdn.example.test/in/signed-source.jpg',
 };
 export const MOCK_TASK_RESULT_EXPIRED_SOURCE_RESPONSE: TaskResultResponse = {
+  mediaType: 'image',
   resultUrl: 'https://cdn.example.test/out/signed-result.jpg',
   sourceUrl: null,
 };
@@ -405,6 +433,156 @@ export const MOCK_TASK_SHARE_RESPONSE: TaskShareResponse = {
 export const MOCK_TASK_SHARE_REVOKE_RESPONSE: TaskShareRevokeResponse = {
   revoked: true,
 };
+
+/* ------------------------- Epic 4: Body Retouch ------------------------- */
+
+export const MOCK_BODY_RETOUCH_CREATE_REQUEST: BodyRetouchCreateRequest = {
+  imageKey: `in/${MOCK_USER_ID}/60000000-0000-4000-8000-000000000001`,
+  intensity: 8,
+};
+
+const mockBodyRetouchBase = { ...mockTaskBase, pipeline: 'body_retouch' } as const;
+
+export const MOCK_BODY_RETOUCH_TASK_QUEUED: Task = {
+  ...mockBodyRetouchBase,
+  id: '71000000-0000-4000-8000-000000000001',
+  status: 'queued',
+  queuePosition: 2,
+};
+export const MOCK_BODY_RETOUCH_TASK_RUNNING: Task = {
+  ...mockBodyRetouchBase,
+  id: '71000000-0000-4000-8000-000000000002',
+  status: 'running',
+};
+export const MOCK_BODY_RETOUCH_TASK_SUCCEEDED: Task = {
+  ...mockBodyRetouchBase,
+  id: '71000000-0000-4000-8000-000000000003',
+  status: 'succeeded',
+  resultKey: `out/${MOCK_USER_ID}/81000000-0000-4000-8000-000000000003`,
+};
+export const MOCK_BODY_RETOUCH_TASK_FAILED: Task = {
+  ...mockBodyRetouchBase,
+  id: '71000000-0000-4000-8000-000000000004',
+  status: 'failed',
+  reasonCode: 'NO_POSE',
+};
+export const MOCK_BODY_RETOUCH_TASK_TIMED_OUT: Task = {
+  ...mockBodyRetouchBase,
+  id: '71000000-0000-4000-8000-000000000005',
+  status: 'timed_out',
+  reasonCode: 'FREE_WAIT_EXPIRED',
+};
+export const MOCK_BODY_RETOUCH_TASK_CANCELLED: Task = {
+  ...mockBodyRetouchBase,
+  id: '71000000-0000-4000-8000-000000000006',
+  status: 'cancelled',
+  reasonCode: 'USER_CANCEL',
+};
+
+export const MOCK_BODY_RETOUCH_TASKS_BY_STATUS: Record<TaskStatus, Task> = {
+  queued: MOCK_BODY_RETOUCH_TASK_QUEUED,
+  running: MOCK_BODY_RETOUCH_TASK_RUNNING,
+  succeeded: MOCK_BODY_RETOUCH_TASK_SUCCEEDED,
+  failed: MOCK_BODY_RETOUCH_TASK_FAILED,
+  timed_out: MOCK_BODY_RETOUCH_TASK_TIMED_OUT,
+  cancelled: MOCK_BODY_RETOUCH_TASK_CANCELLED,
+};
+
+/** Kết quả Body Retouch có ảnh gốc (so sánh trước/sau). */
+export const MOCK_BODY_RETOUCH_RESULT_RESPONSE: TaskResultResponse = {
+  mediaType: 'image',
+  resultUrl: 'https://cdn.example.test/out/signed-body-retouch-result.jpg',
+  sourceUrl: 'https://cdn.example.test/in/signed-body-retouch-source.jpg',
+};
+
+/* ------------------------- Epic 5: Motion Control ------------------------- */
+
+export const MOCK_MOTION_CREATE_REQUEST: MotionCreateRequest = {
+  characterKey: `in/${MOCK_USER_ID}/60000000-0000-4000-8000-000000000001`,
+  videoKey: `in/${MOCK_USER_ID}/60000000-0000-4000-8000-000000000003`,
+  trimStart: 2,
+  trimEnd: 7,
+  aspectRatio: '9:16',
+  prompt: '',
+};
+
+export const MOCK_UPLOAD_VIDEO_CONFIRM_RESPONSE: UploadConfirmVideoResponse = {
+  key: `in/${MOCK_USER_ID}/60000000-0000-4000-8000-000000000003`,
+  video: {
+    mimeType: 'video/mp4',
+    sizeBytes: 12 * 1024 * 1024,
+    durationSeconds: 12.5,
+    width: 720,
+    height: 1280,
+  },
+};
+
+const mockMotionBase = {
+  ...mockTaskBase,
+  pipeline: 'motion_control',
+  creditCost: motionPrice(5),
+  price: motionPrice(5),
+} as const;
+
+export const MOCK_MOTION_TASK_QUEUED: MotionCreateResponse = {
+  ...mockMotionBase,
+  id: '72000000-0000-4000-8000-000000000001',
+  status: 'queued',
+  queuePosition: 1,
+};
+export const MOCK_MOTION_TASK_RUNNING: MotionCreateResponse = {
+  ...mockMotionBase,
+  id: '72000000-0000-4000-8000-000000000002',
+  status: 'running',
+};
+export const MOCK_MOTION_TASK_SUCCEEDED: MotionCreateResponse = {
+  ...mockMotionBase,
+  id: '72000000-0000-4000-8000-000000000003',
+  status: 'succeeded',
+  resultKey: `out/${MOCK_USER_ID}/82000000-0000-4000-8000-000000000003`,
+};
+export const MOCK_MOTION_TASK_FAILED: MotionCreateResponse = {
+  ...mockMotionBase,
+  id: '72000000-0000-4000-8000-000000000004',
+  status: 'failed',
+  reasonCode: 'NO_POSE',
+};
+export const MOCK_MOTION_TASK_TIMED_OUT: MotionCreateResponse = {
+  ...mockMotionBase,
+  id: '72000000-0000-4000-8000-000000000005',
+  status: 'timed_out',
+  reasonCode: 'PREP_TIMEOUT',
+};
+export const MOCK_MOTION_TASK_CANCELLED: MotionCreateResponse = {
+  ...mockMotionBase,
+  id: '72000000-0000-4000-8000-000000000006',
+  status: 'cancelled',
+  reasonCode: 'USER_CANCEL',
+};
+
+export const MOCK_MOTION_TASKS_BY_STATUS: Record<TaskStatus, MotionCreateResponse> = {
+  queued: MOCK_MOTION_TASK_QUEUED,
+  running: MOCK_MOTION_TASK_RUNNING,
+  succeeded: MOCK_MOTION_TASK_SUCCEEDED,
+  failed: MOCK_MOTION_TASK_FAILED,
+  timed_out: MOCK_MOTION_TASK_TIMED_OUT,
+  cancelled: MOCK_MOTION_TASK_CANCELLED,
+};
+
+/** Kết quả video Motion: không có `sourceUrl` (video mẫu không lộ). */
+export const MOCK_MOTION_RESULT_RESPONSE: TaskResultResponse = {
+  mediaType: 'video',
+  resultUrl: 'https://cdn.example.test/out/signed-motion-result.mp4',
+  sourceUrl: null,
+  posterUrl: 'https://cdn.example.test/out/signed-motion-poster.jpg',
+  durationSeconds: 5,
+};
+
+export const MOCK_SHARE_INFO_VIDEO_RESPONSE: ShareInfoResponse = {
+  mediaType: 'video',
+  durationSeconds: 5,
+};
+export const MOCK_SHARE_INFO_IMAGE_RESPONSE: ShareInfoResponse = { mediaType: 'image' };
 
 /* ------------------------- Epic 3: nạp tiền ------------------------- */
 
@@ -504,6 +682,177 @@ export const MOCK_ADMIN_TOPUP_LIST_RESPONSE: AdminTopupListResponse = {
     MOCK_ADMIN_TOPUPS_BY_STATUS.pending,
     MOCK_ADMIN_TOPUPS_BY_STATUS.needs_review,
     MOCK_ADMIN_TOPUPS_BY_STATUS.expired,
+  ],
+  pageSize: 20,
+  hasMore: false,
+  nextCursor: null,
+};
+
+/* ------------------------------ Epic 6 ------------------------------ */
+
+export const MOCK_SYSTEM_STATUS_NORMAL: SystemStatusResponse = { intakePaused: false };
+export const MOCK_SYSTEM_STATUS_PAUSED: SystemStatusResponse = { intakePaused: true };
+
+export const MOCK_OPS_STATUS_NORMAL: OpsStatusResponse = {
+  intakePaused: false,
+  rhBudgetExhausted: false,
+  lastBreakerTrigger: null,
+  rhBalance: { usd: 52.4, readAt: '2026-11-11T02:00:00.000Z' },
+  lastBackup: { at: '2026-11-10T20:00:00.000Z', result: 'success', sizeBytes: 12582912 },
+};
+
+export const MOCK_OPS_STATUS_PAUSED: OpsStatusResponse = {
+  ...MOCK_OPS_STATUS_NORMAL,
+  intakePaused: true,
+  lastBreakerTrigger: {
+    at: '2026-11-11T01:30:00.000Z',
+    rule: 'ERROR_RATE_15_PERCENT_20_TASKS_30_MIN',
+    metrics: { eligibleTasks: 24, systemFailures: 5, errorRate: 0.208 },
+  },
+};
+
+export const MOCK_OPS_STATUS_BUDGET_EXHAUSTED: OpsStatusResponse = {
+  ...MOCK_OPS_STATUS_NORMAL,
+  intakePaused: true,
+  rhBudgetExhausted: true,
+  rhBalance: { usd: 0, readAt: '2026-11-11T02:05:00.000Z' },
+  lastBackup: { at: '2026-11-10T20:00:00.000Z', result: 'failed', sizeBytes: null },
+};
+
+export const MOCK_ADMIN_STATS_RESPONSE: AdminStatsResponse = {
+  from: '2026-11-01T00:00:00.000Z',
+  to: '2026-11-11T00:00:00.000Z',
+  scope: 'real',
+  pipelines: [
+    {
+      pipeline: 'face_swap',
+      taskCounts: { queued: 0, running: 1, succeeded: 90, failed: 6, timed_out: 2, cancelled: 1 },
+      successRate: 0.9,
+      avgProcessingSeconds: 42.5,
+      p95ProcessingSeconds: 88,
+      avgCostUsd: 0.0154,
+      wastedCostUsd: 0.08,
+      avgCostVnd: 385,
+      costByInstanceType: [{ instanceType: 'default', tasks: 99, costUsd: 1.6 }],
+    },
+    {
+      pipeline: 'body_retouch',
+      taskCounts: { queued: 0, running: 0, succeeded: 0, failed: 0, timed_out: 0, cancelled: 0 },
+      successRate: null,
+      avgProcessingSeconds: null,
+      p95ProcessingSeconds: null,
+      avgCostUsd: null,
+      wastedCostUsd: 0,
+      avgCostVnd: null,
+      costByInstanceType: [],
+    },
+  ],
+  margins: [
+    {
+      pipeline: 'face_swap',
+      pack: 'starter',
+      revenueVnd: 980,
+      costVnd: 385,
+      marginVnd: 595,
+      marginRate: 0.607,
+    },
+    {
+      pipeline: 'face_swap',
+      pack: 'creator',
+      revenueVnd: 663,
+      costVnd: 385,
+      marginVnd: 278,
+      marginRate: 0.419,
+    },
+  ],
+  successMetrics: { approvedTopups: 14, conversionRate: 0.12, gpuCostUsd: 18.4 },
+};
+
+const mockAdminUserId = '90000000-0000-4000-8000-000000000001';
+const mockAdminId = '90000000-0000-4000-8000-0000000000aa';
+
+export const MOCK_ADMIN_USER: AdminUser = {
+  id: mockAdminUserId,
+  email: 'user@example.com',
+  role: 'user',
+  tier: 'Starter',
+  balance: 4200,
+  held: 100,
+  lockedAt: null,
+  createdAt: '2026-10-20T08:00:00.000Z',
+};
+
+export const MOCK_ADMIN_USER_LOCKED: AdminUser = {
+  ...MOCK_ADMIN_USER,
+  lockedAt: '2026-11-10T09:00:00.000Z',
+};
+
+export const MOCK_ADMIN_USER_STATS_RESPONSE: AdminUserStatsResponse = {
+  total: 128,
+  active: 125,
+  locked: 3,
+  admins: 2,
+  withTasks: 74,
+  paying: 19,
+  byTier: [
+    { tier: 'FREE', count: 109 },
+    { tier: 'Starter', count: 11 },
+    { tier: 'Pro', count: 6 },
+    { tier: 'Creator', count: 2 },
+  ],
+  signupsByDay: Array.from({ length: 30 }, (_, i) => ({
+    date: new Date(Date.UTC(2026, 9, 13 + i)).toISOString().slice(0, 10),
+    count: [2, 5, 3, 0, 4, 6, 1][i % 7],
+  })),
+};
+
+export const MOCK_ADMIN_USER_SEARCH_RESPONSE: AdminUserSearchResponse = MOCK_ADMIN_USER;
+
+export const MOCK_ADMIN_USER_LEDGER_RESPONSE: AdminUserLedgerResponse = {
+  items: [
+    {
+      id: '90000000-0000-4000-8000-000000000011',
+      userId: mockAdminUserId,
+      type: 'ADJUST',
+      labelVi: LEDGER_ENTRY_LABELS_VI.ADJUST,
+      amount: 300,
+      note: 'Bù credit do lỗi hệ thống',
+      createdAt: '2026-11-10T10:00:00.000Z',
+    },
+  ],
+  pageSize: 20,
+  hasMore: false,
+  nextCursor: null,
+};
+
+export const MOCK_ADMIN_ADJUST_REQUEST: AdminAdjustRequest = {
+  amount: 300,
+  reason: 'Bù credit do lỗi hệ thống',
+  requestId: '90000000-0000-4000-8000-0000000000c1',
+};
+
+export const MOCK_ADMIN_TASK_LOOKUP_RESPONSE: AdminTaskLookupResponse = {
+  id: '70000000-0000-4000-8000-000000000003',
+  userId: mockAdminUserId,
+  userEmail: 'user@example.com',
+  pipeline: 'face_swap',
+  status: 'succeeded',
+  creditCost: 100,
+  filesRemovedAt: null,
+  createdAt: '2026-11-10T08:00:00.000Z',
+};
+
+export const MOCK_ADMIN_AUDIT_RESPONSE: AdminAuditResponse = {
+  items: [
+    {
+      id: '90000000-0000-4000-8000-000000000021',
+      adminId: mockAdminId,
+      action: 'ADJUST',
+      target: `user:${mockAdminUserId}`,
+      reason: 'Bù credit do lỗi hệ thống',
+      requestId: '90000000-0000-4000-8000-0000000000c1',
+      createdAt: '2026-11-10T10:00:00.000Z',
+    },
   ],
   pageSize: 20,
   hasMore: false,

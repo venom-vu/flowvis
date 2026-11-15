@@ -186,3 +186,180 @@
 - Biến test `TOPUP_FAKE_NOW`, `TOPUP_QR_TTL_MS`, `TOPUP_SWEEP_INTERVAL` chưa có trong `.env.example` (chỉ có hiệu lực khi `NODE_ENV=test`).
 - FE: `VietQRModal` thiếu focus trap/khôi phục focus, Esc đóng khi đang xác nhận; thẻ gói nạp chưa điều khiển bằng bàn phím; polling không tạm dừng khi tab ẩn; `confirmTransfer` gán `expired` cục bộ thay vì tải lại; `runAction` ném `Error` thường khi bấm kép; `qrcode` import tĩnh; `isApprovalDeferred` dựa `updatedAt` nên có thể lệch khi bộ quét cập nhật dòng.
 - Test chưa phủ: script `VietQRModal` (Esc, copy, khoá cuộn), `computeApproveBy` quanh 07:59/23:00, kiểm thử trình duyệt thật cho CORS/cookie.
+- source_spec: `_bmad-output/implementation-artifacts/spec-4-5-fe-so-sanh-truoc-sau.md`
+  summary: Khắc phục race condition ENOENT trong hàm collectFiles của smoke.test.mjs khi quét các file .ts tạm sinh ra từ các test suite chạy song song
+  evidence: smoke.test.mjs:456 quét toàn bộ webRoot bao gồm test/ trong khi các suite khác tạo và xóa file tạm trong test/ dẫn tới lỗi đọc file không tồn tại
+
+## Deferred from: code review of spec-4-5-fe-so-sanh-truoc-sau.md (2026-11-09)
+
+- Nút Quay lại / Lịch sử tại `apps/web/pages/tasks/[id].vue:318` vi phạm WCAG 2.5.3 (Label in Name) do `aria-label="Quay lại"` không chứa chuỗi văn bản hiển thị trực quan `<span>Lịch sử</span>` (vấn đề pre-existing kế thừa từ Story 2.12).
+
+## Deferred from: code review of spec-4-1-contract-hop-dong-cho-body-retouch.md (2026-11-09)
+
+- `_bmad-output/implementation-artifacts/epic-4-context.md` ghi `POST /tasks/body-retouch` nhận `consent`, trong khi spec 4.1 (frozen) và code `.strict()` loại `consent`. Cần đối chiếu và cập nhật file ngữ cảnh để Story 4.2/4.6 không hiểu nhầm (chưa tự kiểm chứng trực tiếp trong file).
+
+## Deferred from: code review of spec-4-2-be-tao-task-body-retouch.md (2026-11-09)
+
+- `apps/api/src/modules/pipelines/pipeline-config.ts:58`: `nodeId`/`fieldName` của `body_retouch` (`10`/`image`, `20`/`intensity`) còn `[ASSUMPTION]`, chưa xác nhận trên RunningHub thật. Cần một lần chạy thật (smoke Story 4.6) để đối chiếu; test hiện tại chỉ phản chiếu cấu hình qua `rh` giả.
+
+## Deferred from: code review of spec-4-3-be-ket-qua-body-retouch.md (2026-11-09)
+
+- `apps/api/test/body-retouch-result.test.mjs`: chưa có test đường lỗi nhập kết quả cho `body_retouch` (tải HTTP 4xx/5xx, body không phải ảnh, `putObject` lỗi, `ingest` gọi hai lần, hủy giữa chừng). Mã nhập kết quả dùng chung với Face Swap từ Epic 2, nên nên phủ ở một story test chung.
+
+- source_spec: `_bmad-output/implementation-artifacts/spec-5-1-contract-hop-dong-cho-motion-control.md`
+  summary: Đổi `mediaType` (kết quả) và `motionControlMinSeconds` (cấu hình giá) thành bắt buộc sau khi BE 5.3/5.6 trả hai trường này.
+  evidence: Hiện để tùy chọn vì `apps/api` chưa trả và 5.1 không được sửa `apps/*`.
+- source_spec: `_bmad-output/implementation-artifacts/spec-5-1-contract-hop-dong-cho-motion-control.md`
+  summary: BE 5.3 phải kiểm `trimEnd > trimStart`, độ dài 3..Cap và giới hạn trên của Trim bằng `details.reason`; làm tròn `durationSeconds` kết quả (BE 5.6); thêm mock lỗi `VALIDATION_FAILED` kèm `details.reason` cho FE 5.7.
+  evidence: Đã chạy `MotionCreateRequestSchema` với (7,2), (0,1), (0,1e21) vẫn parse; `VideoMeta.durationSeconds` là số thực còn kết quả là số nguyên.
+
+- source_spec: `_bmad-output/implementation-artifacts/spec-5-2-be-tai-video-len-va-kiem-tra-bang-ffprobe.md`
+  summary: Chạy `confirm` song song hai request trên một khóa có thể xóa `in-raw/` hoặc để mồ côi `in/` (cả ảnh lẫn video).
+  evidence: `reconcile-script.test` đã xác nhận pass khi đặt `RUNNINGHUB_WORKFLOW_BODY_RESHAPE` (chỉ thiếu biến môi trường khi chạy tay); mẫu `confirm` đua có từ Story 2.2.
+- source_spec: `_bmad-output/implementation-artifacts/spec-5-2-be-tai-video-len-va-kiem-tra-bang-ffprobe.md`
+  summary: Thống nhất `DATABASE_URL` mặc định của test và `.env.example` (`motion_user`) với user Postgres của container local (`flowvis_user`).
+  evidence: Chạy test phải truyền `DATABASE_URL` tay vì container local dùng `flowvis_user`; chưa rõ bên nào là cấu hình chuẩn nên chưa sửa.
+- source_spec: `_bmad-output/implementation-artifacts/spec-5-3-be-tao-task-motion-control-va-tinh-gia-phia-server.md`
+  summary: Trước khi triển khai thật, gỡ nhánh chặn tạm `motion_control` → `failed`/`INTERNAL_ERROR` ở `task-worker.service.ts` (Story 5.5) và cân nhắc cờ chặn route `POST /tasks/motion` nếu có triển khai trước 5.5.
+  evidence: Giữa 5.3 và 5.5 mọi Task Motion được tạo rồi luôn `failed`, người dùng sẽ thấy lỗi; chủ ý theo quyết định 3A.
+- source_spec: `_bmad-output/implementation-artifacts/spec-5-3-be-tao-task-motion-control-va-tinh-gia-phia-server.md`
+  summary: Kiểm lại khóa/độ dài video trong cùng transaction với HOLD và thêm test hai `POST /tasks/motion` đồng thời cùng khóa.
+  evidence: Có cửa sổ ngắn giữa kiểm khóa và HOLD (TOCTOU), cùng mẫu với Face Swap/Body Retouch; chưa có test đồng thời.
+- source_spec: `_bmad-output/implementation-artifacts/spec-5-7-fe-tai-video-mau-va-thanh-trim.md`
+  summary: Thêm test mount `VideoTrimmer`/`ImageUploader` (phát `change`, hủy, thử lại, unmount) và tách bộ đọc độ dài khỏi hook kiểm thử `durationSeconds` trong `getVideoDuration`.
+  evidence: Test thành phần hiện chỉ so chuỗi và biên dịch template; hàm thuần và `useUploadFlow` đã có test hành vi.
+- source_spec: `_bmad-output/implementation-artifacts/spec-5-4-be-cat-video-bang-ffmpeg-o-buoc-chuan-bi-cua-worker.md`
+  summary: Thêm backoff cho `fetchWithRetry`, stream video vào/ra đĩa thay vì giữ cả `Buffer`, thư mục tạm theo tiến trình khi nhân bản worker, và tách singleton `videoTrim` khỏi vòng phụ thuộc `pipelines/` ↔ `tasks/` (DI) khi 5.5 đổi cấu trúc `prepare`.
+  evidence: Giới hạn hiện tại 100 MB, 2 Lane, một worker; đo tải CPU/đĩa thật thuộc bước kiểm thử ffmpeg của Epic 6.
+- source_spec: `_bmad-output/implementation-artifacts/spec-5-8-fe-trang-motion-control-gia-truc-tiep-va-ket-qua-video.md`
+  summary: Bổ sung `og:video:secure_url`/kích thước/Twitter player cho trang chia sẻ video, tải MP4 bằng liên kết thay vì blob, làm mới ảnh bìa hết hạn, và đo tải N+1 `GET /tasks/{id}/result` của thẻ lịch sử khi nối BE thật.
+  evidence: Review nêu; spec cho phép N+1 ở Design Notes, kiểm ở Story 5.9.
+- source_spec: `_bmad-output/implementation-artifacts/spec-5-8-fe-trang-motion-control-gia-truc-tiep-va-ket-qua-video.md`
+  summary: Tách `MotionWorkspacePanel` khỏi `FeatureWorkspaceDialog` (hiện `useMotionControl` chạy trong mọi dialog), gỡ `selectedSeconds` còn sót, và tìm hiểu lại quyết định bỏ ô cam kết ToS/`VietQRModal` tại chỗ nếu sản phẩm cần.
+  evidence: Lệch AC 5.8 theo quyết định của người dùng (2A/3A/4B); `selectedSeconds` không còn dùng sau khi dialog nhúng `VideoTrimmer`.
+
+- source_spec: `spec-5-5-be-gui-task-motion-len-runninghub.md`
+  summary: Đối chiếu nodeId/fieldName của workflow Motion và các tham số không phải file bằng một lần chạy thật.
+  evidence: nodeId `1`/`2` là `[ASSUMPTION]`; ánh xạ sai sẽ làm Task Motion thất bại ở RunningHub sau khi đã dùng GPU (Story 5.9).
+- source_spec: `spec-5-5-be-gui-task-motion-len-runninghub.md`
+  summary: Không bật Motion cho người dùng thật trước Story 5.6 (nhập kết quả video).
+  evidence: Ingestor hiện tại chưa xử lý MP4; Task Motion `SUCCESS` kết thúc `failed`/`OUTPUT_UPLOAD_ERROR`, hoàn credit nhưng tốn GPU.
+- source_spec: `spec-5-5-be-gui-task-motion-len-runninghub.md`
+  summary: Hai suite không ổn định có từ trước: `reconcile-script.test.mjs` (fail ở baseline) và `signup-grant.test.mjs` (429 lẻ).
+  evidence: Chạy lại với bản chưa sửa vẫn fail (reconcile mọi lần; signup-grant 1 trên 3 lần).
+
+- source_spec: `spec-5-6-be-nhap-ket-qua-video-anh-bia-va-chia-se.md`
+  summary: Tải video lên R2 bằng luồng thay vì đọc cả file vào bộ nhớ.
+  evidence: `StoragePort.putObject` chỉ nhận `Buffer`; `ingestVideo` dùng `readFile` cho video tối đa 100 MB, nên ingest đồng thời có thể tốn bộ nhớ lớn.
+- source_spec: `spec-5-6-be-nhap-ket-qua-video-anh-bia-va-chia-se.md`
+  summary: Dọn khóa `out/` mồ côi khi worker chết giữa `putObject` và `transition`.
+  evidence: Khóa đã ghi nhưng Task chưa `succeeded` không có bộ quét nào xóa; ingest chạy lại tạo cặp khóa mới.
+- source_spec: `spec-5-6-be-nhap-ket-qua-video-anh-bia-va-chia-se.md`
+  summary: Kiểm tra SSRF theo DNS đã phân giải thay vì chỉ tên host cho URL kết quả RunningHub.
+  evidence: `isPublicHttpUrl` chỉ xét chuỗi URL; tên host công khai trỏ về IP nội bộ vẫn qua, và nhánh video nay tải tới 100 MB từ đó.
+- source_spec: `spec-5-6-be-nhap-ket-qua-video-anh-bia-va-chia-se.md`
+  summary: Test chia sẻ của Body Retouch trả 429 thay vì 302 (`body-retouch-result.test.mjs`, nhóm "chia sẻ").
+  evidence: Fail cả khi bỏ thay đổi của story 5.6 (baseline 11 pass, 1 fail); Redis không còn khóa throttle sót lại nên chưa rõ nguyên nhân.
+- source_spec: `_bmad-output/implementation-artifacts/spec-5-9-integration-noi-fe-voi-be-va-smoke-test-motion-control.md`
+  summary: Smoke Motion Control chưa quan sát được hai ffmpeg chạy chồng nhau trong worker (chỉ khẳng định `maxActive <= 2` ở RunningHub giả).
+  evidence: Khóa FIFO được test đơn vị ở Story 5.4 nhưng không có tín hiệu cấp container; cần cơ chế đo (log hoặc đếm tiến trình ffmpeg trong worker), nên gộp vào benchmark ffmpeg của Epic 6.
+- source_spec: `_bmad-output/implementation-artifacts/spec-5-9-integration-noi-fe-voi-be-va-smoke-test-motion-control.md`
+  summary: Job `smoke` của CI không cài hoặc kiểm `ffmpeg`/`ffprobe` (libx264) trên runner host trước khi smoke Motion Control sinh video mẫu.
+  evidence: Smoke gọi `ffmpeg -f lavfi ... libx264` trên host `ubuntu-latest`; nếu image runner đổi, lỗi là ENOENT khó hiểu; cần bước `ffmpeg -version` hoặc cài đặt rõ ràng.
+- source_spec: `_bmad-output/implementation-artifacts/spec-6-1-contract-hop-dong-cho-van-hanh-va-quan-tri.md`
+  summary: Chốt ánh xạ SM-1…SM-4 sang trường `successMetrics` (hiện 3 trường).
+  evidence: SM-1/2 gộp vào `conversionRate`; BE 6.6 cần xác nhận và bổ sung nếu thiếu.
+- source_spec: `_bmad-output/implementation-artifacts/spec-6-1-contract-hop-dong-cho-van-hanh-va-quan-tri.md`
+  summary: Định nghĩa `pausedReason` và hành vi `POST /admin/ops/resume` khi ví RunningHub vẫn cạn.
+  evidence: Hợp đồng 6.1 chưa nêu; thuộc 6.2/6.3.
+- source_spec: `_bmad-output/implementation-artifacts/spec-6-1-contract-hop-dong-cho-van-hanh-va-quan-tri.md`
+  summary: Chốt enum `rule`/`metrics` ngắt mạch và `action`/`target` nhật ký audit.
+  evidence: Đang là chuỗi tự do; BE 6.2/6.4/6.5 có thể phát tên lệch nhau.
+- source_spec: `_bmad-output/implementation-artifacts/spec-6-1-contract-hop-dong-cho-van-hanh-va-quan-tri.md`
+  summary: Định nghĩa hình dạng `GET /tasks/{id}/result` và `/s/{token}/info` cho Task đã gỡ (có `filesRemovedAt`).
+  evidence: Chỉ có `filesRemovedAt` và hằng thông báo; BE 6.5 và FE 6.9 cần cùng quyết định.
+- source_spec: `_bmad-output/implementation-artifacts/spec-6-2-be-ngat-mach-va-chan-tao-task-khi-tam-dung.md`
+  summary: Dựng cơ chế thử lại tối đa 5 lần cho cảnh báo Discord của ngắt mạch (và các cảnh báo Epic 6 khác), dùng chung ở 6.3/6.7.
+  evidence: Hiện chỉ gửi một lần; nếu Discord lỗi đúng lúc kích hoạt thì admin không nhận cảnh báo, chỉ thấy cờ ở /system/status.
+- source_spec: `_bmad-output/implementation-artifacts/spec-6-2-be-ngat-mach-va-chan-tao-task-khi-tam-dung.md`
+  summary: Thêm assert Cancel và chia sẻ không bị chặn khi `intake_paused` bật.
+  evidence: `IntakeOpenGuard` chỉ gắn ba route tạo Task; test hiện chỉ kiểm GET /tasks và /system/status.
+- source_spec: `_bmad-output/implementation-artifacts/spec-6-3-be-xu-ly-het-ngan-sach-runninghub-va-canh-bao-so-du.md`
+  summary: Xác nhận chéo hết ngân sách bằng `getBalance()` trước khi bật `intake_paused` để tránh bật nhầm vì từ khóa trong thông điệp lỗi.
+  evidence: Khớp từ khóa trên chuỗi tự do của RunningHub có thể trùng một thông điệp lỗi thường và dừng nhận Task cho mọi người.
+- source_spec: `_bmad-output/implementation-artifacts/spec-6-3-be-xu-ly-het-ngan-sach-runninghub-va-canh-bao-so-du.md`
+  summary: Thêm công tắc tắt job đọc số dư khi `RH_BALANCE_ENDPOINT` chưa cấu hình.
+  evidence: Endpoint rỗng nên job báo 'không đọc được' sau 30 phút ở mọi môi trường cho đến khi vận hành điền giá trị (6.10/6.11).
+- source_spec: `_bmad-output/implementation-artifacts/spec-6-3-be-xu-ly-het-ngan-sach-runninghub-va-canh-bao-so-du.md`
+  summary: Điều tra lần fail không lặp lại của 26 test Story 2.5 (`task-worker.test.mjs`) khi chạy suite đầy đủ.
+  evidence: Một lần chạy ra 31 fail, lần ngay sau 5 fail có sẵn, chạy riêng 31/31 pass; chưa xác định nguyên nhân, nghi trạng thái dùng chung giữa các suite.
+
+- source_spec: `_bmad-output/implementation-artifacts/spec-6-4-be-khoa-tai-khoan-va-cong-bu-credit.md`
+  summary: Chặn admin tự khóa tài khoản mình hoặc tài khoản admin khác.
+  evidence: Spec 6.4 không cấm; admin có thể tự khóa và mất quyền `/admin`. Cần quyết định nghiệp vụ trước khi sửa.
+- source_spec: `_bmad-output/implementation-artifacts/spec-6-4-be-khoa-tai-khoan-va-cong-bu-credit.md`
+  summary: Thay test "không có route sửa/xóa admin_audit" bằng kiểm tra thật.
+  evidence: Test hiện gọi `/admin/audit` (không tồn tại) nên luôn 404; thêm `@Delete` vẫn pass. Cần guard hoặc test mức CSDL.
+- source_spec: `_bmad-output/implementation-artifacts/spec-6-4-be-khoa-tai-khoan-va-cong-bu-credit.md`
+  summary: Thêm test Task queued/running của tài khoản bị khóa vẫn kết thúc bình thường.
+  evidence: Chưa test nào tạo Task rồi khóa; AC của epic nêu hành vi này.
+- source_spec: `_bmad-output/implementation-artifacts/spec-6-4-be-khoa-tai-khoan-va-cong-bu-credit.md`
+  summary: Xác minh refresh token đang xoay vòng đồng thời với lockAccount không cấp token mới sau khi khóa (unverified, nếu đúng là medium).
+  evidence: Cần đọc luồng refresh trong auth.service xem có đọc locked_at sau khi khóa dòng user hay không.
+
+- source_spec: `_bmad-output/implementation-artifacts/spec-6-5-be-go-bo-noi-dung-khan-cap.md`
+  summary: Gỡ nội dung xóa cả khóa `in/` có thể đang dùng chung với Task khác của cùng chủ.
+  evidence: `areConfirmedKeysOwnedBy` không đánh dấu upload đã dùng nên một khóa `in/` có thể xuất hiện trong nhiều Task; takedown xóa mọi khóa `in/` của Task theo spec. Cần xác minh luồng tạo Task có cho dùng lại upload hay không.
+
+- source_spec: `_bmad-output/implementation-artifacts/spec-6-6-be-thong-ke-van-hanh-va-nhat-ky-admin.md`
+  summary: Log JSON có `taskId`/`userId` và không chứa email, token, khóa bí mật (NFR7), kèm test, cho `api` và `worker`.
+  evidence: Tách khỏi Story 6.6 theo lựa chọn của người dùng. Hiện chỉ dùng `Logger` văn bản của Nest, chưa có trường có cấu trúc; `auth.service.ts` ghi email thô vào log khi googleId xung đột.
+
+- source_spec: `_bmad-output/implementation-artifacts/spec-6-6-be-thong-ke-van-hanh-va-nhat-ky-admin.md`
+  summary: Loại tài khoản admin/nội bộ khỏi chỉ số `scope=real` của thống kê.
+  evidence: Spec chỉ loại email trong `BENCHMARK_USER_EMAILS`; tài khoản admin tạo trong kỳ làm tăng mẫu số SM-1, số Task và `gpuCostUsd`. Cần quyết định loại theo role hay yêu cầu đưa admin vào danh sách benchmark.
+
+- source_spec: `_bmad-output/implementation-artifacts/spec-6-6-be-thong-ke-van-hanh-va-nhat-ky-admin.md`
+  summary: Thêm cột `approved_at` cho đơn nạp thay cho `updated_at` trong thống kê.
+  evidence: `countApproved` và `accountsWithApprovedWithin` dùng `updated_at`; mọi lần ghi sau đó vào đơn đã duyệt (sửa `bank_ref`, backfill) làm đơn dịch chuyển giữa các kỳ và cửa sổ 30 ngày của SM-1.
+
+- source_spec: `_bmad-output/implementation-artifacts/spec-6-7-be-sao-luu-postgresql-len-r2.md`
+  summary: Thêm vào CI bước `pg_dump --version` trên image worker và bước chạy restore-drill trên một dump nhỏ (làm trên nhánh `shared/*`).
+  evidence: Nhánh `be/*` không được sửa `.github/` (scripts/check-branch-boundaries.mjs l.38–44); story 6.7 yêu cầu cả hai bước CI. Script `apps/api/src/scripts/restore-drill.ts` và lệnh kiểm tra phiên bản đã có sẵn để CI gọi.
+
+- source_spec: `_bmad-output/implementation-artifacts/spec-6-7-be-sao-luu-postgresql-len-r2.md`
+  summary: Hỗ trợ kết nối TLS cho sao lưu (ánh xạ `sslmode`, `sslrootcert` trong `DATABASE_URL` sang `PGSSL*`, truyền `PGSSL*`/`HOME`/`TMPDIR` cho tiến trình con).
+  evidence: `pgConnectionFromUrl` cắt toàn bộ query của `DATABASE_URL` và `childEnv` chỉ truyền `PATH`, `LANG`, `PG*`; hiện đúng vì Postgres trong compose cùng mạng không TLS, sẽ sai khi chuyển sang DB từ xa yêu cầu TLS.
+
+- source_spec: `_bmad-output/implementation-artifacts/spec-6-7-be-sao-luu-postgresql-len-r2.md`
+  summary: Ghim vân tay khóa PGDG trong `deploy/Dockerfile` và gỡ `curl`/`gnupg` khỏi image runtime.
+  evidence: Khóa PGDG tải qua mạng lúc build không kiểm vân tay; `curl`/`gnupg` còn lại trong image runtime. Build hiện thành công và `pg_dump` ra 16.15.
+
+- source_spec: `_bmad-output/implementation-artifacts/spec-6-7-be-sao-luu-postgresql-len-r2.md`
+  summary: Ghi quyết định ngoài MVP: mã hóa phía ứng dụng cho bản sao lưu và khóa R2 riêng cho `db-backup/`.
+  evidence: `deploy/README.md` đã nêu việc này nằm ngoài MVP theo AC; chưa có mục theo dõi để làm ở giai đoạn sau.
+
+- source_spec: `_bmad-output/implementation-artifacts/spec-6-8-fe-trang-van-hanh-admin.md`
+  summary: Hộp xác nhận `/admin/ops` cần truy cập bàn phím (aria-labelledby, focus trap, Esc, khôi phục focus).
+  evidence: Review 6.8 thấy `role="dialog"` thiếu các thuộc tính này; cùng mẫu có thể có ở modal khác nên nên xử lý chung.
+- source_spec: `_bmad-output/implementation-artifacts/spec-6-8-fe-trang-van-hanh-admin.md`
+  summary: Polling trạng thái của `/admin/ops` nên dừng khi mất quyền admin hoặc gặp 401/403.
+  evidence: `watch(isAdmin)` chỉ khởi động, không dừng; `refreshStatus` lỗi vẫn lặp mỗi 30 giây.
+
+- source_spec: `_bmad-output/implementation-artifacts/spec-6-10-integration-noi-fe-voi-be-va-smoke-test-van-hanh.md`
+  summary: Smoke vận hành chưa phủ nhánh `rhBudgetExhausted`, cảnh báo sao lưu quá 36 giờ, biểu ngữ bảo trì và viewport 360 px trên trình duyệt thật; so khớp mock với phản hồi thật mới ở khóa cấp cao của ops status.
+  evidence: Reviewer verification-gap và edge-case nêu; ngoài các AC của Story 6.10 nên không sửa ở đây.
+
+- source_spec: `_bmad-output/implementation-artifacts/spec-6-11-ops-cong-truoc-khi-bat-vietqr-thuong-mai.md`
+  summary: Gắn fixture `/admin/stats` trong `scripts/prelaunch/lib.test.mjs` với `AdminStatsResponseSchema` của `@flowvis/contracts` để đổi tên `pack`/`scenario` không làm cổng benchmark fail âm thầm.
+  evidence: `evaluateBenchmark` lọc chuỗi `'creator'`/`'retail'` cố định; fixture viết tay, không parse qua contracts. Thất bại kiểu fail-closed nên chưa chặn.
+
+- source_spec: `_bmad-output/implementation-artifacts/spec-video-character-replacement.md`
+  summary: Hủy hoặc bỏ qua kết quả submit đang bay khi đóng dialog hoặc đổi tính năng (Character Replacement, mẫu giống Motion Control).
+  evidence: Chưa xác minh (maybe-false, mức medium): `clearState()` không đặt lại `isSubmitting` hay vô hiệu hóa promise; cần thử thủ công đóng dialog giữa lúc gửi để xem task cũ có xuất hiện sai ngữ cảnh không.
+
+## Deferred from: code review of uncommitted changes, cap Task theo hạng và concurrency worker (2026-11-14)
+
+- source_spec: không có (review chế độ no-spec)
+  summary: Khóa ffmpeg dùng chung (`FifoLock`, `video-trim.service.ts`) và `prep_deadline_at` 120 giây có thể gây `PREP_TIMEOUT` khi nhiều Task video vào bước chuẩn bị cùng lúc; `PREP_TIMEOUT` tính vào ngắt mạch (`SYSTEM_FAILURE_REASONS`), 5 lần liên tiếp sẽ tạm dừng nhận Task.
+  evidence: Chưa xác minh trên production (mức low đến medium, hạ từ medium). Đo trên máy dev 8 nhân, video 1280x720: clip 3 giây cắt 0,35 giây, 10 giây 1,08 giây, 20 giây 1,65 giây, nên 85 task video vào cùng lúc chờ tối đa khoảng 140 giây so với hạn 120 giây. Cần đo ffmpeg trên máy production và theo dõi số `PREP_TIMEOUT` khi nâng `WORKER_CONCURRENCY` lên 85. Nếu xảy ra, hướng sửa là nâng hạn chuẩn bị (`tasks.service.ts` dòng 179) hoặc tính hạn từ lúc lấy được khóa.

@@ -128,6 +128,11 @@ model Task {
   gateDeadline     DateTime?     @map("gate_deadline") @db.Timestamptz(6)
   runninghubTaskId String?       @map("runninghub_task_id")
   gpuCoins         Int?          @map("gpu_coins")
+  instanceType     String?       @map("instance_type")
+  costUsd          Decimal?      @map("cost_usd") @db.Decimal(12, 6)
+  costSeconds      Int?          @map("cost_seconds")
+  costSource       String?       @map("cost_source")
+  filesRemovedAt   DateTime?     @map("files_removed_at") @db.Timestamptz(6)
   createdAt        DateTime      @default(now()) @map("created_at") @db.Timestamptz(6)
   updatedAt        DateTime      @updatedAt @map("updated_at") @db.Timestamptz(6)
   user             User          @relation(fields: [userId], references: [id], onDelete: Cascade)
@@ -190,9 +195,18 @@ model AdminAudit {
   target      String   @map("target")
   beforeAfter Json     @map("before_after")
   at          DateTime @default(now()) @map("at") @db.Timestamptz(6)
+  requestId   String?  @unique @map("request_id")
   admin       User     @relation(fields: [adminId], references: [id], onDelete: Restrict)
 
   @@index([target])
   @@index([at(sort: Desc)])
   @@map("admin_audit")
+}
+
+model Setting {
+  key       String   @id @map("key")
+  value     Json     @map("value")
+  updatedAt DateTime @default(now()) @map("updated_at") @db.Timestamptz(6)
+
+  @@map("settings")
 }

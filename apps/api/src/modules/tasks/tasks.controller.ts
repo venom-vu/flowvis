@@ -1,11 +1,18 @@
 import { BadRequestException, Body, Controller, Delete, Get, HttpCode, NotFoundException, Param, Post, Query, UseGuards } from '@nestjs/common';
 import {
   ApiErrorCode,
+  BodyRetouchCreateRequestSchema,
   FaceSwapCreateRequestSchema,
+  OutfitChangeCreateRequestSchema,
+  type OutfitChangeCreateResponse,
+  MotionCreateRequestSchema,
+  getValidationReasonMessageVi,
+  type MotionCreateResponse,
   TaskIdParamsSchema,
   TaskListQuerySchema,
   type Task,
   getApiErrorMessageVi,
+  type BodyRetouchCreateResponse,
   type FaceSwapCreateResponse,
   type TaskListResponse,
   type TaskResultResponse,
@@ -16,6 +23,7 @@ import { CurrentUser } from '../auth/decorators/current-user.decorator.js';
 import { AccountLockedGuard } from '../auth/guards/account-locked.guard.js';
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard.js';
 import type { JwtUserPayload } from '../auth/jwt.strategy.js';
+import { CreatesTask, IntakeOpenGuard } from '../ops/intake-open.guard.js';
 import { ShareService } from '../storage/share.service.js';
 import { TasksService } from './tasks.service.js';
 
@@ -28,6 +36,8 @@ export class TasksController {
   ) {}
 
   @Post('face-swap')
+  @CreatesTask()
+  @UseGuards(IntakeOpenGuard)
   async createFaceSwap(
     @CurrentUser() user: JwtUserPayload,
     @Body() body: unknown,
@@ -41,6 +51,76 @@ export class TasksController {
       });
     }
     return this.tasks.createFaceSwap(user.sub, parsed.data);
+  }
+
+  @Post('outfit-change')
+  @CreatesTask()
+  @UseGuards(IntakeOpenGuard)
+  async createOutfitChange(
+    @CurrentUser() user: JwtUserPayload,
+    @Body() body: unknown,
+  ): Promise<OutfitChangeCreateResponse> {
+    const parsed = OutfitChangeCreateRequestSchema.safeParse(body);
+    if (!parsed.success) {
+      const code = ApiErrorCode.VALIDATION_FAILED;
+      throw new BadRequestException({
+        code,
+        message: parsed.error.issues[0]?.message ?? getApiErrorMessageVi(code),
+      });
+    }
+    return this.tasks.createOutfitChange(user.sub, parsed.data);
+  }
+
+  @Post('body-retouch')
+  @CreatesTask()
+  @UseGuards(IntakeOpenGuard)
+  async createBodyRetouch(
+    @CurrentUser() user: JwtUserPayload,
+    @Body() body: unknown,
+  ): Promise<BodyRetouchCreateResponse> {
+    const parsed = BodyRetouchCreateRequestSchema.safeParse(body);
+    if (!parsed.success) {
+      const code = ApiErrorCode.VALIDATION_FAILED;
+      throw new BadRequestException({
+        code,
+        message: parsed.error.issues[0]?.message ?? getApiErrorMessageVi(code),
+      });
+    }
+    return this.tasks.createBodyRetouch(user.sub, parsed.data);
+  }
+
+  @Post('motion')
+  @CreatesTask()
+  @UseGuards(IntakeOpenGuard)
+  async createMotion(
+    @CurrentUser() user: JwtUserPayload,
+    @Body() body: unknown,
+  ): Promise<MotionCreateResponse> {
+    const parsed = MotionCreateRequestSchema.safeParse(body);
+    if (!parsed.success) {
+      const code = ApiErrorCode.VALIDATION_FAILED;
+      // Thứ tự xác định: trimStart trước trimEnd.
+      const trimIssue = ['trimStart', 'trimEnd']
+        .map((k) => parsed.error.issues.find((i) => i.path[0] === k))
+        .find((i) => i !== undefined);
+      let reason: 'TRIM_NOT_WHOLE_SECOND' | 'TRIM_OUT_OF_VIDEO' | null = null;
+      if (trimIssue?.code === 'too_small') reason = 'TRIM_OUT_OF_VIDEO';
+      else if (trimIssue?.code === 'invalid_type' && trimIssue.expected === 'integer') {
+        reason = 'TRIM_NOT_WHOLE_SECOND';
+      }
+      if (reason) {
+        throw new BadRequestException({
+          code,
+          message: getValidationReasonMessageVi(reason),
+          details: { reason },
+        });
+      }
+      throw new BadRequestException({
+        code,
+        message: parsed.error.issues[0]?.message ?? getApiErrorMessageVi(code),
+      });
+    }
+    return this.tasks.createMotionControl(user.sub, parsed.data);
   }
 
   @Get()

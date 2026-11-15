@@ -61,6 +61,9 @@ const realAdd = Queue.prototype.add;
 Queue.prototype.add = async function (name, data, opts) { return { id: opts?.jobId }; };
 Queue.prototype.getJob = async function () { return null; };
 
+process.env.RUNNINGHUB_WORKFLOW_BODY_RESHAPE ??= 'wf-body';
+process.env.RUNNINGHUB_WORKFLOW_MOTION ??= 'wf-motion';
+
 describe('Story 2.5: [BE] Worker xử lý Task qua RunningHub', () => {
   let app, baseUrl, pool, prisma, jwt, svc, worker;
   const runId = crypto.randomBytes(4).toString('hex');
@@ -77,11 +80,12 @@ describe('Story 2.5: [BE] Worker xử lý Task qua RunningHub', () => {
     getObjectImpl = async () => Buffer.from('img');
   }
 
-  async function newUser(balance = 5000) {
+  async function newUser(balance = 5000, tierPack = null) {
     const n = users.length;
     const u = await prisma.user.create({ data: { googleId: `w-${runId}-${n}`, email: `w-${runId}-${n}@flowvis.vn`, tosVersion: 'tos-v7' } });
     users.push(u.id);
     await prisma.$transaction((t) => new WalletService().grant(t, u.id, balance));
+    if (tierPack) await pool.query('UPDATE users SET tier_pack=$1 WHERE id=$2', [tierPack, u.id]);
     return { id: u.id, token: jwt.sign({ sub: u.id, email: u.email, role: 'user' }) };
   }
   async function createTask(user) {
@@ -100,6 +104,7 @@ describe('Story 2.5: [BE] Worker xử lý Task qua RunningHub', () => {
   const ledger = (id, type) => prisma.ledgerEntry.findMany({ where: { taskId: id, type } });
   // Chỉ dọn Task của user test; slot do dữ liệu ngoài chiếm được tính để cổng luôn còn đúng 2 slot cho test.
   async function clearGate() {
+    await pool.query(`UPDATE settings SET value='false'::jsonb WHERE key IN ('intake_paused','rh_budget_exhausted')`);
     await pool.query(`UPDATE tasks SET status='failed', reason_code='RH_ERROR', finished_at=now(), rh_orphan_until=NULL WHERE user_id = ANY($1::uuid[]) AND status IN ('queued','running')`, [users]);
     await pool.query(`UPDATE tasks SET rh_orphan_until=NULL WHERE user_id = ANY($1::uuid[]) AND rh_orphan_until IS NOT NULL`, [users]);
     const foreign = await svc.countGateOccupied();
@@ -250,14 +255,16 @@ describe('Story 2.5: [BE] Worker xử lý Task qua RunningHub', () => {
     assert.equal((await row(id)).deadline_at.getTime(), before);
   });
 
-  it('quá hạn khôi phục: RH_TIMEOUT và PREP_TIMEOUT', async () => {
+  it('quá hạn khôi phục: deadline_at không còn hết hạn Task; PREP_TIMEOUT vẫn hết hạn', async () => {
     reset(); await clearGate();
     const u = await newUser();
     const a = await createTask(u);
     await svc.transition(a, 'queued', 'running');
-    await upd(a, `deadline_at=now()-interval '1 second'`);
+    await upd(a, `deadline_at=now()-interval '1 second', runninghub_task_id='rh-late'`);
+    outputsQueue = [{ status: 'SUCCESS', fileUrl: 'http://x/y.png', consumeMoney: 1 }];
     await worker.processTask(a);
-    assert.equal((await row(a)).reason_code, 'RH_TIMEOUT');
+    assert.notEqual((await row(a)).reason_code, 'RH_TIMEOUT', 'deadline_at đã qua không làm timed_out');
+    assert.equal(ingestCalls.length, 1, 'vẫn nhận kết quả RunningHub trả muộn');
     const b = await createTask(u);
     await svc.transition(b, 'queued', 'running');
     await upd(b, `prep_deadline_at=now()-interval '1 second'`);
@@ -280,7 +287,7 @@ describe('Story 2.5: [BE] Worker xử lý Task qua RunningHub', () => {
 
   it('cổng đầy: Task thứ ba chờ; có slot thì chạy; orphan tính vào cổng', async () => {
     reset(); await clearGate();
-    const u = await newUser();
+    const u = await newUser(5000, 'pro');
     const a = await createTask(u), b = await createTask(u), c = await createTask(u);
     for (const x of [a, b]) {
       await svc.transition(x, 'queued', 'running');
@@ -303,7 +310,7 @@ describe('Story 2.5: [BE] Worker xử lý Task qua RunningHub', () => {
 
   it('quá gate_deadline => RH_GATE_TIMEOUT', async () => {
     reset(); await clearGate();
-    const u = await newUser();
+    const u = await newUser(5000, 'pro');
     const a = await createTask(u), b = await createTask(u), c = await createTask(u);
     for (const x of [a, b]) {
       await svc.transition(x, 'queued', 'running');
@@ -441,7 +448,12 @@ describe('Story 2.5: [BE] Worker xử lý Task qua RunningHub', () => {
     worker.rh.uploadFile = async (bytes) => { seen.push(bytes.toString()); calls.upload++; return `f${calls.upload}`; };
     Object.defineProperty(cfg, 'prepare', {
       configurable: true,
-      value: async (inputs) => Object.fromEntries(Object.entries(inputs).map(([k, v]) => [k, Buffer.from(`P-${v}`)])),
+      value: async ({ row, storage, signal }) => {
+        const keys = row.inputKeys;
+        return Object.fromEntries(
+          await Promise.all(Object.entries(keys).map(async ([k, key]) => [k, Buffer.from(`P-${await storage.getObject(key, signal)}`)])),
+        );
+      },
     });
     try {
       const u = await newUser();
@@ -451,6 +463,50 @@ describe('Story 2.5: [BE] Worker xử lý Task qua RunningHub', () => {
     } finally {
       delete cfg.prepare;
       worker.rh.uploadFile = origUpload;
+    }
+  });
+
+  it('prepare ném PrepareError(FFMPEG_ERROR) => failed/FFMPEG_ERROR, RELEASED, không gọi RunningHub', async () => {
+    reset(); await clearGate();
+    const { PIPELINE_CONFIGS } = await import('../dist/modules/pipelines/index.js');
+    const { PrepareError } = await import('../dist/modules/tasks/video-trim.service.js');
+    const cfg = PIPELINE_CONFIGS.face_swap;
+    Object.defineProperty(cfg, 'prepare', { configurable: true, value: async () => { throw new PrepareError('FFMPEG_ERROR'); } });
+    try {
+      const u = await newUser();
+      const id = await createTask(u);
+      await worker.processTask(id);
+      const r = await row(id);
+      assert.equal(r.status, 'failed');
+      assert.equal(r.reason_code, 'FFMPEG_ERROR');
+      assert.equal((await ledger(id, 'RELEASED')).length, 1);
+      assert.deepEqual(calls, { upload: 0, submit: 0, outputs: 0 });
+    } finally {
+      delete cfg.prepare;
+    }
+  });
+
+  it('prepare bị ctx.signal hủy khi quá prep_deadline_at => timed_out/PREP_TIMEOUT, RELEASED', async () => {
+    reset(); await clearGate();
+    const { PIPELINE_CONFIGS } = await import('../dist/modules/pipelines/index.js');
+    const cfg = PIPELINE_CONFIGS.face_swap;
+    Object.defineProperty(cfg, 'prepare', {
+      configurable: true,
+      value: ({ signal }) => new Promise((_, reject) => signal.addEventListener('abort', () => reject(new Error('aborted')), { once: true })),
+    });
+    try {
+      const u = await newUser();
+      const id = await createTask(u);
+      await svc.transition(id, 'queued', 'running');
+      await upd(id, `prep_deadline_at=now()+interval '300 milliseconds'`);
+      await worker.processTask(id);
+      const r = await row(id);
+      assert.equal(r.status, 'timed_out');
+      assert.equal(r.reason_code, 'PREP_TIMEOUT');
+      assert.equal((await ledger(id, 'RELEASED')).length, 1);
+      assert.equal(calls.upload, 0);
+    } finally {
+      delete cfg.prepare;
     }
   });
 
@@ -469,7 +525,7 @@ describe('Story 2.5: [BE] Worker xử lý Task qua RunningHub', () => {
     assert.equal((await ledger(id, 'RELEASED')).length, 1);
   });
 
-  it('poll quá deadline_at => RH_TIMEOUT + orphan', async () => {
+  it('poll quá deadline_at: vẫn chờ RunningHub, nhận kết quả SUCCESS đến muộn', async () => {
     reset(); await clearGate();
     outputsQueue = [{ status: 'RUNNING' }];
     const u = await newUser();
@@ -477,10 +533,11 @@ describe('Story 2.5: [BE] Worker xử lý Task qua RunningHub', () => {
     const p = worker.processTask(id);
     await new Promise((r) => setTimeout(r, 200));
     await upd(id, `deadline_at=now()-interval '1 second'`);
+    await new Promise((r) => setTimeout(r, 200));
+    assert.equal((await row(id)).status, 'running', 'quá deadline_at không làm hết hạn Task');
+    outputsQueue = [{ status: 'SUCCESS', fileUrl: 'http://x/y.png', consumeMoney: 1 }];
     await p;
-    const r = await row(id);
-    assert.equal(r.reason_code, 'RH_TIMEOUT');
-    assert.ok(r.rh_orphan_until);
+    assert.equal(ingestCalls.length, 1);
   });
 
   it('loadInputs truyền signal của Task vào storage.getObject', async () => {
@@ -584,7 +641,7 @@ describe('Story 2.5: [BE] Worker xử lý Task qua RunningHub', () => {
     const queue = app.get(getQueueToken('tasks'));
     try {
       assert.equal(worker.worker, null);
-      worker.onModuleInit();
+      await worker.onModuleInit();
       assert.ok(worker.worker);
       assert.equal(worker.worker.opts.concurrency, 2);
       const u = await newUser();
@@ -633,5 +690,108 @@ describe('Story 2.5: [BE] Worker xử lý Task qua RunningHub', () => {
     assert.ok(max >= 1);
     for (const i of ids) assert.notEqual((await row(i)).status, 'queued');
     await clearGate();
+  });
+
+  it('worker lưu instance_type và gửi đúng instanceType tới submit (plus cho pipeline được cấu hình)', async () => {
+    const saved = process.env.RUNNINGHUB_INSTANCE_FACE_SWAP;
+    try {
+      reset(); await clearGate();
+      let sent;
+      submitImpl = async (...a) => { sent = a[4]; return 'rh-1'; };
+      ingestImpl = async (t) => { await svc.transition(t.id, 'running', 'failed', 'OUTPUT_UPLOAD_ERROR'); };
+      process.env.RUNNINGHUB_INSTANCE_FACE_SWAP = 'plus';
+      const u = await newUser();
+      const id = await createTask(u);
+      await worker.processTask(id);
+      assert.equal(sent, 'plus');
+      assert.equal((await row(id)).instance_type, 'plus');
+
+      reset(); await clearGate();
+      submitImpl = async (...a) => { sent = a[4]; return 'rh-2'; };
+      ingestImpl = async (t) => { await svc.transition(t.id, 'running', 'failed', 'OUTPUT_UPLOAD_ERROR'); };
+      delete process.env.RUNNINGHUB_INSTANCE_FACE_SWAP;
+      const id2 = await createTask(u);
+      await worker.processTask(id2);
+      assert.equal(sent, 'default');
+      assert.equal((await row(id2)).instance_type, 'default');
+    } finally {
+      if (saved === undefined) delete process.env.RUNNINGHUB_INSTANCE_FACE_SWAP; else process.env.RUNNINGHUB_INSTANCE_FACE_SWAP = saved;
+    }
+  });
+
+  it('recordCost: reported khi có costUsd, estimated khi chỉ có giây, bỏ qua khi không có gì, bỏ qua khi không còn running', async () => {
+    reset(); await clearGate();
+    const u = await newUser(5000, 'creator');
+    const mk = async (inst) => {
+      const id = await createTask(u);
+      await upd(id, `status='running', running_at=now()${inst ? `, instance_type='${inst}'` : ''}`);
+      return id;
+    };
+    const a = await mk('default');
+    assert.equal(await svc.recordCost(a, { costUsd: 0.016, costSeconds: 63 }), true);
+    let r = await row(a);
+    assert.equal(r.cost_source, 'reported');
+    assert.equal(Number(r.cost_usd), 0.016);
+    assert.equal(r.cost_seconds, 63);
+
+    const b = await mk('plus');
+    assert.equal(await svc.recordCost(b, { costSeconds: 3600 }), true);
+    r = await row(b);
+    assert.equal(r.cost_source, 'estimated');
+    assert.ok(Math.abs(Number(r.cost_usd) - 1.18) < 1e-6);
+    assert.equal(r.cost_seconds, 3600);
+
+    const c = await mk('default');
+    assert.equal(await svc.recordCost(c, {}), false);
+    r = await row(c);
+    assert.equal(r.cost_usd, null); assert.equal(r.cost_source, null); assert.equal(r.cost_seconds, null);
+
+    // Có giây nhưng Task không có instance_type: lưu giây, không ước tính.
+    const d = await mk(null);
+    await svc.recordCost(d, { costSeconds: 40 });
+    r = await row(d);
+    assert.equal(r.cost_seconds, 40); assert.equal(r.cost_usd, null); assert.equal(r.cost_source, null);
+
+    await upd(c, "status='failed', reason_code='RH_ERROR', finished_at=now()");
+    assert.equal(await svc.recordCost(c, { costUsd: 1 }), false);
+    assert.equal((await row(c)).cost_usd, null);
+  });
+
+  it('poll ghi chi phí từ outputs() trước khi ingest; lỗi recordCost không làm hỏng Task', async () => {
+    reset(); await clearGate();
+    outputsQueue = [{ status: 'SUCCESS', fileUrl: 'http://x/y.png', consumeMoney: 3, costUsd: 0.016, costSeconds: 63 }];
+    let seenAtIngest;
+    ingestImpl = async (t) => {
+      seenAtIngest = await row(t.id);
+      await svc.transition(t.id, 'running', 'failed', 'OUTPUT_UPLOAD_ERROR');
+    };
+    const u = await newUser();
+    const id = await createTask(u);
+    await worker.processTask(id);
+    assert.equal(seenAtIngest.cost_source, 'reported');
+    assert.equal(Number(seenAtIngest.cost_usd), 0.016);
+    assert.equal((await row(id)).cost_seconds, 63);
+
+    reset(); await clearGate();
+    outputsQueue = [{ status: 'FAILED', errorMessage: 'NO_POSE', costSeconds: 30 }];
+    const id2 = await createTask(u);
+    await worker.processTask(id2);
+    const r2 = await row(id2);
+    assert.equal(r2.status, 'failed');
+    assert.equal(r2.cost_source, 'estimated');
+    assert.ok(Math.abs(Number(r2.cost_usd) - (30 * 0.88) / 3600) < 1e-6);
+
+    reset(); await clearGate();
+    const orig = svc.recordCost;
+    svc.recordCost = async () => { throw new Error('db down'); };
+    try {
+      outputsQueue = [{ status: 'FAILED', errorMessage: 'NO_POSE', costUsd: 0.01 }];
+      const id3 = await createTask(u);
+      await worker.processTask(id3);
+      assert.equal((await row(id3)).status, 'failed');
+      assert.equal((await ledger(id3, 'RELEASED')).length, 1);
+    } finally {
+      svc.recordCost = orig;
+    }
   });
 });

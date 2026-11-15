@@ -1,4 +1,5 @@
 import type { Config } from 'tailwindcss';
+import tailwindcssAnimate from 'tailwindcss-animate';
 
 export const SLATE_CYBER_COLORS = {
   bg: '#0F172A',
@@ -23,10 +24,29 @@ export default {
     './pages/**/*.vue',
     './composables/**/*.{js,ts}',
     './utils/**/*.{js,ts}',
+    './lib/**/*.{js,ts}',
   ],
   theme: {
     extend: {
+      borderRadius: {
+        lg: 'var(--radius)',
+        md: 'calc(var(--radius) - 2px)',
+        sm: 'calc(var(--radius) - 4px)',
+      },
       colors: {
+        background: 'hsl(var(--background))',
+        foreground: 'hsl(var(--foreground))',
+        card: { DEFAULT: 'hsl(var(--card))', foreground: 'hsl(var(--card-foreground))' },
+        popover: { DEFAULT: 'hsl(var(--popover))', foreground: 'hsl(var(--popover-foreground))' },
+        primary: { DEFAULT: 'hsl(var(--primary))', foreground: 'hsl(var(--primary-foreground))' },
+        secondary: { DEFAULT: 'hsl(var(--secondary))', foreground: 'hsl(var(--secondary-foreground))' },
+        muted: { DEFAULT: 'hsl(var(--muted))', foreground: 'hsl(var(--muted-foreground))' },
+        accent: { DEFAULT: 'hsl(var(--accent))', foreground: 'hsl(var(--accent-foreground))' },
+        destructive: { DEFAULT: 'hsl(var(--destructive))', foreground: 'hsl(var(--destructive-foreground))' },
+        border: 'hsl(var(--border))',
+        input: 'hsl(var(--input))',
+        ring: 'hsl(var(--ring))',
+        chart: { 1: 'hsl(var(--chart-1))', 2: 'hsl(var(--chart-2))' },
         cyber: {
           bg: SLATE_CYBER_COLORS.bg,
           surface: SLATE_CYBER_COLORS.surface,
@@ -45,6 +65,9 @@ export default {
         sans: ['Inter', 'system-ui', '-apple-system', 'sans-serif'],
         display: ['"Space Grotesk"', 'Inter', 'system-ui', 'sans-serif'],
         mono: ['"JetBrains Mono"', 'ui-monospace', 'SFMono-Regular', 'monospace'],
+        // Font của trang quản trị, theo Vercel Docs
+        geist: ['Geist', 'Inter', 'system-ui', '-apple-system', 'sans-serif'],
+        'geist-mono': ['"Geist Mono"', 'ui-monospace', 'SFMono-Regular', 'monospace'],
       },
       minHeight: {
         touch: '48px',
@@ -61,5 +84,5 @@ export default {
       },
     },
   },
-  plugins: [],
+  plugins: [tailwindcssAnimate],
 } satisfies Config;

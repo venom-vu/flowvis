@@ -48,6 +48,9 @@ async function ensureInfra() {
   });
 }
 
+process.env.RUNNINGHUB_WORKFLOW_BODY_RESHAPE ??= 'wf-body';
+process.env.RUNNINGHUB_WORKFLOW_MOTION ??= 'wf-motion';
+
 describe('Story 3.5: [BE] Duyệt và từ chối đơn, nhật ký Admin', () => {
   let app, baseUrl, pool, prisma, jwt;
   const runId = crypto.randomBytes(4).toString('hex');

@@ -12,6 +12,29 @@ import {
   AdminTopupRejectResponseSchema,
   AdminTopupReturnToPendingRequestSchema,
   AdminTopupReturnToPendingResponseSchema,
+  AdminAdjustRequestSchema,
+  AdminAdjustResponseSchema,
+  AdminAuditQuerySchema,
+  AdminAuditResponseSchema,
+  AdminStatsQuerySchema,
+  AdminStatsResponseSchema,
+  AdminTaskLookupQuerySchema,
+  AdminTaskLookupResponseSchema,
+  AdminTaskTakedownRequestSchema,
+  AdminTaskTakedownResponseSchema,
+  AdminUserIdParamsSchema,
+  AdminUserLedgerQuerySchema,
+  AdminUserLedgerResponseSchema,
+  AdminUserLockRequestSchema,
+  AdminUserLockResponseSchema,
+  AdminUserSearchQuerySchema,
+  AdminUserStatsQuerySchema,
+  AdminUserStatsResponseSchema,
+  AdminUserSearchResponseSchema,
+  AdminUserUnlockResponseSchema,
+  OpsResumeResponseSchema,
+  OpsStatusResponseSchema,
+  SystemStatusResponseSchema,
   ApiErrorCode,
   AuthGoogleCallbackQuerySchema,
   AuthGoogleCallbackResponseSchema,
@@ -19,10 +42,22 @@ import {
   AuthGoogleResponseSchema,
   AuthLogoutResponseSchema,
   AuthRefreshResponseSchema,
+  BodyRetouchCreateRequestSchema,
+  BodyRetouchCreateResponseSchema,
   FaceSwapCreateRequestSchema,
   FaceSwapCreateResponseSchema,
+  OutfitChangeCreateRequestSchema,
+  OutfitChangeCreateResponseSchema,
+  INTENSITY_DEFAULT,
+  INTENSITY_LABEL_ZONES,
+  INTENSITY_MAX,
+  INTENSITY_MIN,
+  IntensitySchema,
   MeResponseSchema,
+  MotionCreateRequestSchema,
+  MotionCreateResponseSchema,
   PricingConfigResponseSchema,
+  ShareInfoResponseSchema,
   TaskIdParamsSchema,
   TaskGetResponseSchema,
   TaskCancelResponseSchema,
@@ -34,6 +69,7 @@ import {
   UploadConfirmParamsSchema,
   UploadConfirmRequestSchema,
   UploadConfirmResponseSchema,
+  UploadConfirmVideoResponseSchema,
   UploadCreateRequestSchema,
   UploadCreateResponseSchema,
   TopupConfirmTransferResponseSchema,
@@ -46,7 +82,24 @@ import {
   WalletLedgerQuerySchema,
   WalletLedgerResponseSchema,
   getApiErrorMessageVi,
+  getIntensityLabelVi,
   getReasonCodeMessageVi,
+  getValidationReasonMessageVi,
+  motionPrice,
+  type AdminAdjustRequest,
+  type AdminAdjustResponse,
+  type AdminAuditQuery,
+  type AdminAuditResponse,
+  type AdminStatsQuery,
+  type AdminStatsResponse,
+  type AdminTaskLookupQuery,
+  type AdminTaskLookupResponse,
+  type AdminTaskTakedownResponse,
+  type AdminUser,
+  type AdminUserLedgerQuery,
+  type AdminUserLedgerResponse,
+  type AdminUserStatsResponse,
+  type OpsStatusResponse,
   type AdminTopup,
   type AdminTopupApproveExpiredRequest,
   type AdminTopupApproveExpiredResponse,
@@ -66,11 +119,19 @@ import {
   type AuthGoogleResponse,
   type AuthLogoutResponse,
   type AuthRefreshResponse,
+  type BodyRetouchCreateRequest,
+  type BodyRetouchCreateResponse,
   type FaceSwapCreateRequest,
   type FaceSwapCreateResponse,
+  type OutfitChangeCreateRequest,
+  type OutfitChangeCreateResponse,
+  type Intensity,
   type MeResponse,
+  type MotionCreateRequest,
+  type MotionCreateResponse,
   type PricingConfigResponse,
   type ReasonCode,
+  type ShareInfoResponse,
   type Task,
   type TaskCancelResponse,
   type TaskGetResponse,
@@ -89,6 +150,7 @@ import {
   type TopupStatus,
   type UploadConfirmRequest,
   type UploadConfirmResponse,
+  type UploadConfirmVideoResponse,
   type UploadCreateRequest,
   type UploadCreateResponse,
   type WalletLedgerQuery,
@@ -98,8 +160,35 @@ import {
 export {
   API_ERROR_MESSAGES_VI,
   ApiErrorCode,
+  BodyRetouchCreateRequestSchema,
+  BodyRetouchCreateResponseSchema,
+  INTENSITY_DEFAULT,
+  INTENSITY_LABEL_ZONES,
+  INTENSITY_MAX,
+  INTENSITY_MIN,
+  IntensitySchema,
   getApiErrorMessageVi,
+  getIntensityLabelVi,
   getReasonCodeMessageVi,
+  getValidationReasonMessageVi,
+  motionPrice,
+  MotionCreateRequestSchema,
+  MotionCreateResponseSchema,
+  ShareInfoResponseSchema,
+  type AdminAdjustRequest,
+  type AdminAdjustResponse,
+  type AdminAuditQuery,
+  type AdminAuditResponse,
+  type AdminStatsQuery,
+  type AdminStatsResponse,
+  type AdminTaskLookupQuery,
+  type AdminTaskLookupResponse,
+  type AdminTaskTakedownResponse,
+  type AdminUser,
+  type AdminUserLedgerQuery,
+  type AdminUserLedgerResponse,
+  type AdminUserStatsResponse,
+  type OpsStatusResponse,
   type AdminTopup,
   type AdminTopupApproveExpiredRequest,
   type AdminTopupApproveExpiredResponse,
@@ -113,8 +202,16 @@ export {
   type AdminTopupRejectResponse,
   type AdminTopupReturnToPendingRequest,
   type AdminTopupReturnToPendingResponse,
+  type MotionCreateRequest,
+  type MotionCreateResponse,
+  type ShareInfoResponse,
+  type BodyRetouchCreateRequest,
+  type BodyRetouchCreateResponse,
   type FaceSwapCreateRequest,
   type FaceSwapCreateResponse,
+  type OutfitChangeCreateRequest,
+  type OutfitChangeCreateResponse,
+  type Intensity,
   type ReasonCode,
   type Task,
   type TaskCancelResponse,
@@ -206,6 +303,23 @@ export function resolveApiErrorMessageVi(errorOrCode: unknown): string {
   }
 
   return getApiErrorMessageVi(null);
+}
+
+/**
+ * Thông báo tiếng Việt cho lỗi thao tác Admin: `VALIDATION_FAILED` kèm `details.reason`
+ * được ánh xạ qua bảng của contracts; các lỗi khác dùng bảng `API_ERROR_MESSAGES_VI`.
+ */
+export function resolveAdminErrorMessageVi(err: unknown): string {
+  if (
+    err instanceof MotionApiClientError &&
+    err.code === ApiErrorCode.VALIDATION_FAILED &&
+    err.details &&
+    typeof err.details.reason === 'string'
+  ) {
+    const cap = typeof err.details.cap === 'number' ? err.details.cap : null;
+    return getValidationReasonMessageVi(err.details.reason, cap);
+  }
+  return resolveApiErrorMessageVi(err);
 }
 
 export interface PresignedUploadOptions {
@@ -441,6 +555,12 @@ export function createMotionApiClient(options: MotionApiClientOptions = {}) {
       );
     },
 
+    async getSystemStatus(): Promise<{ intakePaused: boolean }> {
+      return requestLive('/system/status', { method: 'GET' }, (data) =>
+        SystemStatusResponseSchema.parse(data),
+      );
+    },
+
     async getMe(): Promise<MeResponse> {
       return requestLive('/me', { method: 'GET' }, (data) =>
         MeResponseSchema.parse(data),
@@ -555,6 +675,18 @@ export function createMotionApiClient(options: MotionApiClientOptions = {}) {
       );
     },
 
+    async confirmVideoUpload(
+      key: string,
+      options?: { signal?: AbortSignal },
+    ): Promise<UploadConfirmVideoResponse> {
+      UploadConfirmParamsSchema.parse({ key });
+      return requestLive(
+        `/uploads/${encodeURIComponent(key)}/confirm`,
+        { method: 'POST', signal: options?.signal },
+        (payload) => UploadConfirmVideoResponseSchema.parse(payload),
+      );
+    },
+
     async createFaceSwapTask(
       rawRequest: FaceSwapCreateRequest,
       options?: { signal?: AbortSignal },
@@ -569,6 +701,69 @@ export function createMotionApiClient(options: MotionApiClientOptions = {}) {
           signal: options?.signal,
         },
         (payload) => FaceSwapCreateResponseSchema.parse(payload),
+      );
+    },
+
+    async createOutfitChangeTask(
+      rawRequest: OutfitChangeCreateRequest,
+      options?: { signal?: AbortSignal },
+    ): Promise<OutfitChangeCreateResponse> {
+      const data = OutfitChangeCreateRequestSchema.parse(rawRequest);
+      return requestLive(
+        '/tasks/outfit-change',
+        {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(data),
+          signal: options?.signal,
+        },
+        (payload) => OutfitChangeCreateResponseSchema.parse(payload),
+      );
+    },
+
+    async createBodyRetouchTask(
+      rawRequest: BodyRetouchCreateRequest,
+      options?: { signal?: AbortSignal },
+    ): Promise<BodyRetouchCreateResponse> {
+      const data = BodyRetouchCreateRequestSchema.parse(rawRequest);
+      return requestLive(
+        '/tasks/body-retouch',
+        {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(data),
+          signal: options?.signal,
+        },
+        (payload) => BodyRetouchCreateResponseSchema.parse(payload),
+      );
+    },
+
+    async createMotionControlTask(
+      rawRequest: MotionCreateRequest,
+      options?: { signal?: AbortSignal },
+    ): Promise<MotionCreateResponse> {
+      const data = MotionCreateRequestSchema.parse(rawRequest);
+      return requestLive(
+        '/tasks/motion',
+        {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(data),
+          signal: options?.signal,
+        },
+        (payload) => MotionCreateResponseSchema.parse(payload),
+      );
+    },
+
+    async getShareInfo(
+      token: string,
+      options?: { signal?: AbortSignal },
+    ): Promise<ShareInfoResponse> {
+      return requestLive(
+        `/s/${encodeURIComponent(token)}/info`,
+        { method: 'GET', signal: options?.signal },
+        (payload) => ShareInfoResponseSchema.parse(payload),
+        { skipRefresh: true },
       );
     },
 
@@ -858,6 +1053,210 @@ export function createMotionApiClient(options: MotionApiClientOptions = {}) {
           signal: options?.signal,
         },
         (payload) => AdminTopupReturnToPendingResponseSchema.parse(payload),
+      );
+    },
+
+    async getOpsStatus(options?: { signal?: AbortSignal }): Promise<OpsStatusResponse> {
+      return requestLive(
+        '/admin/ops/status',
+        { method: 'GET', signal: options?.signal },
+        (payload) => OpsStatusResponseSchema.parse(payload),
+      );
+    },
+
+    async resumeOps(options?: { signal?: AbortSignal }): Promise<OpsStatusResponse> {
+      return requestLive(
+        '/admin/ops/resume',
+        {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({}),
+          signal: options?.signal,
+        },
+        (payload) => OpsResumeResponseSchema.parse(payload),
+      );
+    },
+
+    async getAdminStats(
+      rawQuery: AdminStatsQuery | (Omit<AdminStatsQuery, 'scope'> & { scope?: AdminStatsQuery['scope'] }),
+      options?: { signal?: AbortSignal },
+    ): Promise<AdminStatsResponse> {
+      const query = AdminStatsQuerySchema.parse(rawQuery);
+      const params = new URLSearchParams();
+      params.set('from', query.from);
+      params.set('to', query.to);
+      params.set('scope', query.scope);
+      if (query.motionPricePerSecond != null) {
+        params.set('motionPricePerSecond', String(query.motionPricePerSecond));
+      }
+      if (query.imagePrice != null) {
+        params.set('imagePrice', String(query.imagePrice));
+      }
+      return requestLive(
+        `/admin/stats?${params.toString()}`,
+        { method: 'GET', signal: options?.signal },
+        (payload) => AdminStatsResponseSchema.parse(payload),
+      );
+    },
+
+    async searchAdminUser(
+      email: string,
+      options?: { signal?: AbortSignal },
+    ): Promise<AdminUser> {
+      const query = AdminUserSearchQuerySchema.parse({ email });
+      return requestLive(
+        `/admin/users?email=${encodeURIComponent(query.email)}`,
+        { method: 'GET', signal: options?.signal },
+        (payload) => AdminUserSearchResponseSchema.parse(payload),
+      );
+    },
+
+    async getAdminUserLedger(
+      id: string,
+      rawQuery?: Partial<AdminUserLedgerQuery>,
+      options?: { signal?: AbortSignal },
+    ): Promise<AdminUserLedgerResponse> {
+      AdminUserIdParamsSchema.parse({ id });
+      const query = AdminUserLedgerQuerySchema.parse(rawQuery ?? {});
+      const params = new URLSearchParams();
+      params.set('pageSize', String(query.pageSize));
+      if (query.cursor) {
+        params.set('cursor', query.cursor);
+      }
+      return requestLive(
+        `/admin/users/${encodeURIComponent(id)}/ledger?${params.toString()}`,
+        { method: 'GET', signal: options?.signal },
+        (payload) => AdminUserLedgerResponseSchema.parse(payload),
+      );
+    },
+
+    async getAdminUserStats(
+      days = 30,
+      options?: { signal?: AbortSignal },
+    ): Promise<AdminUserStatsResponse> {
+      const query = AdminUserStatsQuerySchema.parse({ days });
+      return requestLive(
+        `/admin/users/stats?days=${query.days}`,
+        { method: 'GET', signal: options?.signal },
+        (payload) => AdminUserStatsResponseSchema.parse(payload),
+      );
+    },
+
+    async lockUser(
+      id: string,
+      rawRequest: { reason: string },
+      options?: { signal?: AbortSignal },
+    ): Promise<AdminUser> {
+      AdminUserIdParamsSchema.parse({ id });
+      const data = AdminUserLockRequestSchema.parse(rawRequest);
+      return requestLive(
+        `/admin/users/${encodeURIComponent(id)}/lock`,
+        {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(data),
+          signal: options?.signal,
+        },
+        (payload) => AdminUserLockResponseSchema.parse(payload),
+      );
+    },
+
+    async unlockUser(
+      id: string,
+      rawRequest: { reason: string },
+      options?: { signal?: AbortSignal },
+    ): Promise<AdminUser> {
+      AdminUserIdParamsSchema.parse({ id });
+      const data = AdminUserLockRequestSchema.parse(rawRequest);
+      return requestLive(
+        `/admin/users/${encodeURIComponent(id)}/unlock`,
+        {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(data),
+          signal: options?.signal,
+        },
+        (payload) => AdminUserUnlockResponseSchema.parse(payload),
+      );
+    },
+
+    async adjustUser(
+      id: string,
+      rawRequest: AdminAdjustRequest,
+      options?: { signal?: AbortSignal },
+    ): Promise<AdminAdjustResponse> {
+      AdminUserIdParamsSchema.parse({ id });
+      const data = AdminAdjustRequestSchema.parse(rawRequest);
+      return requestLive(
+        `/admin/users/${encodeURIComponent(id)}/adjust`,
+        {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(data),
+          signal: options?.signal,
+        },
+        (payload) => AdminAdjustResponseSchema.parse(payload),
+      );
+    },
+
+    async lookupAdminTask(
+      rawQuery: AdminTaskLookupQuery,
+      options?: { signal?: AbortSignal },
+    ): Promise<AdminTaskLookupResponse> {
+      const query = AdminTaskLookupQuerySchema.parse(rawQuery);
+      const params = new URLSearchParams();
+      if (query.taskId) {
+        params.set('taskId', query.taskId);
+      }
+      if (query.shareUrl) {
+        params.set('shareUrl', query.shareUrl);
+      }
+      return requestLive(
+        `/admin/tasks/lookup?${params.toString()}`,
+        { method: 'GET', signal: options?.signal },
+        (payload) => AdminTaskLookupResponseSchema.parse(payload),
+      );
+    },
+
+    async takedownTask(
+      id: string,
+      rawRequest: { reason: string },
+      options?: { signal?: AbortSignal },
+    ): Promise<AdminTaskTakedownResponse> {
+      TaskIdParamsSchema.parse({ id });
+      const data = AdminTaskTakedownRequestSchema.parse(rawRequest);
+      return requestLive(
+        `/admin/tasks/${encodeURIComponent(id)}/takedown`,
+        {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(data),
+          signal: options?.signal,
+        },
+        (payload) => AdminTaskTakedownResponseSchema.parse(payload),
+      );
+    },
+
+    async listAdminAudit(
+      rawQuery?: Partial<AdminAuditQuery>,
+      options?: { signal?: AbortSignal },
+    ): Promise<AdminAuditResponse> {
+      const query = AdminAuditQuerySchema.parse(rawQuery ?? {});
+      const params = new URLSearchParams();
+      if (query.action) {
+        params.set('action', query.action);
+      }
+      if (query.target) {
+        params.set('target', query.target);
+      }
+      params.set('pageSize', String(query.pageSize));
+      if (query.cursor) {
+        params.set('cursor', query.cursor);
+      }
+      return requestLive(
+        `/admin/audit?${params.toString()}`,
+        { method: 'GET', signal: options?.signal },
+        (payload) => AdminAuditResponseSchema.parse(payload),
       );
     },
   };

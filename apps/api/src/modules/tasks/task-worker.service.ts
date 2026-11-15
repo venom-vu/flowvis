@@ -9,26 +9,42 @@ import {
   RunningHubNetworkError,
   STORAGE_PORT,
   type ResultIngestor,
+  type RunningHubInstanceType,
   type RunningHubNodeInfo,
+  type RunningHubOutputs,
   type RunningHubPort,
   type StoragePort,
 } from '../../ports/index.js';
-import { mapRunningHubFailure, type PipelineConfig } from '../pipelines/pipeline-config.js';
+import { mapRunningHubFailure, PIPELINE_CONFIGS, type PipelineConfig } from '../pipelines/pipeline-config.js';
+import { AlertService } from '../ops/alert.service.js';
+import { SettingsService } from '../ops/settings.service.js';
 import { PipelinesService } from '../pipelines/pipelines.service.js';
 import { PRICING_CONFIG } from '../wallet/tier.js';
 import { clampCoins } from './result-ingestor.js';
 import { isTerminal } from './task-transitions.js';
+import { PrepareError, videoTrim } from './video-trim.service.js';
 import { TASKS_QUEUE, TasksService } from './tasks.service.js';
 
-export const WORKER_CONCURRENCY = 2;
+/**
+ * Số job BullMQ chạy song song. Mặc định bằng RH_MAX_CONCURRENT (cổng RunningHub) để không có job nào giữ slot
+ * mà chờ cổng, và để thứ tự Priority không bị phá; WORKER_CONCURRENCY chỉ dùng khi cần ghi đè riêng. Mặc định 2.
+ */
+export const WORKER_CONCURRENCY = (() => {
+  for (const name of ['WORKER_CONCURRENCY', 'RH_MAX_CONCURRENT']) {
+    const n = Number.parseInt(process.env[name] ?? '', 10);
+    if (Number.isFinite(n) && n > 0) return n;
+  }
+  return 2;
+})();
 const RH_CALL_TIMEOUT_MS = 10_000;
 const DEFAULT_DEADLINE_MS = 180_000;
 
-/** Hạn chót RunningHub; chỉ cho phép ghi đè (RH_DEADLINE_MS) khi NODE_ENV === 'test'. */
-export function deadlineMs(): number {
-  if (process.env.NODE_ENV !== 'test') return DEFAULT_DEADLINE_MS;
+/** Mốc deadline_at chỉ đánh dấu Task đã qua cổng RunningHub; không còn dùng để hết hạn Task (RunningHub chạy bao lâu cũng chờ). Chỉ cho phép ghi đè (RH_DEADLINE_MS) khi NODE_ENV === 'test'. */
+export function deadlineMs(pipeline?: string): number {
+  const base = (pipeline && PIPELINE_CONFIGS[pipeline]?.deadlineMs) || DEFAULT_DEADLINE_MS;
+  if (process.env.NODE_ENV !== 'test') return base;
   const n = Number.parseInt(process.env.RH_DEADLINE_MS ?? '', 10);
-  return Number.isFinite(n) && n > 0 ? n : DEFAULT_DEADLINE_MS;
+  return Number.isFinite(n) && n > 0 ? n : base;
 }
 export const ORPHAN_MS = 10 * 60_000;
 export const FREE_WAIT_MS = 15 * 60_000;
@@ -85,10 +101,17 @@ export class TaskWorkerService implements OnModuleInit, OnModuleDestroy {
     @Inject(RUNNING_HUB_PORT) private readonly rh: RunningHubPort,
     @Inject(STORAGE_PORT) private readonly storage: StoragePort,
     @Inject(RESULT_INGESTOR) private readonly ingestor: ResultIngestor,
+    private readonly settings: SettingsService,
+    private readonly alerts: AlertService,
   ) {}
 
-  onModuleInit(): void {
+  async onModuleInit(): Promise<void> {
     if (process.env.MOTION_PROCESS_ROLE !== 'worker') return;
+    try {
+      await videoTrim.cleanupStale();
+    } catch (err) {
+      this.logger.warn(`Không dọn được thư mục tạm ffmpeg: ${String(err)}`);
+    }
     this.worker = new Worker(
       TASKS_QUEUE,
       async (job) => {
@@ -148,6 +171,11 @@ export class TaskWorkerService implements OnModuleInit, OnModuleDestroy {
       }
     }
     if (row.status !== 'running') return;
+    if (!row.runninghubTaskId && !row.submitStartedAt && (await this.settings.isRhBudgetExhausted())) {
+      this.logger.warn(`Task ${taskId}: RunningHub hết ngân sách, từ chối trước khi chuẩn bị`);
+      await this.finish(taskId, 'failed', 'RH_BUDGET');
+      return;
+    }
     this.logger.log(`Task ${taskId}: bắt đầu xử lý pipeline ${row.pipeline}`);
 
     const now = Date.now();
@@ -156,13 +184,7 @@ export class TaskWorkerService implements OnModuleInit, OnModuleDestroy {
       await this.finish(taskId, 'failed', 'RH_SUBMIT_UNKNOWN', { orphanForMs: ORPHAN_MS });
       return;
     }
-    if (row.deadlineAt) {
-      if (row.deadlineAt.getTime() <= now) {
-        await this.finish(taskId, 'timed_out', 'RH_TIMEOUT');
-        return;
-      }
-      return this.runFromUpload(row, signal, true);
-    }
+    if (row.deadlineAt) return this.runFromUpload(row, signal, true);
     if (row.prepDeadlineAt && row.prepDeadlineAt.getTime() <= now) {
       await this.finish(taskId, 'timed_out', 'PREP_TIMEOUT');
       return;
@@ -170,14 +192,35 @@ export class TaskWorkerService implements OnModuleInit, OnModuleDestroy {
     return this.runFromUpload(row, signal, false);
   }
 
-  private finish(
+  private async finish(
     taskId: string,
     to: 'failed' | 'timed_out',
     reason: ReasonCode,
     opts: { gpuCoins?: number; orphanForMs?: number } = {},
   ) {
     this.logger.warn(`Task ${taskId}: kết thúc ${to} (${reason})`);
-    return this.tasks.transition(taskId, 'running', to, reason, opts);
+    const result = await this.tasks.transition(taskId, 'running', to, reason, opts);
+    if (reason === 'RH_BUDGET' && result.applied) await this.onBudgetExhausted(taskId);
+    return result;
+  }
+
+  /** Bật hai cờ; chỉ khi cờ chuyển tắt -> bật mới tạo đúng một cảnh báo. */
+  private async onBudgetExhausted(taskId: string): Promise<void> {
+    try {
+      if (!(await this.settings.markRhBudgetExhausted())) return;
+      await this.alerts.raise(`rh_budget:${new Date().toISOString()}`, {
+        kind: 'ops.rh_budget_exhausted',
+        severity: 'error',
+        message: 'RunningHub hết ngân sách. Đã tạm dừng nhận Task mới; nạp thêm coin RunningHub rồi mở lại.',
+        data: { taskId },
+      });
+    } catch (err) {
+      this.logger.error(`Không đặt được cờ hết ngân sách (Task ${taskId}): ${String(err)}`);
+    }
+  }
+
+  private isBudgetError(message: string): boolean {
+    return mapRunningHubFailure(message) === 'RH_BUDGET';
   }
 
   private timeoutSignal(signal: AbortSignal): AbortSignal {
@@ -196,10 +239,20 @@ export class TaskWorkerService implements OnModuleInit, OnModuleDestroy {
 
     // (a)
     let inputs: Record<string, Buffer>;
+    const prepDeadline = config.prepare && row.prepDeadlineAt ? AbortSignal.timeout(Math.max(0, row.prepDeadlineAt.getTime() - Date.now())) : null;
     try {
-      inputs = await this.loadInputs(row, config, signal);
+      inputs = await this.loadInputs(row, config, prepDeadline ? AbortSignal.any([signal, prepDeadline]) : signal);
     } catch (err) {
       if (signal.aborted) return;
+      if (prepDeadline?.aborted) {
+        await this.finish(taskId, 'timed_out', 'PREP_TIMEOUT');
+        return;
+      }
+      if (err instanceof PrepareError) {
+        this.logger.warn(`Bước chuẩn bị Task ${taskId} lỗi (${err.reason}): ${err.message}`);
+        await this.finish(taskId, 'failed', err.reason);
+        return;
+      }
       this.logger.warn(`Không đọc được input của Task ${taskId}: ${String(err)}`);
       await this.finish(taskId, 'failed', 'INPUT_FETCH_ERROR');
       return;
@@ -212,6 +265,22 @@ export class TaskWorkerService implements OnModuleInit, OnModuleDestroy {
     }
     if (signal.aborted) return;
 
+    // (c) tham số: thiếu hoặc sai kiểu thì không gửi (tránh chạy workflow bằng mức mặc định mà vẫn trừ credit)
+    const paramNodes: RunningHubNodeInfo[] = [];
+    const params = (row.params ?? {}) as Record<string, unknown>;
+    for (const m of config.params ?? []) {
+      let v = params[m.paramKey];
+      // Chuỗi rỗng (vd. prompt để trống) hoặc thiếu khóa thì dùng giá trị mặc định nếu có.
+      if ((v === undefined || v === '') && m.fallback !== undefined) v = m.fallback;
+      if (typeof v !== 'string' && typeof v !== 'number' && typeof v !== 'boolean') {
+        this.logger.error(`Task ${taskId}: thiếu hoặc sai tham số "${m.paramKey}" trong tasks.params`);
+        await this.finish(taskId, 'failed', 'INTERNAL_ERROR');
+        return;
+      }
+      const value = m.scale !== undefined && typeof v === 'number' ? String(Number((v * m.scale).toFixed(4))) : String(v);
+      paramNodes.push({ nodeId: m.nodeId, fieldName: m.fieldName, fieldValue: value });
+    }
+
     // (c) upload
     const nodeInfo: RunningHubNodeInfo[] = [];
     try {
@@ -221,23 +290,26 @@ export class TaskWorkerService implements OnModuleInit, OnModuleDestroy {
         this.logger.log(`Task ${taskId}: đã upload ${m.inputKey} (${bytes.length} byte) -> ${name}`);
         nodeInfo.push({ nodeId: m.nodeId, fieldName: m.fieldName, fieldValue: name });
       }
+      nodeInfo.push(...paramNodes, ...(config.fixedNodes ?? []));
     } catch (err) {
       if (signal.aborted) return;
       this.logger.warn(`Upload RunningHub lỗi cho Task ${taskId}: ${String(err)}`);
-      await this.finish(taskId, 'failed', 'RH_ERROR');
+      const budget = err instanceof RunningHubError && this.isBudgetError(err.message);
+      await this.finish(taskId, 'failed', budget ? 'RH_BUDGET' : 'RH_ERROR');
       return;
     }
 
     // (d) submit
-    if (!(await this.tasks.markSubmitStarted(taskId))) return;
+    const instanceType = this.pipelines.getInstanceType(config);
+    if (!(await this.tasks.markSubmitStarted(taskId, instanceType))) return;
     this.logger.log(
-      `Task ${taskId}: gửi workflow ${workflowId} với ${nodeInfo.length} node (${nodeInfo
+      `Task ${taskId}: gửi ${this.pipelines.getRunMode(config)} (máy ${instanceType}) ${workflowId} với ${nodeInfo.length} node (${nodeInfo
         .map((n) => `${n.nodeId}/${n.fieldName}`)
         .join(', ')})`,
     );
     let rhId: string;
     try {
-      rhId = await this.submitWithRetry(workflowId, nodeInfo, signal);
+      rhId = await this.submitWithRetry(workflowId, nodeInfo, signal, this.pipelines.getRunMode(config), instanceType);
     } catch (err) {
       if (signal.aborted) return;
       if (err instanceof SubmitFailure) {
@@ -260,6 +332,7 @@ export class TaskWorkerService implements OnModuleInit, OnModuleDestroy {
   }
 
   private async loadInputs(row: TaskRow, config: PipelineConfig, signal?: AbortSignal): Promise<Record<string, Buffer>> {
+    if (config.prepare) return config.prepare({ row, storage: this.storage, signal: signal ?? new AbortController().signal });
     const keys = (row.inputKeys ?? {}) as Record<string, string>;
     const out: Record<string, Buffer> = {};
     for (const m of config.inputs) {
@@ -267,7 +340,7 @@ export class TaskWorkerService implements OnModuleInit, OnModuleDestroy {
       if (!key) throw new Error(`Thiếu input ${m.inputKey}`);
       out[m.inputKey] = await this.storage.getObject(key, signal);
     }
-    return config.prepare ? config.prepare(out) : out;
+    return out;
   }
 
   /** Trả true khi đã qua cổng (deadline_at đã ghi). */
@@ -279,7 +352,7 @@ export class TaskWorkerService implements OnModuleInit, OnModuleDestroy {
       if (signal.aborted) return false;
       const result = await this.gateMutex.run(async () => {
         if ((await this.tasks.countGateOccupied()) >= max) return 'full' as const;
-        return (await this.tasks.setDeadlineIfNull(taskId, deadlineMs())) ? ('passed' as const) : ('gone' as const);
+        return (await this.tasks.setDeadlineIfNull(taskId, deadlineMs(row.pipeline))) ? ('passed' as const) : ('gone' as const);
       });
       if (result === 'passed') return true;
       if (result === 'gone') return false;
@@ -297,10 +370,12 @@ export class TaskWorkerService implements OnModuleInit, OnModuleDestroy {
     workflowId: string,
     nodeInfo: RunningHubNodeInfo[],
     signal: AbortSignal,
+    mode?: 'ai-app' | 'workflow',
+    instanceType?: RunningHubInstanceType,
   ): Promise<string> {
     for (let attempt = 1; attempt <= 2; attempt++) {
       try {
-        return await this.rh.submit(workflowId, nodeInfo, this.timeoutSignal(signal));
+        return await this.rh.submit(workflowId, nodeInfo, this.timeoutSignal(signal), mode, instanceType);
       } catch (err) {
         if (err instanceof RunningHubNetworkError) {
           this.logger.warn(`submit lần ${attempt}/2 lỗi mạng (requestSent=${err.requestSent}): ${err.message}`);
@@ -308,13 +383,24 @@ export class TaskWorkerService implements OnModuleInit, OnModuleDestroy {
           if (attempt === 2) throw new SubmitFailure('RH_ERROR', err.message);
           continue;
         }
-        if (err instanceof RunningHubError) throw new SubmitFailure('RH_ERROR', err.message);
+        if (err instanceof RunningHubError) {
+          throw new SubmitFailure(this.isBudgetError(err.message) ? 'RH_BUDGET' : 'RH_ERROR', err.message);
+        }
         if (signal.aborted) throw err;
         // Timeout hoặc lỗi lạ: request có thể đã gửi.
         throw new SubmitFailure('RH_SUBMIT_UNKNOWN', String(err));
       }
     }
     throw new SubmitFailure('RH_ERROR');
+  }
+
+  /** Ghi chi phí thật; lỗi chỉ log cảnh báo, không làm hỏng Task. */
+  private async safeRecordCost(taskId: string, out: RunningHubOutputs): Promise<void> {
+    try {
+      await this.tasks.recordCost(taskId, { costUsd: out.costUsd, costSeconds: out.costSeconds });
+    } catch (err) {
+      this.logger.warn(`Task ${taskId}: không ghi được chi phí GPU: ${String(err)}`);
+    }
   }
 
   private async poll(initial: TaskRow, signal: AbortSignal): Promise<void> {
@@ -326,16 +412,13 @@ export class TaskWorkerService implements OnModuleInit, OnModuleDestroy {
       if (signal.aborted) return;
       const row = await this.tasks.getWorkerRow(taskId);
       if (!row || row.status !== 'running') return;
-      if (row.deadlineAt && row.deadlineAt.getTime() <= Date.now()) {
-        await this.finish(taskId, 'timed_out', 'RH_TIMEOUT', { orphanForMs: ORPHAN_MS });
-        return;
-      }
       try {
         const out = await this.rh.outputs(rhId, this.timeoutSignal(signal));
         if (out.status !== lastStatus) {
           lastStatus = out.status;
           this.logger.log(`Task ${taskId}: RunningHub ${rhId} trạng thái ${out.status}`);
         }
+        if (out.status === 'SUCCESS' || out.status === 'FAILED') await this.safeRecordCost(taskId, out);
         if (out.status === 'SUCCESS') {
           const gpuCoins = clampCoins(out.consumeMoney);
           this.logger.log(`Task ${taskId}: RunningHub SUCCESS, tải kết quả từ ${out.fileUrl ?? '(thiếu fileUrl)'}`);
@@ -374,6 +457,10 @@ export class TaskWorkerService implements OnModuleInit, OnModuleDestroy {
         if (err instanceof RunningHubError) {
           this.logger.warn(`Task ${taskId}: RunningHub ${rhId} lỗi khi truy vấn: ${err.message}`);
           // Không biết job còn chạy hay không: giữ slot cổng như RH_TIMEOUT / RH_SUBMIT_UNKNOWN.
+          if (this.isBudgetError(err.message)) {
+            await this.finish(taskId, 'failed', 'RH_BUDGET', { orphanForMs: ORPHAN_MS });
+            return;
+          }
           await this.finish(taskId, 'failed', 'RH_ERROR', { orphanForMs: ORPHAN_MS });
           return;
         }
@@ -387,7 +474,7 @@ export class TaskWorkerService implements OnModuleInit, OnModuleDestroy {
 
 class SubmitFailure extends Error {
   constructor(
-    readonly reason: 'RH_ERROR' | 'RH_SUBMIT_UNKNOWN',
+    readonly reason: 'RH_ERROR' | 'RH_SUBMIT_UNKNOWN' | 'RH_BUDGET',
     readonly detail: string = '',
   ) {
     super(reason);

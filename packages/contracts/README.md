@@ -62,3 +62,33 @@ Gói hợp đồng dùng chung (Shared Contracts) giữa Backend (`@flowvis/api`
 - Endpoint Admin: `GET /admin/topups` (lọc `status`, cursor), `POST /admin/topups/{id}/approve`, `approve-expired` (`bankRef`), `reject` (`rejectReason`), `needs-review` (`note`), `return-to-pending` (body rỗng).
 - Mã lỗi API mới: `TOPUP_LIMIT`, `BANK_REF_DUPLICATE`, `TOPUP_STATE_INVALID`, `TOPUP_QR_EXPIRED`.
 - Mock: `MOCK_TOPUPS_BY_STATUS`, `MOCK_TOPUP_LIST_RESPONSE`, `MOCK_ADMIN_TOPUPS_BY_STATUS`, `MOCK_ADMIN_TOPUP_LIST_RESPONSE`.
+
+### 7. Body Retouch (Epic 4: `src/tasks.ts`)
+
+- `TASK_PIPELINES` = `face_swap`, `body_retouch`. `IntensitySchema`: số nguyên 1–10, mặc định 5 (`INTENSITY_MIN/MAX/DEFAULT`); nhãn ba vùng qua `INTENSITY_LABEL_ZONES` và `getIntensityLabelVi(n)` (1–3 "Uốn nhẹ dáng", 4–7 "Tự nhiên", 8–10 "Đường cong tối đa"; ngoài khoảng trả `null`).
+- Endpoint: `POST /tasks/body-retouch` (`BodyRetouchCreateRequestSchema` `{ imageKey, intensity }` `.strict()`, không nhận `consent`/credit; `BodyRetouchCreateResponseSchema` = `TaskSchema`). Các endpoint đọc, hủy, kết quả, chia sẻ dùng chung với Face Swap.
+- `NO_POSE` của `body_retouch`: "Không tìm thấy người trong ảnh. Vui lòng chọn ảnh có người rõ thân."
+- Mock: `MOCK_BODY_RETOUCH_CREATE_REQUEST`, `MOCK_BODY_RETOUCH_TASKS_BY_STATUS` (6 trạng thái), `MOCK_BODY_RETOUCH_RESULT_RESPONSE` (có `sourceUrl`).
+
+### 8. Motion Control (Epic 5: `src/uploads.ts`, `src/tasks.ts`, `src/wallet.ts`)
+
+- Pipeline `motion_control` nằm trong `TASK_PIPELINES`. `motionPrice(seconds)` = 50 × số giây nguyên (từ chối số không nguyên hoặc <= 0); là nơi duy nhất giữ hằng 50 phía mã nguồn.
+- `GET /config/pricing`: `pipelines.motionControlCreditsPerSecond` (50), `pipelines.motionControlMinSeconds` (3, tùy chọn trong schema cho tới khi BE 5.3 trả), Cap theo Tier ở `tiers[].maxVideoSeconds` (5, 10, 15, 20).
+- `POST /uploads` nhận thêm video (`video/mp4`, `video/quicktime`, tối đa 100 MB; `UploadCreateRequestSchema` là union ảnh/video). Confirm video trả `UploadConfirmVideoResponseSchema` `{ key, video: VideoMeta }` (`durationSeconds`, `width`, `height`).
+- `POST /tasks/motion`: `MotionCreateRequestSchema` `{ characterKey, videoKey, trimStart, trimEnd }` `.strict()` (số nguyên giây, không `consent`/credit); `MotionCreateResponseSchema` = Task kèm `price`.
+- `VALIDATION_FAILED` `details.reason` thuộc `VALIDATION_REASONS` (6 giá trị); `ValidationDetailsSchema` bắt buộc `cap` với `TRIM_EXCEEDS_CAP`; thông báo qua `getValidationReasonMessageVi(reason, cap)`.
+- `GET /tasks/{id}/result` thêm `mediaType` (`image`|`video`; vắng mặt hiểu là ảnh), `posterUrl` và `durationSeconds` (chỉ video); `sourceUrl` Motion luôn `null`. `GET /s/{token}/info` (`ShareInfoResponseSchema`) và `GET /s/{token}/poster` (chuyển hướng, không body).
+- `NO_POSE`/`NO_FACE` riêng cho `motion_control` qua `getReasonCodeMessageVi(code, 'motion_control')`.
+- Mock: `MOCK_MOTION_CREATE_REQUEST`, `MOCK_MOTION_TASKS_BY_STATUS` (6 trạng thái), `MOCK_UPLOAD_VIDEO_CONFIRM_RESPONSE`, `MOCK_MOTION_RESULT_RESPONSE`, `MOCK_SHARE_INFO_*`.
+
+### 9. Vận hành và quản trị (Epic 6: `src/ops.ts`, `src/admin.ts`, `src/tasks.ts`)
+
+- `GET /system/status` (công khai): `SystemStatusResponseSchema` đúng `{ intakePaused: boolean }` `.strict()`, không lý do, không số liệu.
+- `GET /admin/ops/status` (`OpsStatusResponseSchema`: `intakePaused`, `rhBudgetExhausted`, `lastBreakerTrigger`, `rhBalance`, `lastBackup`, các nhóm sau nullable); `POST /admin/ops/resume` body rỗng `.strict()`, trả cùng hình dạng status.
+- `GET /admin/stats` (`AdminStatsQuerySchema`: `from`, `to` ISO, `to >= from`, `scope` `real|benchmark` mặc định `real`, `motionPricePerSecond`, `imagePrice` số nguyên dương tùy chọn; `AdminStatsResponseSchema`: theo pipeline, biên gộp pipeline × gói × kịch bản `retail|standardPack`, SM-1…SM-4 trong `successMetrics`).
+- `GET /admin/audit` (lọc `action`, `target`, phân trang cursor, chỉ đọc).
+- `GET /admin/users?email=` (trả một tài khoản, không thấy thì 404), `GET /admin/users/{id}`, `GET /admin/users/{id}/ledger` (dùng `LedgerEntrySchema`); `POST /admin/users/{id}/lock|unlock` `{ reason }`; `POST /admin/users/{id}/adjust` `{ amount (số nguyên khác 0), reason, requestId (uuid) }`; `GET /admin/tasks/lookup` (đúng một trong `taskId`|`shareUrl`); `POST /admin/tasks/{id}/takedown` `{ reason }`. `reason` được `trim`, không rỗng.
+- `VALIDATION_REASONS` thêm `REASON_REQUIRED`, `TASK_NOT_FINISHED`, `ADJUST_OVER_LIMIT`, `ADJUST_INSUFFICIENT_BALANCE` (không kèm `cap`); `ApiErrorCode` không thêm giá trị.
+- `Task.filesRemovedAt` (datetime, nullable, tùy chọn); hằng `CONTENT_REMOVED_MESSAGE_VI`.
+- `pagedResponse` được export từ `src/topups.ts`.
+- Mock: `MOCK_SYSTEM_STATUS_*`, `MOCK_OPS_STATUS_NORMAL|PAUSED|BUDGET_EXHAUSTED`, `MOCK_ADMIN_STATS_RESPONSE`, `MOCK_ADMIN_USER_*`, `MOCK_ADMIN_ADJUST_REQUEST`, `MOCK_ADMIN_TASK_LOOKUP_RESPONSE`, `MOCK_ADMIN_AUDIT_RESPONSE`.

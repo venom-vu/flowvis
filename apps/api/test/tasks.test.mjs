@@ -63,13 +63,16 @@ Queue.prototype.add = async function (name, data, opts) {
   return { id: opts?.jobId };
 };
 
+process.env.RUNNINGHUB_WORKFLOW_BODY_RESHAPE ??= 'wf-body';
+process.env.RUNNINGHUB_WORKFLOW_MOTION ??= 'wf-motion';
+
 describe('Story 2.3: [BE] Tạo Task Face Swap và xếp vào hàng đợi', () => {
   let app, baseUrl, pool, prisma, jwt;
   const runId = crypto.randomBytes(4).toString('hex');
   const users = [];
   const wallet = new WalletService();
 
-  async function newUser({ balance = 500, locked = false } = {}) {
+  async function newUser({ balance = 500, locked = false, tierPack = null } = {}) {
     const n = users.length;
     const u = await prisma.user.create({
       data: {
@@ -81,6 +84,7 @@ describe('Story 2.3: [BE] Tạo Task Face Swap và xếp vào hàng đợi', () 
     });
     users.push(u.id);
     if (balance > 0) await prisma.$transaction((t) => wallet.grant(t, u.id, balance));
+    if (tierPack) await pool.query(`UPDATE users SET tier_pack=$1 WHERE id=$2`, [tierPack, u.id]);
     return { id: u.id, token: jwt.sign({ sub: u.id, email: u.email, role: 'user' }) };
   }
   async function confirmedKeys(user, n = 2, confirmed = true) {
@@ -255,7 +259,7 @@ describe('Story 2.3: [BE] Tạo Task Face Swap và xếp vào hàng đợi', () 
   });
 
   it('đã có 3 Task hoạt động -> TASK_LIMIT, không HOLD', async () => {
-    const u = await newUser({ balance: 1000 });
+    const u = await newUser({ balance: 1000, tierPack: 'pro' });
     for (let i = 0; i < 3; i++) {
       const r = await post(u, await validBody(u));
       assert.equal(r.status, 201);
@@ -302,7 +306,7 @@ describe('Story 2.3: [BE] Tạo Task Face Swap và xếp vào hàng đợi', () 
   });
 
   it('ba request song song với số dư 250: đúng 2 thành công', async () => {
-    const u = await newUser({ balance: 250 });
+    const u = await newUser({ balance: 250, tierPack: 'pro' });
     const bodies = [await validBody(u), await validBody(u), await validBody(u)];
     const results = await Promise.all(bodies.map((b) => post(u, b)));
     const statuses = results.map((r) => r.status).sort();
@@ -335,7 +339,7 @@ describe('Story 2.3: [BE] Tạo Task Face Swap và xếp vào hàng đợi', () 
   it('queuePosition: 3 Task cùng priority nhận vị trí 1,2,3 (cộng phần hàng đợi ngoài)', async () => {
     await clearOwnQueued();
     const foreign = await queuedCount();
-    const u = await newUser({ balance: 500 });
+    const u = await newUser({ balance: 500, tierPack: 'pro' });
     const positions = [];
     for (let i = 0; i < 3; i++) {
       const res = await post(u, await validBody(u));
@@ -357,7 +361,7 @@ describe('Story 2.3: [BE] Tạo Task Face Swap và xếp vào hàng đợi', () 
   });
 
   it('TASK_LIMIT song song: số dư 1000, 4 request -> 3 thành công, 1 TASK_LIMIT', async () => {
-    const u = await newUser({ balance: 1000 });
+    const u = await newUser({ balance: 1000, tierPack: 'pro' });
     const bodies = [await validBody(u), await validBody(u), await validBody(u), await validBody(u)];
     const results = await Promise.all(bodies.map((b) => post(u, b)));
     assert.deepEqual(results.map((r) => r.status).sort(), [201, 201, 201, 429]);
@@ -369,8 +373,19 @@ describe('Story 2.3: [BE] Tạo Task Face Swap và xếp vào hàng đợi', () 
     assert.equal(await taskCount(u), 3);
   });
 
+  it('cap theo hạng: FREE 1, Starter 2, Creator 5 Task hoạt động', async () => {
+    for (const [tierPack, cap] of [[null, 1], ['starter', 2], ['creator', 5]]) {
+      const u = await newUser({ balance: 1000, tierPack });
+      for (let i = 0; i < cap; i++) assert.equal((await post(u, await validBody(u))).status, 201);
+      const res = await post(u, await validBody(u));
+      assert.equal(res.status, 429);
+      assert.equal((await res.json()).code, ApiErrorCode.TASK_LIMIT);
+      assert.equal(await taskCount(u), cap);
+    }
+  });
+
   it('TASK_LIMIT: running tính vào giới hạn, succeeded/failed không tính', async () => {
-    const u = await newUser({ balance: 1000 });
+    const u = await newUser({ balance: 1000, tierPack: 'pro' });
     const r1 = await insertSqlTask(u, 'running');
     const r2 = await insertSqlTask(u, 'running');
     await insertSqlTask(u, 'queued');
@@ -467,7 +482,7 @@ describe('Story 2.3: [BE] Tạo Task Face Swap và xếp vào hàng đợi', () 
     });
 
     it('trả danh sách Task mới nhất trước, phân trang cursor và cô lập theo người dùng', async () => {
-      const u1 = await newUser();
+      const u1 = await newUser({ tierPack: 'starter' });
       const u2 = await newUser();
 
       // u1 tạo 2 task

@@ -2,11 +2,21 @@
 import { computed, onBeforeUnmount, onMounted, ref, watch } from 'vue';
 import type { AccountTier, Task } from '@flowvis/contracts';
 import ImageUploader from '~/components/ImageUploader.vue';
-import TaskProgressCard from '~/components/TaskProgressCard.vue';
+import TaskResultViewer from '~/components/TaskResultViewer.vue';
 import { useApiClient } from '~/composables/useApiClient';
 import { useAuthDialog } from '~/composables/useAuthDialog';
+import { useMotionControl } from '~/composables/useMotionControl';
 import { usePricingConfig } from '~/composables/usePricingConfig';
-import { resolveApiErrorMessageVi } from '~/utils/api-client';
+import {
+  ApiErrorCode,
+  INTENSITY_DEFAULT,
+  INTENSITY_LABEL_ZONES,
+  INTENSITY_MAX,
+  INTENSITY_MIN,
+  IntensitySchema,
+  getIntensityLabelVi,
+  resolveApiErrorMessageVi,
+} from '~/utils/api-client';
 import {
   calculateFeatureEstimatedCredits,
   formatNumberVi,
@@ -36,6 +46,9 @@ const emit = defineEmits<{
       uploadedKey?: string | null;
       sourceKey?: string | null;
       targetKey?: string | null;
+      modelKey?: string | null;
+      clothingKey?: string | null;
+      intensity?: number;
     },
   ];
 }>();
@@ -43,29 +56,58 @@ const emit = defineEmits<{
 const { client } = useApiClient();
 const { open: openAuthDialog } = useAuthDialog();
 const { refreshAll } = usePricingConfig();
+const motion = useMotionControl();
+// Liên kết cấp cao nhất để template tự mở `.value` (dùng chung logic với trang /motion-control).
+const motionCharacterKey = motion.characterKey;
+const motionCapSeconds = motion.capSeconds;
+const motionSeconds = motion.seconds;
+const motionInsufficientNoteVi = motion.insufficientNoteVi;
+const motionSubmitErrorVi = motion.submitErrorVi;
+const motionIsSubmitting = motion.isSubmitting;
+const motionAspectRatio = motion.aspectRatio;
+const motionPrompt = motion.prompt;
+const motionKey = ref<number>(0);
+
+// Dọn sạch trạng thái Motion và buộc VideoTrimmer/ImageUploader remount.
+function resetMotionState(): void {
+  motion.clearState();
+  motionKey.value += 1;
+}
+const onMotionTrimChange = motion.onTrimChange;
 
 const compareSplitPercent = ref<number>(50);
 const selectedSeconds = ref<number>(1);
+const intensity = ref<number>(INTENSITY_DEFAULT);
 const uploadedKey = ref<string | null>(null);
 const sourceKey = ref<string | null>(null);
 const targetKey = ref<string | null>(null);
+const modelKey = ref<string | null>(null);
+const clothingKey = ref<string | null>(null);
 const activeTask = ref<Task | null>(null);
 const isSubmitting = ref<boolean>(false);
 const submitErrorVi = ref<string | null>(null);
 
-const maxSeconds = computed<number>(() => {
-  return props.feature?.tierCapSeconds ?? 1;
-});
+const intensityLabelVi = computed<string>(
+  () => getIntensityLabelVi(intensity.value) ?? 'Tự nhiên',
+);
+
+const isValidIntensity = computed<boolean>(
+  () => IntensitySchema.safeParse(intensity.value).success,
+);
 
 watch(
   () => props.feature,
   (nextFeature) => {
     compareSplitPercent.value = 50;
+    intensity.value = INTENSITY_DEFAULT;
     uploadedKey.value = null;
     sourceKey.value = null;
     targetKey.value = null;
+    modelKey.value = null;
+    clothingKey.value = null;
     activeTask.value = null;
     submitErrorVi.value = null;
+    resetMotionState();
     if (nextFeature?.tierCapSeconds) {
       selectedSeconds.value = Math.min(3, nextFeature.tierCapSeconds);
     } else {
@@ -82,23 +124,52 @@ watch(
       document.body.style.overflow = isOpen ? 'hidden' : '';
     }
     if (!isOpen) {
+      intensity.value = INTENSITY_DEFAULT;
       uploadedKey.value = null;
       sourceKey.value = null;
       targetKey.value = null;
-        activeTask.value = null;
+      modelKey.value = null;
+      clothingKey.value = null;
+    modelKey.value = null;
+    clothingKey.value = null;
+      activeTask.value = null;
       submitErrorVi.value = null;
-    }
+      resetMotionState();
+      }
   },
   { immediate: true },
+);
+
+// Xóa lỗi cũ khi người dùng thay đổi dữ liệu đầu vào hoặc mức intensity
+watch(
+  [uploadedKey, sourceKey, targetKey, modelKey, clothingKey, intensity],
+  () => {
+    submitErrorVi.value = null;
+  },
+  { flush: 'sync' },
+);
+
+const anySubmitting = computed<boolean>(
+  () => isSubmitting.value || motionIsSubmitting.value,
+);
+
+// Task đang xếp hàng/chạy: khóa nút tạo để tránh tạo trùng.
+const isTaskWorking = computed<boolean>(
+  () => activeTask.value?.status === 'queued' || activeTask.value?.status === 'running',
 );
 
 const isAuthenticated = computed<boolean>(() => {
   return typeof props.userBalance === 'number';
 });
 
+const isMotion = computed<boolean>(() => props.feature?.id === 'motion-control');
+
 const estimatedCredits = computed<number>(() => {
   if (!props.feature) {
     return 0;
+  }
+  if (isMotion.value) {
+    return motion.price.value ?? 0;
   }
   return calculateFeatureEstimatedCredits(
     props.feature,
@@ -107,6 +178,13 @@ const estimatedCredits = computed<number>(() => {
 });
 
 const hasEnoughBalance = computed<boolean>(() => {
+  if (isMotion.value) {
+    return (
+      isAuthenticated.value &&
+      motion.isAuthenticated.value &&
+      motion.hasEnoughBalance.value
+    );
+  }
   if (!isAuthenticated.value || typeof props.userBalance !== 'number') {
     return false;
   }
@@ -114,17 +192,63 @@ const hasEnoughBalance = computed<boolean>(() => {
 });
 
 const canSubmit = computed<boolean>(() => {
+  if (isTaskWorking.value) {
+    return false;
+  }
+  if (isMotion.value) {
+    return (
+      isAuthenticated.value &&
+      motion.isAuthenticated.value &&
+      !motionIsSubmitting.value &&
+      motion.canSubmit.value
+    );
+  }
   if (!isAuthenticated.value || !hasEnoughBalance.value || isSubmitting.value) {
     return false;
   }
   if (props.feature?.id === 'face-swap') {
     return Boolean(sourceKey.value && targetKey.value);
   }
+  if (props.feature?.id === 'outfit-change') {
+    return Boolean(modelKey.value && clothingKey.value);
+  }
+  if (props.feature?.id === 'body-retouch') {
+    return Boolean(uploadedKey.value && isValidIntensity.value);
+  }
   return Boolean(uploadedKey.value);
 });
 
 async function handleSubmit(): Promise<void> {
-  if (!props.feature || !canSubmit.value || isSubmitting.value) {
+  if (!props.feature || isSubmitting.value || isTaskWorking.value) {
+    return;
+  }
+
+  if (props.feature.id === 'body-retouch' && !isValidIntensity.value) {
+    submitErrorVi.value = resolveApiErrorMessageVi(
+      ApiErrorCode.VALIDATION_FAILED,
+    );
+    return;
+  }
+
+  if (!canSubmit.value) {
+    return;
+  }
+
+
+  if (isMotion.value) {
+    // Logic tạo Task dùng chung với trang /motion-control (composable useMotionControl).
+    const seconds = motion.seconds.value;
+    const credits = motion.price.value ?? 0;
+    const task = await motion.submit();
+    if (task) {
+      activeTask.value = task;
+      emit('submit', {
+        featureId: props.feature.id,
+        seconds,
+        estimatedCredits: credits,
+        uploadedKey: motion.characterKey.value,
+      });
+    }
     return;
   }
 
@@ -150,6 +274,51 @@ async function handleSubmit(): Promise<void> {
     } finally {
       isSubmitting.value = false;
     }
+  } else if (props.feature.id === 'outfit-change') {
+    isSubmitting.value = true;
+    submitErrorVi.value = null;
+    try {
+      const task = await client.createOutfitChangeTask({
+        modelKey: modelKey.value!,
+        clothingKey: clothingKey.value!,
+      });
+      activeTask.value = task;
+      void refreshAll();
+      emit('submit', {
+        featureId: props.feature.id,
+        seconds: selectedSeconds.value,
+        estimatedCredits: estimatedCredits.value,
+        modelKey: modelKey.value,
+        clothingKey: clothingKey.value,
+      });
+    } catch (error: unknown) {
+      submitErrorVi.value = resolveApiErrorMessageVi(error);
+    } finally {
+      isSubmitting.value = false;
+    }
+  } else if (props.feature.id === 'body-retouch') {
+    isSubmitting.value = true;
+    submitErrorVi.value = null;
+    try {
+      const parsedIntensity = IntensitySchema.parse(intensity.value);
+      const task = await client.createBodyRetouchTask({
+        imageKey: uploadedKey.value!,
+        intensity: parsedIntensity,
+      });
+      activeTask.value = task;
+      void refreshAll();
+      emit('submit', {
+        featureId: props.feature.id,
+        seconds: selectedSeconds.value,
+        estimatedCredits: estimatedCredits.value,
+        uploadedKey: uploadedKey.value,
+        intensity: parsedIntensity,
+      });
+    } catch (error: unknown) {
+      submitErrorVi.value = resolveApiErrorMessageVi(error);
+    } finally {
+      isSubmitting.value = false;
+    }
   } else {
     emit('submit', {
       featureId: props.feature.id,
@@ -158,6 +327,12 @@ async function handleSubmit(): Promise<void> {
       uploadedKey: uploadedKey.value,
     });
   }
+}
+
+function handleRetry(): void {
+  activeTask.value = null;
+  submitErrorVi.value = null;
+  if (isMotion.value) resetMotionState();
 }
 
 function handleKeydown(event: KeyboardEvent): void {
@@ -224,9 +399,10 @@ onBeforeUnmount(() => {
 
         <div class="flex items-center gap-2">
           <NuxtLink
-            v-if="feature.id === 'face-swap'"
-            to="/face-swap"
-            class="touch-target hidden items-center gap-1.5 rounded-xl border border-cyber-border bg-cyber-bg px-3 py-2 text-xs font-semibold text-cyber-muted transition hover:border-cyber-cyan hover:text-cyber-cyan sm:inline-flex"
+            v-if="feature.id === 'face-swap' || feature.id === 'outfit-change' || feature.id === 'body-retouch' || feature.id === 'motion-control'"
+            :to="feature.id === 'body-retouch' ? '/body-retouch' : feature.id === 'motion-control' ? '/motion-control' : feature.id === 'outfit-change' ? '/outfit-change' : '/face-swap'"
+            data-testid="workspace-open-standalone-link"
+            class="touch-target inline-flex min-h-[48px] items-center gap-1.5 rounded-xl border border-cyber-border bg-cyber-bg px-3 py-2 text-xs font-semibold text-cyber-muted transition hover:border-cyber-cyan hover:text-cyber-cyan"
             @click="emit('close')"
           >
             <Icon name="lucide:maximize-2" class="h-3.5 w-3.5" />
@@ -245,37 +421,25 @@ onBeforeUnmount(() => {
         </div>
       </div>
 
-      <!-- Tiến trình tác vụ khi đã tạo (TaskProgressCard) -->
-      <div v-if="activeTask" class="p-4 sm:p-6">
-        <TaskProgressCard
-          :task="activeTask"
-          pipeline-label-vi="Hoán đổi khuôn mặt"
-          @update:task="activeTask = $event"
-          @retry="activeTask = null"
-          @completed="void refreshAll()"
-          @settled="void refreshAll()"
-        />
-      </div>
-
       <!-- Nội dung 2 cột trên Desktop, 1 cột trên Mobile khi chưa có activeTask -->
-      <div v-else class="grid grid-cols-1 gap-6 p-4 sm:p-6 lg:grid-cols-12">
+      <div class="grid grid-cols-1 gap-5 p-4 sm:p-6 lg:grid-cols-12">
         <!-- Cột trái: Tải tệp & Điều chỉnh thông số (Trimmer bước 1 giây cho video) -->
-        <div class="space-y-5 lg:col-span-6">
+        <div class="space-y-3.5 lg:col-span-6">
           <!-- Trường hợp Face Swap: Yêu cầu 2 ảnh (mặt nguồn + đích) theo Story 2.11 -->
           <div
             v-if="feature.id === 'face-swap'"
-            class="space-y-4"
+            class="space-y-3"
             data-testid="workspace-face-swap-inputs"
           >
             <!-- 1. Ảnh mặt nguồn -->
-            <div class="space-y-3 rounded-xl border border-cyber-border bg-cyber-bg/60 p-4">
+            <div class="space-y-2.5 rounded-xl border border-cyber-border bg-cyber-bg/60 p-3 sm:p-3.5">
               <div class="flex items-center gap-2">
                 <span
-                  class="flex h-6 w-6 items-center justify-center rounded-lg border border-cyber-cyan/40 bg-cyber-cyan/15 font-mono text-xs font-bold text-cyber-cyan"
+                  class="flex h-5 w-5 items-center justify-center rounded-md border border-cyber-cyan/40 bg-cyber-cyan/15 font-mono text-[11px] font-bold text-cyber-cyan"
                 >
                   1
                 </span>
-                <p class="text-sm font-semibold text-cyber-text">
+                <p class="text-xs font-semibold text-cyber-text sm:text-sm">
                   Ảnh mặt nguồn (Khuôn mặt cần lấy)
                 </p>
               </div>
@@ -288,14 +452,14 @@ onBeforeUnmount(() => {
             </div>
 
             <!-- 2. Ảnh đích -->
-            <div class="space-y-3 rounded-xl border border-cyber-border bg-cyber-bg/60 p-4">
+            <div class="space-y-2.5 rounded-xl border border-cyber-border bg-cyber-bg/60 p-3 sm:p-3.5">
               <div class="flex items-center gap-2">
                 <span
-                  class="flex h-6 w-6 items-center justify-center rounded-lg border border-cyber-violet/40 bg-cyber-violet/15 font-mono text-xs font-bold text-cyber-violet"
+                  class="flex h-5 w-5 items-center justify-center rounded-md border border-cyber-violet/40 bg-cyber-violet/15 font-mono text-[11px] font-bold text-cyber-violet"
                 >
                   2
                 </span>
-                <p class="text-sm font-semibold text-cyber-text">
+                <p class="text-xs font-semibold text-cyber-text sm:text-sm">
                   Ảnh đích (Bối cảnh muốn ghép)
                 </p>
               </div>
@@ -308,27 +472,81 @@ onBeforeUnmount(() => {
             </div>
           </div>
 
+          <!-- Đổi trang phục: 2 ảnh (người mẫu + trang phục) -->
+          <div
+            v-else-if="feature.id === 'outfit-change'"
+            class="space-y-3"
+            data-testid="workspace-outfit-change-inputs"
+          >
+            <div class="space-y-2.5 rounded-xl border border-cyber-border bg-cyber-bg/60 p-3 sm:p-3.5">
+              <div class="flex items-center gap-2">
+                <span
+                  class="flex h-5 w-5 items-center justify-center rounded-md border border-cyber-cyan/40 bg-cyber-cyan/15 font-mono text-[11px] font-bold text-cyber-cyan"
+                >
+                  1
+                </span>
+                <p class="text-xs font-semibold text-cyber-text sm:text-sm">
+                  Ảnh người mẫu (Người cần thay trang phục)
+                </p>
+              </div>
+              <ImageUploader
+                v-model="modelKey"
+                id-prefix="workspace-outfit-model"
+                label-vi="Chọn ảnh người mẫu"
+                description-vi="Ảnh người rõ dáng, JPG/PNG/WebP ≤ 10 MB"
+              />
+            </div>
+
+            <div class="space-y-2.5 rounded-xl border border-cyber-border bg-cyber-bg/60 p-3 sm:p-3.5">
+              <div class="flex items-center gap-2">
+                <span
+                  class="flex h-5 w-5 items-center justify-center rounded-md border border-cyber-violet/40 bg-cyber-violet/15 font-mono text-[11px] font-bold text-cyber-violet"
+                >
+                  2
+                </span>
+                <p class="text-xs font-semibold text-cyber-text sm:text-sm">
+                  Ảnh trang phục (Quần áo muốn mặc)
+                </p>
+              </div>
+              <ImageUploader
+                v-model="clothingKey"
+                id-prefix="workspace-outfit-clothing"
+                label-vi="Chọn ảnh trang phục"
+                description-vi="Ảnh quần áo rõ nét, JPG/PNG/WebP ≤ 10 MB"
+              />
+            </div>
+          </div>
+
           <!-- Các công cụ AI khác: Thành phần tải ảnh đơn dùng chung (Story 2.10) -->
           <div
             v-else
-            class="rounded-xl border border-cyber-border bg-cyber-bg/60 p-4"
+            class="rounded-xl border border-cyber-border bg-cyber-bg/60 p-3 sm:p-3.5"
           >
-            <div class="mb-4 flex items-start gap-3">
+            <div class="mb-2.5 flex items-start gap-2.5">
               <Icon
                 name="lucide:upload-cloud"
-                class="mt-0.5 h-6 w-6 shrink-0 text-cyber-violet"
+                class="mt-0.5 h-5 w-5 shrink-0 text-cyber-violet"
               />
-              <div class="space-y-1">
-                <p class="text-sm font-semibold text-cyber-text">
+              <div class="min-w-0 flex-1 space-y-0.5">
+                <p class="text-xs font-semibold text-cyber-text sm:text-sm">
                   Tải dữ liệu đầu vào
                 </p>
-                <p class="text-xs text-cyber-muted">
+                <p class="truncate text-[11px] text-cyber-muted sm:whitespace-normal sm:text-xs">
                   {{ feature.inputRequirementVi }}
                 </p>
               </div>
             </div>
 
             <ImageUploader
+              v-if="feature.id === 'motion-control'"
+              :key="`motion-char-${motionKey}`"
+              v-model="motionCharacterKey"
+              id-prefix="workspace-motion-character"
+              label-vi="Chọn ảnh nhân vật"
+              description-vi="Ảnh toàn thân rõ dáng, JPG/PNG/WebP ≤ 10 MB"
+            />
+            <ImageUploader
+              v-else
               v-model="uploadedKey"
               id-prefix="workspace-input"
               :label-vi="
@@ -340,182 +558,151 @@ onBeforeUnmount(() => {
             />
           </div>
 
-          <!-- Banner lỗi nếu có -->
+          <!-- Thanh trượt mức điều chỉnh nâng ngực (Body Retouch: intensity 1..10, bước 1, mặc định 5) -->
           <div
-            v-if="submitErrorVi"
-            class="rounded-xl border border-cyber-danger/40 bg-cyber-danger/10 p-3 text-xs text-cyber-danger"
+            v-if="feature.id === 'body-retouch'"
+            data-testid="workspace-intensity-section"
+            class="space-y-3 rounded-xl border border-cyber-border bg-cyber-bg/60 p-3 sm:p-3.5"
           >
-            {{ submitErrorVi }}
-          </div>
-
-          <!-- Bộ cắt video bước 1 giây (chỉ hiện với công cụ tính phí theo giây) -->
-          <div
-            v-if="feature.billingMode === 'per_second' && feature.tierCapSeconds"
-            data-testid="workspace-video-trimmer"
-            class="space-y-3 rounded-xl border border-cyber-border bg-cyber-bg/60 p-4"
-          >
-            <div class="flex items-center justify-between gap-2">
+            <div class="flex flex-wrap items-center justify-between gap-2">
               <label
-                for="video-trim-range"
-                class="flex items-center gap-2 text-sm font-semibold text-cyber-text"
+                for="workspace-intensity-range"
+                class="flex items-center gap-2 text-xs font-semibold text-cyber-text sm:text-sm"
               >
-                <Icon name="lucide:scissors" class="h-4 w-4 text-cyber-cyan" />
-                <span>Độ dài video sau cắt (bước 1 giây)</span>
+                <Icon name="lucide:sliders-horizontal" class="h-4 w-4 text-cyber-cyan" />
+                <span>Mức độ nâng ngực</span>
               </label>
-              <span class="font-mono text-sm font-bold text-cyber-cyan">
-                {{ selectedSeconds }}s / {{ maxSeconds }}s
+              <span
+                data-testid="workspace-intensity-badge"
+                class="inline-flex items-center gap-1.5 rounded-full border border-cyber-cyan/40 bg-cyber-cyan/15 px-3 py-1 font-mono text-xs font-bold text-cyber-cyan"
+              >
+                <span data-testid="workspace-intensity-value">Mức {{ intensity }}/{{ INTENSITY_MAX }}</span>
+                <span>•</span>
+                <span data-testid="workspace-intensity-label">{{ intensityLabelVi }}</span>
               </span>
             </div>
 
             <input
-              id="video-trim-range"
-              v-model.number="selectedSeconds"
+              id="workspace-intensity-range"
+              v-model.number="intensity"
               type="range"
-              min="1"
-              :max="maxSeconds"
+              :min="INTENSITY_MIN"
+              :max="INTENSITY_MAX"
               step="1"
+              data-testid="workspace-intensity-slider"
+              aria-label="Mức điều chỉnh nâng ngực từ 1 đến 10"
+              :aria-valuenow="intensity"
+              :aria-valuemin="INTENSITY_MIN"
+              :aria-valuemax="INTENSITY_MAX"
+              :aria-valuetext="intensityLabelVi"
               class="touch-target min-h-[48px] w-full cursor-pointer accent-cyber-cyan"
             />
 
-            <div class="flex items-center justify-between font-mono text-xs text-cyber-muted">
-              <span>Tối thiểu: 1 giây</span>
-              <span>
-                Trần hạng {{ userTier }}: {{ maxSeconds }} giây
-              </span>
+            <div
+              data-testid="workspace-intensity-zones"
+              class="grid grid-cols-3 gap-2 text-center text-[11px]"
+            >
+              <div
+                v-for="zone in INTENSITY_LABEL_ZONES"
+                :key="zone.label"
+                :data-testid="`workspace-intensity-zone-${zone.min}-${zone.max}`"
+                class="rounded-lg border px-2 py-1.5 transition"
+                :class="[
+                  intensity >= zone.min && intensity <= zone.max
+                    ? 'border-cyber-cyan/50 bg-cyber-cyan/15 font-semibold text-cyber-cyan'
+                    : 'border-cyber-border/60 bg-cyber-surface/40 text-cyber-muted',
+                ]"
+              >
+                <div class="font-mono text-[10px]">
+                  {{ zone.min }}–{{ zone.max }}
+                </div>
+                <div>{{ zone.label }}</div>
+              </div>
             </div>
           </div>
 
-          <!-- Bảng tính phí credit thời gian thực từ /config/pricing -->
+          <!-- Banner lỗi nếu có -->
           <div
-            class="space-y-2 rounded-xl border border-cyber-cyan/30 bg-cyber-bg/80 p-4"
+            v-if="submitErrorVi || motionSubmitErrorVi"
+            data-testid="workspace-submit-error-banner"
+            role="alert"
+            aria-live="assertive"
+            class="rounded-xl border border-cyber-danger/40 bg-cyber-danger/10 p-3 text-xs text-cyber-danger"
           >
-            <div class="flex items-center justify-between text-xs text-cyber-muted">
-              <span>Đơn giá công cụ (từ /config/pricing):</span>
-              <span class="font-mono text-cyber-text">
-                {{ feature.priceBadgeVi }}
-              </span>
-            </div>
+            {{ submitErrorVi || motionSubmitErrorVi }}
+          </div>
 
-            <div class="flex items-center justify-between border-t border-cyber-border/70 pt-2">
-              <span class="text-sm font-semibold text-cyber-text">
-                Chi phí tạm giữ (HOLD):
-              </span>
-              <span
-                data-testid="workspace-estimated-credits"
-                class="font-mono text-base font-bold text-cyber-cyan"
-              >
-                {{ formatNumberVi(estimatedCredits) }} credit
-              </span>
-            </div>
-
-            <p class="text-xs text-cyber-muted">
-              Hệ thống hoàn trả 100% credit (RELEASED) nếu tác vụ gặp lỗi xử lý.
+          <!-- Bộ cắt video bước 1 giây (VideoTrimmer, chỉ với Motion Control) -->
+          <div
+            v-if="isMotion"
+            data-testid="workspace-video-trimmer"
+            class="min-w-0 space-y-2.5 rounded-xl border border-cyber-border bg-cyber-bg/60 p-3 sm:p-3.5"
+          >
+            <p class="flex items-center gap-2 text-xs font-semibold text-cyber-text sm:text-sm">
+              <Icon name="lucide:scissors" class="h-4 w-4 text-cyber-cyan" />
+              <span>Video mẫu và đoạn cắt (bước 1 giây)</span>
+            </p>
+            <VideoTrimmer
+              :key="`motion-video-${motionKey}`"
+              id-prefix="workspace-motion-video"
+              :cap-seconds="motionCapSeconds"
+              :tier-name="userTier"
+              @change="onMotionTrimChange"
+            />
+            <MotionOptions
+              v-model:aspect-ratio="motionAspectRatio"
+              v-model:prompt="motionPrompt"
+              id-prefix="workspace-motion"
+              :disabled="motionIsSubmitting"
+            />
+            <p
+              v-if="motionSeconds > 0"
+              data-testid="workspace-motion-seconds"
+              class="font-mono text-xs text-cyber-muted"
+            >
+              Đoạn đã chọn: {{ motionSeconds }} giây
+            </p>
+            <p
+              v-if="motionInsufficientNoteVi"
+              data-testid="workspace-insufficient-note"
+              class="text-xs font-semibold text-cyber-warning"
+            >
+              {{ motionInsufficientNoteVi }}
             </p>
           </div>
         </div>
 
-        <!-- Cột phải: Slider so sánh Before / After trực quan -->
+        <!-- Cột phải: So sánh Trước / Sau AI; loading và kết quả hiển thị ngay tại đây -->
         <div class="space-y-4 lg:col-span-6">
-          <div
-            class="rounded-xl border border-cyber-border bg-cyber-bg/70 p-4"
-          >
-            <div class="mb-3 flex items-center justify-between">
-              <span class="flex items-center gap-2 text-sm font-semibold text-cyber-text">
-                <Icon name="lucide:split-square-horizontal" class="h-4 w-4 text-cyber-violet" />
-                <span>So sánh Trước / Sau AI</span>
-              </span>
-              <span class="font-mono text-xs text-cyber-cyan">
-                {{ compareSplitPercent }}%
-              </span>
-            </div>
-
-            <div
-              class="relative h-48 overflow-hidden rounded-xl border border-cyber-border bg-gradient-to-r from-slate-900 via-indigo-950 to-slate-900"
-            >
-              <!-- Lớp ảnh Trước (nền) -->
-              <div
-                class="absolute inset-0 flex flex-col justify-between bg-cyber-surface/90 p-4"
-              >
-                <div class="flex items-center justify-between">
-                  <span class="rounded bg-cyber-bg/80 px-2 py-0.5 font-mono text-[10px] uppercase text-cyber-muted">
-                    Trước xử lý
-                  </span>
-                </div>
-                <p class="text-xs font-medium text-cyber-text">
-                  {{ feature.beforeLabelVi }}
-                </p>
-              </div>
-
-              <!-- Lớp ảnh Sau (cắt theo compareSplitPercent) -->
-              <div
-                class="absolute inset-0 flex flex-col justify-between bg-cyber-cyan/15 p-4 backdrop-blur-[1px] transition-[clip-path]"
-                :style="{ clipPath: `inset(0 0 0 ${compareSplitPercent}%)` }"
-              >
-                <div class="flex items-center justify-end">
-                  <span class="rounded border border-cyber-cyan/40 bg-cyber-bg/90 px-2 py-0.5 font-mono text-[10px] uppercase text-cyber-cyan">
-                    Sau xử lý AI
-                  </span>
-                </div>
-                <p class="text-right text-xs font-medium text-cyber-cyan">
-                  {{ feature.afterLabelVi }}
-                </p>
-              </div>
-
-              <!-- Vạch chia đôi Before/After phát sáng theo DESIGN.md -->
-              <div
-                class="pointer-events-none absolute inset-y-0 w-0.5 bg-cyber-cyan shadow-[0_0_10px_#06B6D4]"
-                :style="{ left: `${compareSplitPercent}%` }"
-              >
-                <div
-                  class="absolute top-1/2 flex h-7 w-7 -translate-x-1/2 -translate-y-1/2 items-center justify-center rounded-full bg-cyber-cyan text-black shadow-md"
-                >
-                  <Icon name="lucide:arrow-left-right" class="h-3.5 w-3.5" />
-                </div>
-              </div>
-            </div>
-
-            <div class="mt-3">
-              <label
-                for="before-after-slider"
-                class="sr-only"
-              >
-                Thanh kéo so sánh trước và sau
-              </label>
-              <input
-                id="before-after-slider"
-                v-model.number="compareSplitPercent"
-                type="range"
-                min="0"
-                max="100"
-                step="1"
-                class="touch-target min-h-[48px] w-full cursor-pointer accent-cyber-violet"
-              />
-            </div>
-
-            <p class="mt-2 text-xs text-cyber-muted">
-              Đầu ra: {{ feature.outputFormatVi }}
-            </p>
-          </div>
+          <TaskResultViewer
+            :task="activeTask"
+            :submitting="anySubmitting"
+            :before-label-vi="feature.beforeLabelVi"
+            :after-label-vi="feature.afterLabelVi"
+            :output-format-vi="feature.outputFormatVi"
+            @update:task="activeTask = $event"
+            @settled="void refreshAll()"
+            @retry="handleRetry"
+          />
         </div>
       </div>
 
-      <!-- Footer hành động của Centered Dialog -->
+      <!-- Footer hành động của Centered Dialog: Ghim cố định ở đáy (sticky bottom-0 z-10) -->
       <div
-        class="flex flex-col-reverse items-stretch justify-between gap-3 border-t border-cyber-border bg-cyber-bg/60 px-4 py-4 sm:flex-row sm:items-center sm:px-6"
+        class="sticky bottom-0 z-10 flex flex-col gap-3 border-t border-cyber-border bg-cyber-surface/95 px-4 py-3.5 backdrop-blur sm:flex-row sm:items-center sm:justify-between sm:px-6"
       >
-        <button
-          type="button"
-          class="touch-target inline-flex min-h-[48px] min-w-[48px] items-center justify-center gap-2 rounded-xl border border-cyber-border bg-cyber-surface px-5 py-2.5 text-sm font-medium text-cyber-text transition hover:border-cyber-violet"
-          @click="emit('close')"
-        >
-          <Icon name="lucide:arrow-left" class="h-4 w-4" />
-          <span>Đóng Cửa Sổ</span>
-        </button>
+        <!-- Đơn giá công cụ -->
+        <div class="flex items-center gap-2">
+          <Icon name="lucide:zap" class="h-4 w-4 text-cyber-cyan" />
+          <div class="flex items-center gap-1.5 text-xs">
+            <span class="text-cyber-muted">Đơn giá công cụ:</span>
+            <span class="font-mono font-bold text-cyber-cyan">
+              {{ feature.priceBadgeVi }}
+            </span>
+          </div>
+        </div>
 
-        <div
-          v-if="!activeTask"
-          class="flex flex-col items-stretch gap-2 sm:flex-row sm:items-center"
-        >
+        <div class="flex shrink-0 flex-col items-stretch gap-2 sm:flex-row sm:items-center">
           <!-- Nút đăng nhập cho khách chưa đăng nhập -->
           <button
             v-if="!isAuthenticated"
@@ -546,16 +733,20 @@ onBeforeUnmount(() => {
             @click="handleSubmit"
           >
             <Icon
-              v-if="isSubmitting"
+              v-if="anySubmitting || isTaskWorking"
               name="lucide:loader-2"
               class="h-4 w-4 animate-spin"
             />
             <Icon v-else name="lucide:play" class="h-4 w-4" />
             <span>
               {{
-                isSubmitting
+                anySubmitting
                   ? 'Đang gửi yêu cầu...'
-                  : `Tạo Tác Vụ AI (${formatNumberVi(estimatedCredits)} CR)`
+                  : isTaskWorking
+                    ? 'Đang xử lý...'
+                    : activeTask
+                      ? `Tạo lại (${formatNumberVi(estimatedCredits)} CR)`
+                      : `Tạo Tác Vụ AI (${formatNumberVi(estimatedCredits)} CR)`
               }}
             </span>
           </button>

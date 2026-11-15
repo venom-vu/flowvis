@@ -13,7 +13,19 @@ import { InjectQueue } from '@nestjs/bullmq';
 import {
   ApiErrorCode,
   getApiErrorMessageVi,
+  getValidationReasonMessageVi,
+  type MotionCreateResponse,
+  BodyRetouchCreateRequestSchema,
+  type BodyRetouchCreateRequest,
   type FaceSwapCreateRequest,
+  type OutfitChangeCreateRequest,
+  type MotionCreateRequest,
+  type ValidationReason,
+  MOTION_MIN_TRIM_SECONDS,
+  MOTION_ASPECT_RATIO_DEFAULT,
+  getMotionAspectRatio,
+  CONTENT_REMOVED_MESSAGE_VI,
+  motionPrice,
   type ReasonCode,
   type Task,
   type TaskListQuery,
@@ -21,23 +33,79 @@ import {
   type TaskResultResponse,
   type TaskStatus,
   type TierSnapshot,
+  type TaskResultInput,
+  type TaskResultParams,
 } from '@flowvis/contracts';
 import type { Queue } from 'bullmq';
-import { PrismaService } from '../../infra/prisma.service.js';
+import { PrismaService, type PrismaTransactionClient } from '../../infra/prisma.service.js';
+import type { RunningHubInstanceType } from '../../ports/index.js';
+import { estimateCostUsd } from './instance-pricing.js';
 import { RedisService } from '../../infra/redis.service.js';
 import { assertValidTransition, isTerminal } from './task-transitions.js';
 import { AccountLockedException } from '../auth/guards/account-locked.guard.js';
 import { STORAGE_PORT, type StoragePort } from '../../ports/index.js';
 import { PipelinesService } from '../pipelines/pipelines.service.js';
 import { UploadsService } from '../storage/uploads.service.js';
-import { PRICING_CONFIG } from '../wallet/tier.js';
+import { PRICING_CONFIG, tierFromPack } from '../wallet/tier.js';
 import { WalletService } from '../wallet/wallet.service.js';
 
+/** Lỗi hệ thống tính vào ngắt mạch (Story 6.2). */
+export const SYSTEM_FAILURE_REASONS: readonly ReasonCode[] = [
+  'RH_ERROR',
+  'RH_TIMEOUT',
+  'RH_SUBMIT_UNKNOWN',
+  'PREP_TIMEOUT',
+  'FFMPEG_ERROR',
+  'INPUT_FETCH_ERROR',
+  'OUTPUT_UPLOAD_ERROR',
+  'OUTPUT_INVALID',
+  'INTERNAL_ERROR',
+];
+
+export interface TaskPipelineStatsRow {
+  pipeline: string;
+  counts: Record<string, number>;
+  succeeded: number;
+  system_failed: number;
+  avg_proc: number | null;
+  p95_proc: number | null;
+  /** Chi phí USD của Task succeeded. */
+  ok_cost: number | null;
+  /** Chi phí USD lãng phí (failed/timed_out/cancelled). */
+  wasted_cost: number | null;
+  ok_seconds: number | null;
+  all_cost: number | null;
+  /** Số Task succeeded có cost_usd (mẫu cho AVG). */
+  ok_cost_n: number;
+  /** Số giây ok_seconds chỉ tính Task succeeded có cost_usd (để chia per-giây). */
+  ok_seconds_costed: number | null;
+  by_instance: Array<{ instance_type: string; tasks: number; cost_usd: number }>;
+}
+
 export const TASKS_QUEUE = 'tasks';
-export const MAX_ACTIVE_TASKS_PER_USER = 3;
 /** Giới hạn chờ enqueue để phản hồi tạo Task luôn dưới 2 giây khi Redis treo; bộ quét sẽ enqueue lại. */
 export const ENQUEUE_TIMEOUT_MS = 1500;
 export const RESULT_URL_TTL_SECONDS = 600;
+
+/** Thứ tự hiển thị đầu vào trên trang chi tiết Task. */
+const INPUT_DISPLAY_ORDER: Readonly<Record<string, readonly string[]>> = {
+  face_swap: ['sourceKey', 'targetKey'],
+  outfit_change: ['modelKey', 'clothingKey'],
+  body_retouch: ['imageKey'],
+  motion_control: ['characterKey', 'videoKey'],
+};
+
+/** Chỉ lộ các tham số người dùng chọn; không lộ giá, kích thước nội bộ. */
+function pickDisplayParams(raw: unknown): TaskResultParams {
+  const p = (raw ?? {}) as Record<string, unknown>;
+  const out: TaskResultParams = {};
+  for (const k of ['intensity', 'seconds', 'trimStart', 'trimEnd'] as const) {
+    if (Number.isInteger(p[k])) out[k] = p[k] as number;
+  }
+  if (typeof p.aspectRatio === 'string') out.aspectRatio = p.aspectRatio;
+  if (typeof p.prompt === 'string' && p.prompt.length > 0) out.prompt = p.prompt;
+  return out;
+}
 
 export interface SweepRow {
   id: string;
@@ -93,8 +161,8 @@ export class TasksService {
     const terminal = isTerminal(to);
     const toRunning = to === 'running';
     if (to === 'succeeded') {
-      if (!resultKey || !/^out\/[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}\/[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(resultKey)) {
-        throw new Error('Chuyển sang succeeded cần resultKey dạng out/<userId>/<uuid>');
+      if (!resultKey || !/^out\/[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}\/[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}(\.mp4)?$/i.test(resultKey)) {
+        throw new Error('Chuyển sang succeeded cần resultKey dạng out/<userId>/<uuid>[.mp4]');
       }
     } else if (resultKey !== null) {
       throw new Error('resultKey chỉ dùng khi chuyển sang succeeded');
@@ -127,7 +195,125 @@ export class TasksService {
       // Chỉ là gợi ý nên không chờ: Redis treo không được làm trễ phản hồi sau khi DB đã commit.
       void this.redis.client.set(`task:terminal:${taskId}`, '1', 'EX', 30, 'NX').catch(() => {});
     }
+    if (result.applied && isTerminal(to)) this.emitTerminal();
     return result;
+  }
+
+  private readonly terminalListeners: Array<() => Promise<unknown>> = [];
+
+  /** Đăng ký bên nghe Task kết thúc (ops dùng cho ngắt mạch, tránh vòng phụ thuộc module). */
+  onTerminal(listener: () => Promise<unknown>): void {
+    this.terminalListeners.push(listener);
+  }
+
+  /** Phát tín hiệu sau commit; lỗi của bên nghe không bao giờ làm hỏng transition. Chờ được (bộ quét dùng). */
+  emitTerminal(): Promise<void> {
+    return Promise.all(
+      this.terminalListeners.map((l) =>
+        Promise.resolve()
+          .then(l)
+          .catch((err) => this.logger.error(`Bên nghe Task kết thúc lỗi: ${String(err)}`)),
+      ),
+    ).then(() => undefined);
+  }
+
+  /**
+   * Số liệu cửa sổ cho ngắt mạch: chỉ Task có finished_at sau mốc reset. Mẫu số gồm succeeded và lỗi hệ thống;
+   * lỗi do người dùng/nội dung/hủy/hết ngân sách bị loại và không cắt chuỗi lỗi liên tiếp.
+   */
+  async breakerWindowStats(
+    windowMs: number,
+    resetAt: Date | null,
+  ): Promise<{ eligible: number; systemFailures: number; consecutiveFailures: number }> {
+    const reasons = [...SYSTEM_FAILURE_REASONS];
+    const rows = await this.prisma.$queryRaw<Array<{ failure: boolean }>>`
+      SELECT (status <> 'succeeded') AS failure
+      FROM tasks
+      WHERE finished_at IS NOT NULL
+        AND finished_at > now() - (${windowMs}::int * interval '1 millisecond')
+        AND (${resetAt}::timestamptz IS NULL OR finished_at > ${resetAt}::timestamptz)
+        AND (status = 'succeeded' OR (status IN ('failed','timed_out') AND reason_code = ANY(${reasons}::text[])))
+      ORDER BY finished_at DESC, id`;
+    let systemFailures = 0;
+    let consecutiveFailures = 0;
+    let streak = true;
+    for (const r of rows) {
+      if (r.failure) {
+        systemFailures++;
+        if (streak) consecutiveFailures++;
+      } else streak = false;
+    }
+    return { eligible: rows.length, systemFailures, consecutiveFailures };
+  }
+
+  /** Thống kê Task theo pipeline trong [from, to] (created_at); `benchmark` chọn nhóm user của `userIds`. */
+  async statsByPipeline(from: Date, to: Date, userIds: string[], benchmark: boolean): Promise<TaskPipelineStatsRow[]> {
+    const reasons = [...SYSTEM_FAILURE_REASONS];
+    const rows = await this.prisma.$queryRaw<Array<Omit<TaskPipelineStatsRow, 'counts' | 'by_instance'>>>`
+      SELECT pipeline,
+        SUM(ok)::int AS succeeded,
+        SUM(sys_fail)::int AS system_failed,
+        AVG(proc)::float8 AS avg_proc,
+        percentile_cont(0.95) WITHIN GROUP (ORDER BY proc)::float8 AS p95_proc,
+        SUM(ok_cost)::float8 AS ok_cost,
+        SUM(wasted)::float8 AS wasted_cost,
+        SUM(ok_seconds)::float8 AS ok_seconds,
+        SUM(all_cost)::float8 AS all_cost,
+        COUNT(ok_cost)::int AS ok_cost_n,
+        SUM(ok_seconds_costed)::float8 AS ok_seconds_costed
+      FROM (
+        SELECT pipeline,
+          (status = 'succeeded')::int AS ok,
+          (status IN ('failed','timed_out') AND reason_code = ANY(${reasons}::text[]))::int AS sys_fail,
+          CASE WHEN status = 'succeeded' AND finished_at IS NOT NULL AND running_at IS NOT NULL
+            THEN EXTRACT(EPOCH FROM (finished_at - running_at)) END AS proc,
+          CASE WHEN status = 'succeeded' THEN cost_usd END AS ok_cost,
+          CASE WHEN status IN ('failed','timed_out','cancelled') THEN COALESCE(cost_usd, 0) ELSE 0 END AS wasted,
+          CASE WHEN status = 'succeeded' AND jsonb_typeof(params->'seconds') = 'number'
+            THEN (params->>'seconds')::float8 ELSE 0 END AS ok_seconds,
+          CASE WHEN status = 'succeeded' AND cost_usd IS NOT NULL AND jsonb_typeof(params->'seconds') = 'number'
+            THEN (params->>'seconds')::float8 ELSE 0 END AS ok_seconds_costed,
+          COALESCE(cost_usd, 0) AS all_cost
+        FROM tasks
+        WHERE created_at >= ${from}::timestamptz AND created_at <= ${to}::timestamptz
+          AND ((user_id = ANY(${userIds}::uuid[])) = ${benchmark}::boolean)
+      ) t
+      GROUP BY pipeline`;
+    const countRows = await this.prisma.$queryRaw<Array<{ pipeline: string; status: string; n: number }>>`
+      SELECT pipeline, status, COUNT(*)::int AS n FROM tasks
+      WHERE created_at >= ${from}::timestamptz AND created_at <= ${to}::timestamptz
+        AND ((user_id = ANY(${userIds}::uuid[])) = ${benchmark}::boolean)
+      GROUP BY pipeline, status`;
+    const instRows = await this.prisma.$queryRaw<Array<{ pipeline: string; instance_type: string; tasks: number; cost_usd: number }>>`
+      SELECT pipeline, COALESCE(instance_type, 'unknown') AS instance_type, COUNT(*)::int AS tasks,
+        COALESCE(SUM(cost_usd), 0)::float8 AS cost_usd
+      FROM tasks
+      WHERE created_at >= ${from}::timestamptz AND created_at <= ${to}::timestamptz
+        AND ((user_id = ANY(${userIds}::uuid[])) = ${benchmark}::boolean)
+        AND instance_type IS NOT NULL
+      GROUP BY pipeline, instance_type`;
+    return rows.map((r) => {
+      const counts: Record<string, number> = {};
+      for (const c of countRows) if (c.pipeline === r.pipeline) counts[c.status] = c.n;
+      const by_instance = instRows
+        .filter((i) => i.pipeline === r.pipeline)
+        .map((i) => ({ instance_type: i.instance_type, tasks: i.tasks, cost_usd: i.cost_usd }));
+      return { ...r, counts, by_instance };
+    });
+  }
+
+  /** Tập user (trong `userIds`) có ít nhất một Task. */
+  async userIdsWithTasks(userIds: string[]): Promise<Set<string>> {
+    if (userIds.length === 0) return new Set();
+    const rows = await this.prisma.$queryRaw<Array<{ user_id: string }>>`
+      SELECT DISTINCT user_id FROM tasks WHERE user_id = ANY(${userIds}::uuid[])`;
+    return new Set(rows.map((r) => r.user_id));
+  }
+
+  /** Số tài khoản đã từng có Task. */
+  async countUsersWithTasks(): Promise<number> {
+    const rows = await this.prisma.$queryRaw<Array<{ n: number }>>`SELECT COUNT(DISTINCT user_id)::int AS n FROM tasks`;
+    return rows[0]?.n ?? 0;
   }
 
   /** Bộ quét: Task queued quá `olderThanMs` kể từ queued_at. */
@@ -152,14 +338,14 @@ export class TasksService {
       ORDER BY queued_at LIMIT ${limit}`;
   }
 
-  /** Bộ quét: Task running có hạn chót nào đó đã qua (deadline_at, gate_deadline hoặc prep_deadline_at). */
+  /** Bộ quét: Task running chưa qua cổng mà gate_deadline hoặc prep_deadline_at đã qua. */
   async sweepRunningExpired(limit = 100) {
     return this.prisma.$queryRaw<SweepRow[]>`
       SELECT id, enqueue_attempts, (tier_snapshot->>'priority')::int AS priority,
         deadline_at, prep_deadline_at, gate_deadline
       FROM tasks
-      WHERE status = 'running' AND (deadline_at <= now()
-        OR (deadline_at IS NULL AND (gate_deadline <= now() OR prep_deadline_at <= now()))) IS TRUE
+      WHERE status = 'running' AND (deadline_at IS NULL
+        AND (gate_deadline <= now() OR prep_deadline_at <= now())) IS TRUE
       ORDER BY running_at LIMIT ${limit}`;
   }
 
@@ -169,8 +355,8 @@ export class TasksService {
       SELECT id, enqueue_attempts, (tier_snapshot->>'priority')::int AS priority,
         deadline_at, prep_deadline_at, gate_deadline
       FROM tasks
-      WHERE status = 'running' AND (deadline_at <= now()
-        OR (deadline_at IS NULL AND (gate_deadline <= now() OR prep_deadline_at <= now()))) IS NOT TRUE
+      WHERE status = 'running' AND (deadline_at IS NULL
+        AND (gate_deadline <= now() OR prep_deadline_at <= now())) IS NOT TRUE
       ORDER BY running_at LIMIT ${limit}`;
   }
 
@@ -205,10 +391,43 @@ export class TasksService {
   }
 
   /** Đặt submit_started_at một lần duy nhất; false nếu đã đặt hoặc Task không còn running. */
-  async markSubmitStarted(taskId: string): Promise<boolean> {
+  async markSubmitStarted(taskId: string, instanceType: RunningHubInstanceType): Promise<boolean> {
     const n = await this.prisma.$executeRaw`
-      UPDATE tasks SET submit_started_at = now(), updated_at = now()
+      UPDATE tasks SET submit_started_at = now(), instance_type = ${instanceType}, updated_at = now()
       WHERE id = ${taskId}::uuid AND status = 'running' AND submit_started_at IS NULL`;
+    return n > 0;
+  }
+
+  /**
+   * Ghi chi phí GPU thật khi RunningHub báo SUCCESS/FAILED (chỉ khi Task đang running).
+   * Có costUsd hợp lệ: 'reported'. Ngược lại có costSeconds > 0 và Task có instance_type: 'estimated'. Không có gì: để NULL.
+   * cost_seconds luôn được lưu nếu có.
+   */
+  async recordCost(taskId: string, cost: { costUsd?: number; costSeconds?: number }): Promise<boolean> {
+    const secs =
+      typeof cost.costSeconds === 'number' && Number.isFinite(cost.costSeconds) && cost.costSeconds > 0
+        ? Math.round(cost.costSeconds)
+        : null;
+    const reported =
+      typeof cost.costUsd === 'number' && Number.isFinite(cost.costUsd) && cost.costUsd >= 0 ? cost.costUsd : null;
+    if (reported === null && secs === null) return false;
+    const row = await this.prisma.task.findUnique({ where: { id: taskId }, select: { instanceType: true, status: true } });
+    if (!row || row.status !== 'running') return false;
+    let usd: number | null = null;
+    let source: 'reported' | 'estimated' | null = null;
+    if (reported !== null) {
+      usd = reported;
+      source = 'reported';
+    } else {
+      const est = estimateCostUsd(row.instanceType, secs);
+      if (est !== undefined) {
+        usd = est;
+        source = 'estimated';
+      }
+    }
+    const n = await this.prisma.$executeRaw`
+      UPDATE tasks SET cost_usd = ${usd}::numeric, cost_source = ${source}, cost_seconds = ${secs}::int, updated_at = now()
+      WHERE id = ${taskId}::uuid AND status = 'running'`;
     return n > 0;
   }
 
@@ -234,6 +453,21 @@ export class TasksService {
     return this.getById(userId, taskId);
   }
 
+  /** Tra cứu Task cho Admin (kèm email chủ). */
+  async findForAdmin(taskId: string) {
+    return this.prisma.task.findUnique({ where: { id: taskId }, include: { user: { select: { email: true } } } });
+  }
+
+  /** Đặt files_removed_at = now() nếu còn null (CAS). Trả thời điểm hiện hành và `applied`. */
+  async markFilesRemoved(taskId: string, client: PrismaService | PrismaTransactionClient = this.prisma): Promise<{ filesRemovedAt: Date; applied: boolean }> {
+    const now = new Date();
+    const r = await client.task.updateMany({ where: { id: taskId, filesRemovedAt: null }, data: { filesRemovedAt: now } });
+    if (r.count > 0) return { filesRemovedAt: now, applied: true };
+    const row = await client.task.findUnique({ where: { id: taskId }, select: { filesRemovedAt: true } });
+    if (!row?.filesRemovedAt) throw this.apiError(NotFoundException, ApiErrorCode.NOT_FOUND);
+    return { filesRemovedAt: row.filesRemovedAt, applied: false };
+  }
+
   async getById(userId: string, taskId: string): Promise<Task> {
     const row = await this.prisma.task.findUnique({ where: { id: taskId } });
     if (!row || row.userId !== userId) throw this.apiError(NotFoundException, ApiErrorCode.NOT_FOUND);
@@ -246,6 +480,7 @@ export class TasksService {
       queuePosition: queued ? await this.queuePosition(row.id) : null,
       resultKey: row.resultKey ?? null,
       creditCost: row.holdAmount,
+      filesRemovedAt: row.filesRemovedAt ? row.filesRemovedAt.toISOString() : null,
       createdAt: row.createdAt.toISOString(),
       updatedAt: row.updatedAt.toISOString(),
     };
@@ -312,6 +547,7 @@ export class TasksService {
           queuePosition: queuePos,
           resultKey: row.resultKey ?? null,
           creditCost: row.holdAmount,
+          filesRemovedAt: row.filesRemovedAt ? row.filesRemovedAt.toISOString() : null,
           createdAt: row.createdAt.toISOString(),
           updatedAt: row.updatedAt.toISOString(),
         };
@@ -330,26 +566,55 @@ export class TasksService {
   async getResult(userId: string, taskId: string): Promise<TaskResultResponse> {
     const row = await this.prisma.task.findUnique({ where: { id: taskId } });
     if (!row || row.userId !== userId) throw this.apiError(NotFoundException, ApiErrorCode.NOT_FOUND);
+    if (row.filesRemovedAt) {
+      throw new ConflictException({ code: ApiErrorCode.CONFLICT, message: CONTENT_REMOVED_MESSAGE_VI });
+    }
     if (row.status !== 'succeeded' || !row.resultKey) {
       throw this.apiError(ConflictException, ApiErrorCode.CONFLICT);
     }
     const resultUrl = await this.storage.presignGet(row.resultKey, RESULT_URL_TTL_SECONDS);
+    const [inputs, params] = [await this.presignInputs(taskId, row.pipeline, row.inputKeys), pickDisplayParams(row.params)];
+
+    if (row.resultKey.endsWith('.mp4')) {
+      const seconds = ((row.params ?? {}) as Record<string, unknown>).seconds;
+      if (!Number.isInteger(seconds) || (seconds as number) <= 0) {
+        throw new Error(`Task ${taskId} thiếu params.seconds hợp lệ`);
+      }
+      const posterUrl = await this.storage.presignGet(row.resultKey.replace(/\.mp4$/, '.jpg'), RESULT_URL_TTL_SECONDS);
+      return { mediaType: 'video', resultUrl, sourceUrl: null, posterUrl, durationSeconds: seconds as number, inputs, params };
+    }
 
     let sourceUrl: string | null = null;
     const refKey = this.pipelines.getConfig(row.pipeline)?.referenceInputKey;
-    const sourceKey = refKey
-      ? ((row.inputKeys ?? {}) as Record<string, string | undefined>)[refKey]
-      : undefined;
-    if (sourceKey) {
+    const refInput = refKey ? inputs.find((i) => i.role === refKey) : undefined;
+    if (refInput) sourceUrl = refInput.url;
+    return { resultUrl, sourceUrl, inputs, params };
+  }
+
+  /** URL ký cho các đầu vào còn lưu (đã quá hạn dọn dẹp thì bỏ qua, không báo lỗi). */
+  private async presignInputs(
+    taskId: string,
+    pipeline: string,
+    inputKeys: unknown,
+  ): Promise<TaskResultInput[]> {
+    const keys = (inputKeys ?? {}) as Record<string, string | undefined>;
+    const order = INPUT_DISPLAY_ORDER[pipeline] ?? Object.keys(keys);
+    const out: TaskResultInput[] = [];
+    for (const role of order) {
+      const key = keys[role];
+      if (!key) continue;
       try {
-        if (await this.storage.head(sourceKey)) {
-          sourceUrl = await this.storage.presignGet(sourceKey, RESULT_URL_TTL_SECONDS);
-        }
+        if (!(await this.storage.head(key))) continue;
+        out.push({
+          role,
+          mediaType: role === 'videoKey' ? 'video' : 'image',
+          url: await this.storage.presignGet(key, RESULT_URL_TTL_SECONDS),
+        });
       } catch (err) {
-        this.logger.warn(`Không kiểm tra được ảnh gốc của Task ${taskId}: ${String(err)}`);
+        this.logger.warn(`Không ký được đầu vào ${role} của Task ${taskId}: ${String(err)}`);
       }
     }
-    return { resultUrl, sourceUrl };
+    return out;
   }
 
   private apiError(
@@ -360,23 +625,123 @@ export class TasksService {
   }
 
   async createFaceSwap(userId: string, req: FaceSwapCreateRequest): Promise<Task> {
-    const owned = await this.uploads.areConfirmedKeysOwnedBy(userId, [
-      req.sourceKey,
-      req.targetKey,
-    ]);
-    if (!owned) {
+    return this.createPipelineTask(userId, {
+      pipeline: 'face_swap',
+      amount: PRICING_CONFIG.pipelines.faceSwapCredits,
+      inputKeys: { sourceKey: req.sourceKey, targetKey: req.targetKey },
+      params: {},
+    });
+  }
+
+  async createOutfitChange(userId: string, req: OutfitChangeCreateRequest): Promise<Task> {
+    if (req.modelKey === req.clothingKey) {
       throw new BadRequestException({
         code: ApiErrorCode.VALIDATION_FAILED,
         message: getApiErrorMessageVi(ApiErrorCode.VALIDATION_FAILED),
       });
     }
+    return this.createPipelineTask(userId, {
+      pipeline: 'outfit_change',
+      amount: PRICING_CONFIG.pipelines.outfitChangeCredits,
+      inputKeys: { modelKey: req.modelKey, clothingKey: req.clothingKey },
+      params: {},
+    });
+  }
+
+  async createBodyRetouch(userId: string, req: BodyRetouchCreateRequest): Promise<Task> {
+    // Phòng thủ: parse lại để áp mặc định intensity=5 và chặn giá trị sai khi gọi từ nơi khác controller.
+    const parsed = BodyRetouchCreateRequestSchema.safeParse(req);
+    if (!parsed.success) {
+      throw new BadRequestException({
+        code: ApiErrorCode.VALIDATION_FAILED,
+        message: getApiErrorMessageVi(ApiErrorCode.VALIDATION_FAILED),
+      });
+    }
+    return this.createPipelineTask(userId, {
+      pipeline: 'body_retouch',
+      amount: PRICING_CONFIG.pipelines.bodyRetouchCredits,
+      inputKeys: { imageKey: parsed.data.imageKey },
+      params: { intensity: parsed.data.intensity },
+    });
+  }
+
+  private trimError(reason: ValidationReason, cap?: number): BadRequestException {
+    return new BadRequestException({
+      code: ApiErrorCode.VALIDATION_FAILED,
+      message: getValidationReasonMessageVi(reason, cap),
+      details: { reason, ...(cap !== undefined ? { cap } : {}) },
+    });
+  }
+
+  async createMotionControl(userId: string, req: MotionCreateRequest): Promise<MotionCreateResponse> {
+    const { characterKey, videoKey, trimStart, trimEnd } = req;
+    const frame = getMotionAspectRatio(req.aspectRatio ?? MOTION_ASPECT_RATIO_DEFAULT);
+    const prompt = (req.prompt ?? '').trim();
+    if (!Number.isInteger(trimStart) || !Number.isInteger(trimEnd)) {
+      throw this.trimError('TRIM_NOT_WHOLE_SECOND');
+    }
+    const invalid = () =>
+      new BadRequestException({
+        code: ApiErrorCode.VALIDATION_FAILED,
+        message: getApiErrorMessageVi(ApiErrorCode.VALIDATION_FAILED),
+      });
+    if (characterKey === videoKey) throw invalid();
+    const [imageOk, durationSeconds] = await Promise.all([
+      this.uploads.areConfirmedKeysOwnedBy(userId, [characterKey], 'image'),
+      this.uploads.getConfirmedVideoDuration(userId, videoKey),
+    ]);
+    if (!imageOk || durationSeconds === null) throw invalid();
+    if (trimStart < 0 || trimEnd > durationSeconds) throw this.trimError('TRIM_OUT_OF_VIDEO');
+    const seconds = trimEnd - trimStart;
+    if (seconds < MOTION_MIN_TRIM_SECONDS) throw this.trimError('TRIM_TOO_SHORT');
+    const price = motionPrice(seconds);
+    const task = await this.createPipelineTask(userId, {
+      pipeline: 'motion_control',
+      amount: price,
+      inputKeys: { characterKey, videoKey },
+      params: { trimStart, trimEnd, seconds, price, aspectRatio: frame.id, width: frame.width, height: frame.height, prompt },
+      keysVerified: true,
+      postHold: (snapshot) => {
+        // Cap theo Tier Snapshot do ví đọc trong transaction; ném lỗi để rollback cả HOLD.
+        const cap = snapshot.maxVideoSeconds;
+        if (!Number.isFinite(cap) || cap < MOTION_MIN_TRIM_SECONDS) {
+          throw new Error(`Cap Tier Snapshot không hợp lệ: ${String(cap)}`);
+        }
+        if (seconds > cap) {
+          throw this.trimError('TRIM_EXCEEDS_CAP', snapshot.maxVideoSeconds);
+        }
+      },
+    });
+    return { ...task, pipeline: 'motion_control', price } as MotionCreateResponse;
+  }
+
+  private async createPipelineTask(
+    userId: string,
+    spec: {
+      pipeline: 'face_swap' | 'outfit_change' | 'body_retouch' | 'motion_control';
+      amount: number;
+      inputKeys: Record<string, string>;
+      params: Record<string, unknown>;
+      keysVerified?: boolean;
+      postHold?: (snapshot: TierSnapshot) => void;
+    },
+  ): Promise<Task> {
+    if (!spec.keysVerified) {
+      const owned = await this.uploads.areConfirmedKeysOwnedBy(userId, Object.values(spec.inputKeys));
+      if (!owned) {
+        throw new BadRequestException({
+          code: ApiErrorCode.VALIDATION_FAILED,
+          message: getApiErrorMessageVi(ApiErrorCode.VALIDATION_FAILED),
+        });
+      }
+    }
 
     const taskId = crypto.randomUUID();
-    const amount = PRICING_CONFIG.pipelines.faceSwapCredits;
+    const amount = spec.amount;
 
     const { snapshot, task } = await this.prisma.$transaction(async (tx) => {
-      const rows = await tx.$queryRaw<Array<{ tos_version: string; locked_at: Date | null }>>`
-        SELECT tos_version, locked_at FROM users WHERE id = ${userId}::uuid FOR UPDATE`;
+      const rows = await tx.$queryRaw<Array<{ tos_version: string; locked_at: Date | null; tier_pack: string | null }>>`
+        SELECT tos_version, locked_at, tier_pack FROM users WHERE id = ${userId}::uuid FOR UPDATE`;
       if (rows.length !== 1) {
         throw new BadRequestException({
           code: ApiErrorCode.VALIDATION_FAILED,
@@ -387,20 +752,22 @@ export class TasksService {
       const active = await tx.task.count({
         where: { userId, status: { in: ['queued', 'running'] } },
       });
-      if (active >= MAX_ACTIVE_TASKS_PER_USER) throw new TaskLimitException();
+      const tierCfg = PRICING_CONFIG.tiers.find((t) => t.tier === tierFromPack(rows[0].tier_pack))!;
+      if (active >= tierCfg.maxActiveTasks) throw new TaskLimitException();
 
       const snapshot: TierSnapshot = await this.wallet.hold(tx, userId, taskId, amount);
+      spec.postHold?.(snapshot);
       const task = await tx.task.create({
         data: {
           id: taskId,
           userId,
-          pipeline: 'face_swap',
+          pipeline: spec.pipeline,
           status: 'queued',
           tierSnapshot: snapshot as unknown as object,
           consent: true, // đã đồng ý ToS một lần lúc đăng nhập
           tosVersion: rows[0].tos_version,
-          inputKeys: { sourceKey: req.sourceKey, targetKey: req.targetKey },
-          params: {},
+          inputKeys: spec.inputKeys,
+          params: spec.params as object,
           holdAmount: amount,
         },
       });
@@ -441,7 +808,7 @@ export class TasksService {
     }
     return {
       id: task.id,
-      pipeline: 'face_swap',
+      pipeline: spec.pipeline,
       status: 'queued',
       queuePosition,
       creditCost: task.holdAmount,

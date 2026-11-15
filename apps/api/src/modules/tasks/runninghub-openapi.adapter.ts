@@ -1,9 +1,11 @@
 import {
   RunningHubError,
   RunningHubNetworkError,
+  type RunningHubInstanceType,
   type RunningHubNodeInfo,
   type RunningHubOutputs,
   type RunningHubPort,
+  type RunningHubRunMode,
 } from '../../ports/index.js';
 
 export const RUNNINGHUB_DEFAULT_HOST = 'https://www.runninghub.ai';
@@ -76,6 +78,25 @@ export function withImageExtension(name: string, bytes: Buffer): string {
 function isTransientCode(code: unknown): boolean {
   const n = typeof code === 'string' ? Number(code) : code;
   return typeof n === 'number' && TRANSIENT_CODES.has(n);
+}
+
+const MEDIA_OUTPUT_TYPES = new Set(['png', 'jpg', 'jpeg', 'webp', 'mp4', 'webm', 'mov']);
+
+/** Đọc `usage` của /openapi/v2/query: consumeMoney (USD, chuỗi) và taskCostTime (giây, chuỗi). Giá trị lạ bị bỏ qua. */
+function parseUsage(env: Envelope): { costUsd?: number; costSeconds?: number } {
+  const usage = (env as { usage?: unknown }).usage;
+  if (!usage || typeof usage !== 'object') return {};
+  const u = usage as { consumeMoney?: unknown; taskCostTime?: unknown };
+  const num = (v: unknown): number | undefined => {
+    const n = typeof v === 'string' && v.trim() !== '' ? Number(v) : v;
+    return typeof n === 'number' && Number.isFinite(n) ? n : undefined;
+  };
+  const money = num(u.consumeMoney);
+  const secs = num(u.taskCostTime);
+  return {
+    ...(money !== undefined && money >= 0 ? { costUsd: money } : {}),
+    ...(secs !== undefined && secs > 0 ? { costSeconds: Math.round(secs) } : {}),
+  };
 }
 
 function v2FailureMessage(env: Envelope): string {
@@ -159,28 +180,41 @@ export class RunningHubOpenApiAdapter implements RunningHubPort {
       throw new RunningHubNetworkError(`RunningHub bận (code ${String(env.code)})`, false);
     }
     if (env.code !== CODE_OK || typeof fileName !== 'string' || !fileName) {
-      throw new RunningHubError(`RunningHub từ chối upload (code ${String(env.code)})`);
+      throw new RunningHubError(`RunningHub từ chối upload (code ${String(env.code)}${typeof env.msg === 'string' && env.msg ? `: ${env.msg}` : ''})`);
     }
     return fileName;
   }
 
   /**
-   * `workflowId` thực chất là App ID của AI App (biến RUNNINGHUB_WORKFLOW_FACESWAP).
-   * Gọi `POST /openapi/v2/run/ai-app/{appId}`: chỉ dùng header Bearer, không có apiKey trong body.
+   * mode 'ai-app' (mặc định): `workflowId` là App ID của AI App (vd. RUNNINGHUB_WORKFLOW_FACESWAP),
+   * gọi `POST /openapi/v2/run/ai-app/{appId}`.
+   * mode 'workflow': `workflowId` là ID workflow ComfyUI (vd. RUNNINGHUB_WORKFLOW_BODY_RESHAPE),
+   * gọi `POST /openapi/v2/run/workflow/{id}`; `addMetadata: false` để kết quả không mang metadata workflow.
+   * Cả hai chỉ dùng header Bearer, không có apiKey trong body.
    */
-  async submit(workflowId: string, nodeInfoList: RunningHubNodeInfo[], signal: AbortSignal): Promise<string> {
-    const env = await this.post(
-      `/openapi/v2/run/ai-app/${encodeURIComponent(workflowId)}`,
-      JSON.stringify({ nodeInfoList, instanceType: 'default' }),
-      signal,
-    );
+  async submit(
+    workflowId: string,
+    nodeInfoList: RunningHubNodeInfo[],
+    signal: AbortSignal,
+    mode: RunningHubRunMode = 'ai-app',
+    instanceType: RunningHubInstanceType = 'default',
+  ): Promise<string> {
+    const path =
+      mode === 'workflow'
+        ? `/openapi/v2/run/workflow/${encodeURIComponent(workflowId)}`
+        : `/openapi/v2/run/ai-app/${encodeURIComponent(workflowId)}`;
+    const payload =
+      mode === 'workflow'
+        ? { addMetadata: false, nodeInfoList, instanceType, usePersonalQueue: 'false' }
+        : { nodeInfoList, instanceType, usePersonalQueue: 'false' };
+    const env = await this.post(path, JSON.stringify(payload), signal);
     const err = v2ErrorCode(env);
     // Bận/giới hạn tần suất: task chưa được tạo nên thử lại an toàn (requestSent=false).
     if (err && isTransientCode(err)) {
       throw new RunningHubNetworkError(`RunningHub bận (errorCode ${err})`, false);
     }
     if (err || env.status === 'FAILED') {
-      throw new RunningHubError(`RunningHub từ chối task (errorCode ${err ?? 'FAILED'})`);
+      throw new RunningHubError(`RunningHub từ chối task (errorCode ${err ?? 'FAILED'}${typeof env.errorMessage === 'string' && env.errorMessage ? `: ${env.errorMessage}` : ''})`);
     }
     const id = env.taskId;
     if ((typeof id !== 'string' && typeof id !== 'number') || String(id) === '') {
@@ -196,12 +230,14 @@ export class RunningHubOpenApiAdapter implements RunningHubPort {
     const err = v2ErrorCode(env);
 
     if (status === 'SUCCESS') {
-      const results = Array.isArray(env.results) ? (env.results as Array<{ url?: unknown }>) : [];
-      const first = results.find((r) => typeof r?.url === 'string' && r.url);
+      const results = Array.isArray(env.results) ? (env.results as Array<{ url?: unknown; outputType?: unknown }>) : [];
+      const withUrl = results.filter((r) => typeof r?.url === 'string' && r.url);
+      // Một workflow có thể trả nhiều đầu ra (vd. zip rồi png): ưu tiên ảnh/video, bỏ qua file đóng gói.
+      const first = withUrl.find((r) => MEDIA_OUTPUT_TYPES.has(String(r.outputType ?? '').toLowerCase())) ?? withUrl[0];
       // SUCCESS mà không có url: worker ghi OUTPUT_UPLOAD_ERROR và hoàn credit.
-      return { status: 'SUCCESS', fileUrl: first?.url as string | undefined };
+      return { status: 'SUCCESS', fileUrl: first?.url as string | undefined, ...parseUsage(env) };
     }
-    if (status === 'FAILED') return { status: 'FAILED', errorMessage: v2FailureMessage(env) };
+    if (status === 'FAILED') return { status: 'FAILED', errorMessage: v2FailureMessage(env), ...parseUsage(env) };
     if (status === 'QUEUED' || status === 'RUNNING' || status === 'CREATE') return { status: 'RUNNING' };
 
     if (err) {
@@ -210,5 +246,20 @@ export class RunningHubOpenApiAdapter implements RunningHubPort {
       throw new RunningHubError(`RunningHub báo lỗi khi truy vấn (errorCode ${err})`);
     }
     throw new RunningHubError(`RunningHub trả trạng thái không rõ (${status || 'rỗng'})`);
+  }
+
+  /** Đọc số dư USD qua `RH_BALANCE_ENDPOINT` (`/uc/openapi/accountStatus`, POST); số dư dùng được là `data.remainMoney` (chuỗi USD), không dùng remainCoins. */
+  async getBalance(signal: AbortSignal): Promise<number> {
+    const endpoint = process.env.RH_BALANCE_ENDPOINT?.trim();
+    if (!endpoint) throw new RunningHubError('Chưa cấu hình RH_BALANCE_ENDPOINT');
+    const path = endpoint.startsWith('/') ? endpoint : `/${endpoint}`;
+    const env = await this.post(path, JSON.stringify({ apikey: this.apiKey }), signal);
+    const data = (env.data ?? {}) as { remainMoney?: unknown };
+    const raw = data.remainMoney;
+    const n = typeof raw === 'string' && raw.trim() !== '' ? Number(raw) : raw;
+    if (typeof n !== 'number' || !Number.isFinite(n) || n < 0) {
+      throw new RunningHubError('Phản hồi số dư không hợp lệ');
+    }
+    return n;
   }
 }

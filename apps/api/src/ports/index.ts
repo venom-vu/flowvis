@@ -29,20 +29,40 @@ export interface RunningHubNodeInfo {
   readonly fieldValue: string;
 }
 
+export type RunningHubRunMode = 'ai-app' | 'workflow';
+
+/** Loại máy RunningHub: default = Standard, plus, ultra (Lite tự động, không chọn được). */
+export type RunningHubInstanceType = 'default' | 'plus' | 'ultra';
+
 export interface RunningHubOutputs {
   readonly status: 'RUNNING' | 'SUCCESS' | 'FAILED';
   readonly fileUrl?: string;
   readonly errorMessage?: string;
   readonly consumeMoney?: number;
+  /** `usage.consumeMoney` (USD) do RunningHub báo; undefined khi thiếu hoặc không hợp lệ. */
+  readonly costUsd?: number;
+  /** `usage.taskCostTime` (giây) do RunningHub báo; undefined khi thiếu hoặc <= 0. */
+  readonly costSeconds?: number;
 }
 
 export interface RunningHubPort {
   readonly portName?: 'RunningHubPort';
   /** Trả tên file đã upload lên RunningHub. */
   uploadFile(bytes: Buffer, name: string, signal: AbortSignal): Promise<string>;
-  /** Trả runninghubTaskId. */
-  submit(workflowId: string, nodeInfoList: RunningHubNodeInfo[], signal: AbortSignal): Promise<string>;
+  /**
+   * Trả runninghubTaskId. `mode` chọn đường gọi: 'ai-app' (mặc định, `/run/ai-app/{id}`)
+   * hoặc 'workflow' (`/run/workflow/{id}`).
+   */
+  submit(
+    workflowId: string,
+    nodeInfoList: RunningHubNodeInfo[],
+    signal: AbortSignal,
+    mode?: RunningHubRunMode,
+    instanceType?: RunningHubInstanceType,
+  ): Promise<string>;
   outputs(runninghubTaskId: string, signal: AbortSignal): Promise<RunningHubOutputs>;
+  /** Số dư USD còn lại của tài khoản RunningHub Enterprise-Shared (không âm). Ném lỗi khi không đọc được. */
+  getBalance(signal: AbortSignal): Promise<number>;
 }
 
 export interface IngestTask {
@@ -101,6 +121,13 @@ export interface StoragePort {
   /** Ném StoragePreconditionFailedError khi ETag nguồn khác `etag`. */
   copyIfMatch(sourceKey: string, destKey: string, etag: string): Promise<void>;
   delete(key: string): Promise<void>;
+  /** Liệt kê mọi khóa có tiền tố (tự phân trang). */
+  list(prefix: string): Promise<StorageListItem[]>;
+}
+
+export interface StorageListItem {
+  readonly key: string;
+  readonly sizeBytes: number;
 }
 
 export interface NotifierEvent {

@@ -74,7 +74,26 @@ describe('RunningHubOpenApiAdapter', () => {
     assert.equal(req.url, '/openapi/v2/run/ai-app/1915026059757322242');
     assert.equal(req.headers.authorization, `Bearer ${API_KEY}`);
     const body = JSON.parse(req.body.toString());
-    assert.deepEqual(body, { nodeInfoList: nodes, instanceType: 'default' });
+    assert.deepEqual(body, { nodeInfoList: nodes, instanceType: 'default', usePersonalQueue: 'false' });
+    assert.ok(!('apiKey' in body));
+  });
+
+  it("submit mode 'workflow': gọi /openapi/v2/run/workflow/{id} với addMetadata=false và usePersonalQueue, chỉ Bearer", async () => {
+    seen.length = 0;
+    next = { body: '{"taskId":2097300000000000001,"status":"QUEUED","errorCode":"","errorMessage":"","results":null}' };
+    const nodes = [{ nodeId: '10', fieldName: 'image', fieldValue: 'api/abc.png' }];
+    const id = await adapter().submit('2097271148131237890', nodes, signal(), 'workflow');
+    assert.equal(id, '2097300000000000001');
+    const req = seen[0];
+    assert.equal(req.url, '/openapi/v2/run/workflow/2097271148131237890');
+    assert.equal(req.headers.authorization, `Bearer ${API_KEY}`);
+    const body = JSON.parse(req.body.toString());
+    assert.deepEqual(body, {
+      addMetadata: false,
+      nodeInfoList: nodes,
+      instanceType: 'default',
+      usePersonalQueue: 'false',
+    });
     assert.ok(!('apiKey' in body));
   });
 
@@ -89,6 +108,47 @@ describe('RunningHubOpenApiAdapter', () => {
     await assert.rejects(adapter().submit('app', [], signal()), RunningHubError);
   });
 
+  it('upload/submit: msg và errorMessage có từ khóa hết tiền được đưa vào RunningHubError (RH_BUDGET)', async () => {
+    const { mapRunningHubFailure } = await import('../dist/modules/pipelines/pipeline-config.js');
+    next = { body: { code: 1001, msg: 'Insufficient balance', data: null } };
+    await assert.rejects(adapter().uploadFile(PNG, 'x', signal()), (e) => {
+      assert.ok(e instanceof RunningHubError);
+      assert.equal(mapRunningHubFailure(e.message), 'RH_BUDGET');
+      return true;
+    });
+    next = { body: { taskId: '', status: '', errorCode: '821', errorMessage: 'Not enough coins', results: null } };
+    await assert.rejects(adapter().submit('app', [], signal()), (e) => {
+      assert.ok(e instanceof RunningHubError);
+      assert.equal(mapRunningHubFailure(e.message), 'RH_BUDGET');
+      return true;
+    });
+  });
+
+  it('getBalance: đọc RH_BALANCE_ENDPOINT; data.remainMoney (USD); lỗi khi thiếu cấu hình/không hợp lệ/không OK', async () => {
+    const saved = process.env.RH_BALANCE_ENDPOINT;
+    try {
+      delete process.env.RH_BALANCE_ENDPOINT;
+      await assert.rejects(adapter().getBalance(signal()), RunningHubError);
+      process.env.RH_BALANCE_ENDPOINT = 'balance/path';
+      seen.length = 0;
+      next = { body: { code: 0, data: { remainCoins: '0', remainMoney: '9.0150', currency: 'USD' } } };
+      assert.equal(await adapter().getBalance(signal()), 9.015);
+      assert.equal(seen[0].url, '/balance/path');
+      next = { body: { code: 0, data: { remainMoney: 0 } } };
+      assert.equal(await adapter().getBalance(signal()), 0);
+      for (const body of [{ data: { remainMoney: 'abc' } }, { data: { remainMoney: -1 } }, { data: { remainCoins: '5' } }, { data: {} }]) {
+        next = { body };
+        await assert.rejects(adapter().getBalance(signal()), RunningHubError);
+      }
+      next = { status: 403, body: {} };
+      await assert.rejects(adapter().getBalance(signal()), RunningHubError);
+      next = { status: 500, body: {} };
+      await assert.rejects(adapter().getBalance(signal()), RunningHubNetworkError);
+    } finally {
+      if (saved === undefined) delete process.env.RH_BALANCE_ENDPOINT; else process.env.RH_BALANCE_ENDPOINT = saved;
+    }
+  });
+
   it('query: QUEUED và RUNNING là RUNNING; gọi /openapi/v2/query với {taskId}', async () => {
     seen.length = 0;
     for (const status of ['QUEUED', 'RUNNING']) {
@@ -100,11 +160,62 @@ describe('RunningHubOpenApiAdapter', () => {
     assert.deepEqual(JSON.parse(seen[0].body.toString()), { taskId: '1910246754753896450' });
   });
 
+  it('submit: gửi đúng instanceType được truyền (plus), mặc định default', async () => {
+    seen.length = 0;
+    next = { body: '{"taskId":"9","status":"QUEUED","errorCode":"","errorMessage":"","results":null}' };
+    await adapter().submit('app', [], signal(), 'ai-app', 'plus');
+    assert.equal(JSON.parse(seen[0].body.toString()).instanceType, 'plus');
+    await adapter().submit('app', [], signal(), 'workflow', 'ultra');
+    assert.equal(JSON.parse(seen[1].body.toString()).instanceType, 'ultra');
+  });
+
+  it('query: đọc usage.consumeMoney (USD, chuỗi) và taskCostTime (giây, chuỗi) khi SUCCESS và FAILED', async () => {
+    const usage = { consumeMoney: '0.016', consumeCoins: null, taskCostTime: '63', thirdPartyConsumeMoney: null };
+    next = { body: { taskId: '1', status: 'SUCCESS', errorCode: '', errorMessage: '', results: [{ url: 'https://cdn.example/o.png', outputType: 'png' }], usage } };
+    let out = await adapter().outputs('1', signal());
+    assert.equal(out.costUsd, 0.016);
+    assert.equal(out.costSeconds, 63);
+    next = { body: { taskId: '1', status: 'FAILED', errorCode: '', errorMessage: 'NO_POSE', results: null, usage } };
+    out = await adapter().outputs('1', signal());
+    assert.equal(out.status, 'FAILED');
+    assert.equal(out.costUsd, 0.016);
+    assert.equal(out.costSeconds, 63);
+  });
+
+  it('query: usage thiếu/null/"0"/âm/không phải số thì bỏ qua đúng trường', async () => {
+    const base = { taskId: '1', status: 'SUCCESS', errorCode: '', errorMessage: '', results: [{ url: 'https://cdn.example/o.png', outputType: 'png' }] };
+    next = { body: base };
+    let out = await adapter().outputs('1', signal());
+    assert.equal(out.costUsd, undefined);
+    assert.equal(out.costSeconds, undefined);
+    next = { body: { ...base, usage: { consumeMoney: null, taskCostTime: '0' } } };
+    out = await adapter().outputs('1', signal());
+    assert.equal(out.costUsd, undefined);
+    assert.equal(out.costSeconds, undefined);
+    next = { body: { ...base, usage: { consumeMoney: '-1', taskCostTime: 'abc' } } };
+    out = await adapter().outputs('1', signal());
+    assert.equal(out.costUsd, undefined);
+    assert.equal(out.costSeconds, undefined);
+    next = { body: { ...base, usage: { consumeMoney: '0', taskCostTime: '5' } } };
+    out = await adapter().outputs('1', signal());
+    assert.equal(out.costUsd, 0);
+    assert.equal(out.costSeconds, 5);
+  });
+
   it('query: SUCCESS lấy results[0].url', async () => {
     next = { body: { taskId: '1', status: 'SUCCESS', errorCode: '', errorMessage: '', results: [{ url: 'https://cdn.example/out.jpg', outputType: 'jpg' }] } };
     const out = await adapter().outputs('1', signal());
     assert.equal(out.status, 'SUCCESS');
     assert.equal(out.fileUrl, 'https://cdn.example/out.jpg');
+  });
+
+  it('query: SUCCESS nhiều đầu ra (zip trước png): chọn ảnh, bỏ file zip', async () => {
+    next = { body: { taskId: '1', status: 'SUCCESS', errorCode: '', errorMessage: '', results: [
+      { url: 'https://cdn.example/pack.zip', outputType: 'zip' },
+      { url: 'https://cdn.example/out.png', outputType: 'png' },
+    ] } };
+    const out = await adapter().outputs('1', signal());
+    assert.equal(out.fileUrl, 'https://cdn.example/out.png');
   });
 
   it('query: SUCCESS không có url thì trả SUCCESS không fileUrl (worker hoàn credit)', async () => {

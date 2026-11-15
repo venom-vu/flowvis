@@ -70,18 +70,22 @@ Queue.prototype.getJob = async function (id) {
   return { remove: async () => { removed.push(id); } };
 };
 
+process.env.RUNNINGHUB_WORKFLOW_BODY_RESHAPE ??= 'wf-body';
+process.env.RUNNINGHUB_WORKFLOW_MOTION ??= 'wf-motion';
+
 describe('Story 2.4: [BE] Máy trạng thái Task bằng compare-and-set', () => {
   let app, baseUrl, pool, prisma, jwt, svc;
   const runId = crypto.randomBytes(4).toString('hex');
   const users = [];
 
-  async function newUser(balance = 500) {
+  async function newUser(balance = 500, tierPack = null) {
     const n = users.length;
     const u = await prisma.user.create({
       data: { googleId: `tr-${runId}-${n}`, email: `tr-${runId}-${n}@flowvis.vn`, tosVersion: 'tos-v7' },
     });
     users.push(u.id);
     if (balance > 0) await prisma.$transaction((t) => new WalletService().grant(t, u.id, balance));
+    if (tierPack) await prisma.$executeRaw`UPDATE users SET tier_pack = ${tierPack} WHERE id = ${u.id}::uuid`;
     return { id: u.id, token: jwt.sign({ sub: u.id, email: u.email, role: 'user' }) };
   }
   async function createTask(user) {
@@ -188,6 +192,26 @@ describe('Story 2.4: [BE] Máy trạng thái Task bằng compare-and-set', () =>
     assert.equal(t.reasonCode, 'NO_FACE');
     assert.equal(t.queuePosition ?? null, null);
     assert.equal(TaskSchema.safeParse(t).success, true);
+  });
+
+  it('finished_at được đặt trong cùng UPDATE ở cả sáu đường kết thúc (Story 6.2)', async () => {
+    const u = await newUser(1000);
+    const finishedAt = async (id) => (await prisma.task.findUnique({ where: { id } })).finishedAt;
+    const paths = [
+      ['running', 'succeeded', null, { resultKey: resultKey(u) }],
+      ['running', 'failed', 'RH_ERROR', undefined],
+      ['running', 'timed_out', 'RH_TIMEOUT', undefined],
+      ['queued', 'cancelled', 'USER_CANCEL', undefined],
+      ['queued', 'failed', 'INTERNAL_ERROR', undefined],
+      ['queued', 'timed_out', 'FREE_WAIT_EXPIRED', undefined],
+    ];
+    for (const [from, to, reason, opts] of paths) {
+      const id = from === 'running' ? await runningTask(u) : await createTask(u);
+      assert.equal(await finishedAt(id), null, `${from}->${to}: chưa có finished_at trước khi kết thúc`);
+      const r = await svc.transition(id, from, to, reason, opts);
+      assert.equal(r.applied, true, `${from}->${to}`);
+      assert.notEqual(await finishedAt(id), null, `${from}->${to}: finished_at phải được đặt`);
+    }
   });
 
   it('kết quả đến muộn: applied=false, sổ cái không đổi', async () => {
@@ -416,7 +440,7 @@ describe('Story 2.4: [BE] Máy trạng thái Task bằng compare-and-set', () =>
   });
 
   it('GET Task queued: queuePosition theo FIFO', async () => {
-    const u = await newUser(1000);
+    const u = await newUser(1000, 'starter');
     const x = await createTask(u);
     const y = await createTask(u);
     const tx = await (await api(u, 'GET', `/tasks/${x}`)).json();

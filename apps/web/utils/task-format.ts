@@ -15,6 +15,7 @@ export function formatTaskTimestampVi(isoString?: string | null): string {
 
 export const PIPELINE_LABELS_VI: Readonly<Record<string, string>> = {
   face_swap: 'Hoán đổi khuôn mặt',
+  outfit_change: 'Đổi trang phục',
   body_retouch: 'Chỉnh sửa vóc dáng',
   motion_control: 'Điều khiển chuyển động',
 };

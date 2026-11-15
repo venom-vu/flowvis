@@ -5,10 +5,7 @@ import {
   type UploadConfirmResponse,
 } from '@flowvis/contracts';
 import { useApiClient } from '~/composables/useApiClient';
-import {
-  resolveApiErrorMessageVi,
-  uploadPresignedFile,
-} from '~/utils/api-client';
+import { useUploadFlow } from '~/composables/useUploadFlow';
 import {
   computeCameraCaptureDimensions,
   formatFileSizeVi,
@@ -22,6 +19,7 @@ const props = withDefaults(
     descriptionVi?: string;
     idPrefix?: string;
     disabled?: boolean;
+    maintenanceNote?: boolean;
       initialPreviewUrl?: string | null;
   }>(),
   {
@@ -31,6 +29,7 @@ const props = withDefaults(
       'JPG, PNG, WebP ≤ 10 MB, cạnh ngắn ≥ 512px, tỷ lệ 1:2 đến 2:1',
     idPrefix: 'image-uploader',
     disabled: false,
+    maintenanceNote: false,
       initialPreviewUrl: null,
   },
 );
@@ -48,6 +47,7 @@ const emit = defineEmits<{
 }>();
 
 const { client } = useApiClient();
+const uploadFlow = useUploadFlow(client);
 
 const libraryInputRef = ref<HTMLInputElement | null>(null);
 const cameraInputRef = ref<HTMLInputElement | null>(null);
@@ -66,10 +66,9 @@ const currentFile = ref<File | null>(null);
 const currentMeta = ref<ImageMeta | null>(null);
 const confirmedKey = ref<string | null>(props.modelValue ?? null);
 const previewUrl = ref<string | null>(props.initialPreviewUrl ?? null);
-const uploadProgress = ref<number>(0);
+const uploadProgress = uploadFlow.progress;
 const errorMessageVi = ref<string | null>(null);
 
-let activeAbortController: AbortController | null = null;
 const isDragging = ref(false);
 
 watch(
@@ -98,10 +97,7 @@ function clearOldPreview(): void {
 }
 
 function cancelOngoingUpload(): void {
-  if (activeAbortController) {
-    activeAbortController.abort();
-    activeAbortController = null;
-  }
+  uploadFlow.cancel();
   isDragging.value = false;
 }
 
@@ -308,63 +304,35 @@ async function startUpload(file: File, meta: ImageMeta): Promise<void> {
   uploadProgress.value = 0;
   errorMessageVi.value = null;
 
-  activeAbortController = new AbortController();
-  const signal = activeAbortController.signal;
+  const result = await uploadFlow.start({
+    file,
+    declaration: { mimeType: meta.mimeType, sizeBytes: meta.sizeBytes },
+    confirm: (key, opts) => client.confirmUpload(key, undefined, opts),
+  });
 
-  try {
-    // Bước 1: Khai báo file và lấy URL presigned
-    const createRes = await client.createUpload(
-      {
-        mimeType: meta.mimeType,
-        sizeBytes: meta.sizeBytes,
-      },
-      { signal },
-    );
-
-    if (signal.aborted) return;
-
-    // Bước 2: Tải trực tiếp lên R2 qua URL ký
-    await uploadPresignedFile({
-      uploadUrl: createRes.uploadUrl,
-      headers: createRes.headers,
-      file,
-      signal,
-      onProgress: (percent) => {
-        uploadProgress.value = percent;
-      },
-    });
-
-    if (signal.aborted) return;
-
-    // Bước 3: Xác nhận hoàn tất tải lên
-    const confirmRes = await client.confirmUpload(createRes.key, undefined, {
-      signal,
-    });
-
-    if (signal.aborted) return;
-
-    confirmedKey.value = confirmRes.key;
-    currentMeta.value = confirmRes.image;
-    status.value = 'ready';
-    uploadProgress.value = 100;
-
-    emit('update:modelValue', confirmRes.key);
-    emit('success', confirmRes, file);
-    emit('change', {
-      key: confirmRes.key,
-      meta: confirmRes.image,
-    });
-  } catch (error: unknown) {
-    if (signal.aborted) {
-      status.value = 'idle';
-      return;
-    }
-    status.value = 'error';
-    errorMessageVi.value = resolveApiErrorMessageVi(error);
-    emit('error', errorMessageVi.value);
-  } finally {
-    activeAbortController = null;
+  if (result.status === 'aborted') {
+    if (currentFile.value === file) status.value = 'idle';
+    return;
   }
+  if (result.status === 'error') {
+    status.value = 'error';
+    errorMessageVi.value = result.messageVi;
+    emit('error', result.messageVi);
+    return;
+  }
+
+  const confirmRes = result.data;
+  confirmedKey.value = confirmRes.key;
+  currentMeta.value = confirmRes.image;
+  status.value = 'ready';
+  uploadProgress.value = 100;
+
+  emit('update:modelValue', confirmRes.key);
+  emit('success', confirmRes, file);
+  emit('change', {
+    key: confirmRes.key,
+    meta: confirmRes.image,
+  });
 }
 
 function handleCancel(): void {
@@ -375,7 +343,7 @@ function handleCancel(): void {
   confirmedKey.value = null;
   currentMeta.value = null;
   previewUrl.value = null;
-  uploadProgress.value = 0;
+  uploadFlow.reset();
   errorMessageVi.value = null;
   status.value = 'idle';
   emit('update:modelValue', null);
@@ -456,7 +424,7 @@ const isUploading = computed(
     <!-- Khung tải ảnh chính (Dropzone / Trạng thái chờ) -->
     <div
       v-if="status === 'idle' || status === 'validating'"
-      class="touch-target group relative flex flex-col items-center justify-center rounded-2xl border-2 border-dashed p-5 text-center transition"
+      class="touch-target group relative flex flex-col items-center justify-center rounded-xl border-2 border-dashed p-3.5 text-center transition sm:p-4"
       :class="[
         isDragging
           ? 'border-cyber-cyan bg-cyber-cyan/10 scale-[1.01]'
@@ -468,36 +436,36 @@ const isUploading = computed(
       @drop.prevent="onDrop"
     >
       <div
-        class="flex h-12 w-12 items-center justify-center rounded-xl border border-cyber-border/80 bg-cyber-surface/90 text-cyber-violet shadow-sm group-hover:scale-105 group-hover:border-cyber-violet/60 transition"
+        class="flex h-9 w-9 items-center justify-center rounded-lg border border-cyber-border/80 bg-cyber-surface/90 text-cyber-violet shadow-sm transition group-hover:scale-105 group-hover:border-cyber-violet/60"
       >
         <Icon
           v-if="status === 'validating'"
           name="lucide:loader-2"
-          class="h-6 w-6 animate-spin text-cyber-violet"
+          class="h-5 w-5 animate-spin text-cyber-violet"
         />
         <Icon
           v-else
           name="lucide:upload-cloud"
-          class="h-6 w-6 text-cyber-violet"
+          class="h-5 w-5 text-cyber-violet"
         />
       </div>
 
-      <div class="mt-3 space-y-1">
-        <p class="text-sm font-semibold text-cyber-text">
+      <div class="mt-2 space-y-0.5">
+        <p class="text-xs font-semibold text-cyber-text sm:text-sm">
           {{ status === 'validating' ? 'Đang kiểm tra ảnh...' : labelVi }}
         </p>
-        <p class="text-xs text-cyber-muted">
+        <p class="text-[11px] text-cyber-muted sm:text-xs">
           {{ descriptionVi }}
         </p>
       </div>
 
       <!-- Hai nút chọn nguồn ảnh thân thiện trên mobile: Thư viện & Camera -->
-      <div class="mt-4 flex flex-wrap items-center justify-center gap-2.5">
+      <div class="mt-3 flex flex-wrap items-center justify-center gap-2">
         <button
           type="button"
           data-testid="open-library-button"
           :disabled="disabled || isUploading"
-          class="touch-target inline-flex min-h-[48px] min-w-[48px] items-center justify-center gap-2 rounded-xl border border-cyber-violet/50 bg-cyber-violet/15 px-4 py-2.5 text-xs font-semibold text-cyber-text transition hover:bg-cyber-violet/25 disabled:cursor-not-allowed disabled:opacity-50"
+          class="touch-target inline-flex min-h-[48px] min-w-[48px] items-center justify-center gap-1.5 rounded-xl border border-cyber-violet/50 bg-cyber-violet/15 px-3.5 py-2 text-xs font-semibold text-cyber-text transition hover:bg-cyber-violet/25 disabled:cursor-not-allowed disabled:opacity-50"
           @click="openLibrary"
         >
           <Icon name="lucide:image" class="h-4 w-4 text-cyber-cyan" />
@@ -508,7 +476,7 @@ const isUploading = computed(
           type="button"
           data-testid="open-camera-button"
           :disabled="disabled || isUploading"
-          class="touch-target inline-flex min-h-[48px] min-w-[48px] items-center justify-center gap-2 rounded-xl border border-cyber-border bg-cyber-surface px-4 py-2.5 text-xs font-semibold text-cyber-text transition hover:border-cyber-cyan/50 hover:bg-cyber-surface/80 disabled:cursor-not-allowed disabled:opacity-50"
+          class="touch-target inline-flex min-h-[48px] min-w-[48px] items-center justify-center gap-1.5 rounded-xl border border-cyber-border bg-cyber-surface px-3.5 py-2 text-xs font-semibold text-cyber-text transition hover:border-cyber-cyan/50 hover:bg-cyber-surface/80 disabled:cursor-not-allowed disabled:opacity-50"
           @click="openCamera"
         >
           <Icon name="lucide:camera" class="h-4 w-4 text-cyber-violet" />
@@ -521,17 +489,20 @@ const isUploading = computed(
     <div
       v-else-if="status === 'uploading'"
       data-testid="uploading-state"
-      class="space-y-4 rounded-2xl border border-cyber-cyan/40 bg-cyber-bg/80 p-5 shadow-sm"
+      class="space-y-2.5 rounded-xl border border-cyber-cyan/40 bg-cyber-bg/80 p-3 shadow-sm sm:p-3.5"
     >
-      <div class="flex items-start justify-between gap-3">
-        <div class="flex items-center gap-3">
+      <div class="flex items-center justify-between gap-3 min-w-0">
+        <div class="flex items-center gap-2.5 min-w-0 flex-1">
           <div
-            class="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl border border-cyber-cyan/40 bg-cyber-cyan/15 text-cyber-cyan"
+            class="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg border border-cyber-cyan/40 bg-cyber-cyan/15 text-cyber-cyan"
           >
-            <Icon name="lucide:arrow-up-circle" class="h-5 w-5 animate-pulse" />
+            <Icon name="lucide:arrow-up-circle" class="h-4 w-4 animate-pulse" />
           </div>
-          <div class="space-y-0.5">
-            <p class="truncate text-xs font-medium text-cyber-text max-w-[180px] sm:max-w-xs">
+          <div class="min-w-0 flex-1 space-y-0.5">
+            <p
+              class="truncate text-xs font-medium text-cyber-text"
+              :title="currentFile?.name || 'Tệp hình ảnh'"
+            >
               {{ currentFile?.name || 'Tệp hình ảnh' }}
             </p>
             <p class="font-mono text-[11px] text-cyber-muted">
@@ -544,22 +515,22 @@ const isUploading = computed(
           type="button"
           data-testid="cancel-upload-button"
           aria-label="Hủy tải lên"
-          class="touch-target inline-flex min-h-[48px] min-w-[48px] items-center justify-center gap-1.5 rounded-xl border border-cyber-danger/40 bg-cyber-danger/10 px-3 py-2 text-xs font-semibold text-cyber-danger transition hover:bg-cyber-danger/20"
+          class="touch-target inline-flex shrink-0 min-h-[48px] items-center justify-center gap-1.5 rounded-xl border border-cyber-danger/40 bg-cyber-danger/10 px-3 py-1.5 text-xs font-semibold text-cyber-danger transition hover:bg-cyber-danger/20"
           @click="handleCancel"
         >
-          <Icon name="lucide:x" class="h-4 w-4" />
+          <Icon name="lucide:x" class="h-3.5 w-3.5" />
           <span>Hủy</span>
         </button>
       </div>
 
       <!-- Thanh tiến trình (Progress Bar) -->
-      <div class="space-y-1.5">
-        <div class="flex items-center justify-between font-mono text-xs text-cyber-muted">
+      <div class="space-y-1">
+        <div class="flex items-center justify-between font-mono text-[11px] text-cyber-muted">
           <span>Đang tải lên máy chủ...</span>
           <span class="font-bold text-cyber-cyan">{{ uploadProgress }}%</span>
         </div>
         <div
-          class="h-2 w-full overflow-hidden rounded-full bg-cyber-surface border border-cyber-border"
+          class="h-1.5 w-full overflow-hidden rounded-full border border-cyber-border bg-cyber-surface"
         >
           <div
             data-testid="upload-progress-bar"
@@ -579,13 +550,13 @@ const isUploading = computed(
     <div
       v-else-if="status === 'ready'"
       data-testid="upload-ready-state"
-      class="flex flex-col gap-4 rounded-2xl border border-cyber-emerald/40 bg-cyber-bg/80 p-4 shadow-sm sm:flex-row sm:items-center sm:justify-between"
+      class="flex flex-col gap-3 rounded-xl border border-cyber-emerald/40 bg-cyber-bg/80 p-3 shadow-sm sm:flex-row sm:items-center sm:justify-between sm:p-3.5 min-w-0"
     >
-      <div class="flex items-center gap-3.5">
+      <div class="flex items-center gap-3 min-w-0 flex-1">
         <!-- Ảnh xem trước -->
         <div
           v-if="previewUrl"
-          class="relative h-16 w-16 shrink-0 overflow-hidden rounded-xl border border-cyber-border bg-black/40"
+          class="relative h-12 w-12 shrink-0 overflow-hidden rounded-lg border border-cyber-border bg-black/40"
         >
           <img
             :src="previewUrl"
@@ -596,19 +567,19 @@ const isUploading = computed(
         </div>
 
         <!-- Thông tin ảnh đã xác nhận -->
-        <div class="space-y-1">
+        <div class="space-y-0.5 min-w-0 flex-1">
           <div class="flex items-center gap-1.5">
             <Icon
               name="lucide:check-circle-2"
-              class="h-4 w-4 text-cyber-emerald shrink-0"
+              class="h-3.5 w-3.5 shrink-0 text-cyber-emerald"
             />
-            <span class="text-xs font-semibold text-cyber-emerald">
+            <span class="truncate text-xs font-semibold text-cyber-emerald">
               Ảnh đã sẵn sàng
             </span>
           </div>
           <p
             v-if="currentMeta"
-            class="font-mono text-[11px] text-cyber-muted"
+            class="truncate font-mono text-[11px] text-cyber-muted"
           >
             {{ currentMeta.width }} × {{ currentMeta.height }} px
             <span v-if="currentFile"> • {{ formatFileSizeVi(currentFile.size) }}</span>
@@ -617,12 +588,12 @@ const isUploading = computed(
       </div>
 
       <!-- Nút Đổi ảnh, Chụp lại & Xóa ảnh -->
-      <div class="flex flex-wrap items-center gap-2 self-end sm:self-center">
+      <div class="flex flex-wrap items-center gap-1.5 shrink-0 self-end sm:self-center">
         <button
           type="button"
           data-testid="change-image-button"
           :disabled="disabled"
-          class="touch-target inline-flex min-h-[48px] min-w-[48px] items-center justify-center gap-1.5 rounded-xl border border-cyber-violet/50 bg-cyber-violet/15 px-3.5 py-2.5 text-xs font-semibold text-cyber-text transition hover:bg-cyber-violet/25 disabled:cursor-not-allowed disabled:opacity-50"
+          class="touch-target inline-flex min-h-[48px] items-center justify-center gap-1.5 rounded-xl border border-cyber-violet/50 bg-cyber-violet/15 px-3 py-1.5 text-xs font-semibold text-cyber-text transition hover:bg-cyber-violet/25 disabled:cursor-not-allowed disabled:opacity-50"
           @click="handleChangeImage"
         >
           <Icon name="lucide:refresh-cw" class="h-3.5 w-3.5 text-cyber-cyan" />
@@ -633,7 +604,7 @@ const isUploading = computed(
           type="button"
           data-testid="retake-camera-button"
           :disabled="disabled"
-          class="touch-target inline-flex min-h-[48px] min-w-[48px] items-center justify-center gap-1.5 rounded-xl border border-cyber-border bg-cyber-surface px-3.5 py-2.5 text-xs font-semibold text-cyber-text transition hover:border-cyber-cyan/50 disabled:cursor-not-allowed disabled:opacity-50"
+          class="touch-target inline-flex min-h-[48px] items-center justify-center gap-1.5 rounded-xl border border-cyber-border bg-cyber-surface px-3 py-1.5 text-xs font-semibold text-cyber-text transition hover:border-cyber-cyan/50 disabled:cursor-not-allowed disabled:opacity-50"
           @click="openCamera"
         >
           <Icon name="lucide:camera" class="h-3.5 w-3.5 text-cyber-violet" />
@@ -645,7 +616,7 @@ const isUploading = computed(
           data-testid="remove-image-button"
           aria-label="Xóa ảnh này"
           :disabled="disabled"
-          class="touch-target inline-flex min-h-[48px] min-w-[48px] items-center justify-center rounded-xl border border-cyber-border bg-cyber-surface p-2.5 text-cyber-muted transition hover:border-cyber-danger/60 hover:text-cyber-danger disabled:cursor-not-allowed disabled:opacity-50"
+          class="touch-target inline-flex min-h-[48px] min-w-[48px] items-center justify-center rounded-xl border border-cyber-border bg-cyber-surface p-2 text-cyber-muted transition hover:border-cyber-danger/60 hover:text-cyber-danger disabled:cursor-not-allowed disabled:opacity-50"
           @click="handleCancel"
         >
           <Icon name="lucide:trash-2" class="h-4 w-4" />
@@ -840,5 +811,21 @@ const isUploading = computed(
         </div>
       </div>
     </div>
+    <p
+      v-if="maintenanceNote"
+      data-testid="uploader-maintenance-note"
+      class="text-[11px] font-semibold text-cyber-warning"
+    >
+      Hệ thống đang bảo trì: bạn vẫn tải ảnh được nhưng chưa thể tạo tác vụ mới.
+    </p>
+    <p class="text-[11px] text-cyber-muted" data-testid="uploader-tos-note">
+      Khi tải lên, bạn cam kết theo
+      <NuxtLink
+        to="/terms"
+        target="_blank"
+        rel="noopener"
+        class="text-cyber-cyan underline"
+      >Điều khoản dịch vụ</NuxtLink>.
+    </p>
   </div>
 </template>

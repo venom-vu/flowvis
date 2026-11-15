@@ -56,6 +56,9 @@ async function ensureInfra() {
 
 
 
+process.env.RUNNINGHUB_WORKFLOW_BODY_RESHAPE ??= 'wf-body';
+process.env.RUNNINGHUB_WORKFLOW_MOTION ??= 'wf-motion';
+
 describe('Story 2.8: [BE] Ưu tiên theo Tier và hết hạn hàng đợi FREE', () => {
   let app, baseUrl, pool, prisma, jwt, svc, sweeper, queue;
   const runId = crypto.randomBytes(4).toString('hex');
@@ -89,7 +92,7 @@ describe('Story 2.8: [BE] Ưu tiên theo Tier và hết hạn hàng đợi FREE'
   const ledger = (id, type) => prisma.ledgerEntry.findMany({ where: { taskId: id, type } });
   async function clean() {
     for (const id of taskIds) await queue.remove(id).catch(() => {});
-    await pool.query(`UPDATE tasks SET status='failed', reason_code='RH_ERROR', finished_at=now(), rh_orphan_until=NULL WHERE user_id = ANY($1::uuid[]) AND status IN ('queued','running')`, [users]);
+    await pool.query(`UPDATE tasks SET status='cancelled', reason_code='USER_CANCEL', finished_at=now(), rh_orphan_until=NULL WHERE user_id = ANY($1::uuid[]) AND status IN ('queued','running')`, [users]);
     await pool.query(`UPDATE tasks SET rh_orphan_until=NULL WHERE user_id = ANY($1::uuid[])`, [users]);
   }
   before(async () => {

@@ -1,8 +1,17 @@
+import { assertReportEmail } from './scripts/assert-report-email.mjs';
+
 export default defineNuxtConfig({
   compatibilityDate: '2025-01-01',
   srcDir: '.',
   devtools: { enabled: false },
-  modules: ['@nuxtjs/tailwindcss', '@nuxt/icon'],
+  hooks: {
+    // Build production bắt buộc có email nhận báo cáo vi phạm.
+    'nitro:build:before': () => {
+      assertReportEmail(process.env.NUXT_PUBLIC_REPORT_EMAIL, process.env.NODE_ENV);
+    },
+  },
+  modules: ['@nuxtjs/tailwindcss', '@nuxt/icon', 'shadcn-nuxt'],
+  shadcn: { prefix: '', componentDir: './components/ui' },
   css: ['~/assets/css/main.css'],
   nitro: {
     preset: 'cloudflare-pages',
@@ -15,6 +24,7 @@ export default defineNuxtConfig({
   runtimeConfig: {
     public: {
       apiBaseUrl: process.env.NUXT_PUBLIC_API_BASE_URL || 'http://localhost:8080',
+      reportEmail: process.env.NUXT_PUBLIC_REPORT_EMAIL || '',
     },
   },
   icon: {
@@ -51,7 +61,7 @@ export default defineNuxtConfig({
         {
           name: 'description',
           content:
-            'Nền tảng tạo ảnh và video AI chuyên nghiệp: Hoán đổi khuôn mặt, Chỉnh dáng thông minh và Điều khiển chuyển động.',
+            'Nền tảng tạo ảnh và video AI chuyên nghiệp: Hoán đổi khuôn mặt, Nâng ngực AI tự nhiên và Điều khiển chuyển động.',
         },
       ],
       link: [
@@ -63,7 +73,7 @@ export default defineNuxtConfig({
         },
         {
           rel: 'stylesheet',
-          href: 'https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500;600;700&family=Space+Grotesk:wght@400;500;600;700&display=swap',
+          href: 'https://fonts.googleapis.com/css2?family=Geist:wght@400;500;600;700&family=Geist+Mono:wght@400;500;600&family=JetBrains+Mono:wght@400;500;600;700&family=Space+Grotesk:wght@400;500;600;700&display=swap',
         },
       ],
     },
