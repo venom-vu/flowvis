@@ -70,8 +70,7 @@ const taskErrorVi = computed<string | null>(() => {
 
 const isVideoPipeline = computed<boolean>(
   () =>
-    currentTask.value?.pipeline === 'motion_control' ||
-    currentTask.value?.pipeline === 'character_replace',
+    currentTask.value?.pipeline === 'motion_control',
 );
 
 const INPUT_LABELS_VI: Readonly<Record<string, string>> = {
@@ -82,8 +81,7 @@ const INPUT_LABELS_VI: Readonly<Record<string, string>> = {
   videoKey: 'Video mẫu',
 };
 
-function inputLabelVi(role: string, pipeline?: string): string {
-  if (role === 'videoKey' && pipeline === 'character_replace') return 'Video gốc';
+function inputLabelVi(role: string): string {
   return INPUT_LABELS_VI[role] ?? role;
 }
 
@@ -137,7 +135,6 @@ function getPipelineRoute(pipeline?: string): string {
   if (pipeline === 'body_retouch') return '/body-retouch';
   if (pipeline === 'outfit_change') return '/outfit-change';
   if (pipeline === 'motion_control') return '/motion-control';
-  if (pipeline === 'character_replace') return '/';
   return '/face-swap';
 }
 
@@ -269,7 +266,7 @@ function handleCreateNewTask(): void {
               class="overflow-hidden rounded-xl border border-cyber-border bg-cyber-bg/70"
             >
               <figcaption class="flex items-center justify-between border-b border-cyber-border/70 px-3 py-2 text-xs font-semibold text-cyber-text">
-                <span>{{ inputLabelVi(item.role, currentTask.pipeline) }}</span>
+                <span>{{ inputLabelVi(item.role) }}</span>
                 <Icon
                   :name="item.mediaType === 'video' ? 'lucide:video' : 'lucide:image'"
                   class="h-3.5 w-3.5 text-cyber-muted"
@@ -286,7 +283,7 @@ function handleCreateNewTask(): void {
               <a v-else :href="item.url" target="_blank" rel="noopener" class="block">
                 <img
                   :src="item.url"
-                  :alt="inputLabelVi(item.role, currentTask.pipeline)"
+                  :alt="inputLabelVi(item.role)"
                   loading="lazy"
                   class="max-h-64 w-full bg-black/40 object-contain"
                 />

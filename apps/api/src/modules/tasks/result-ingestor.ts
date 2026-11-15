@@ -157,7 +157,7 @@ export class ResultIngestorService implements ResultIngestor {
       return;
     }
 
-    if (row.pipeline === 'motion_control' || row.pipeline === 'character_replace') {
+    if (row.pipeline === 'motion_control') {
       await this.ingestVideo(task, row, url, gpuCoins, deadlineAt, signal);
       return;
     }

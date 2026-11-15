@@ -545,7 +545,7 @@ describe('@flowvis/web — Story 4.5: [FE] So sánh trước/sau (BeforeAfterSpl
             paramRows,
             isUnauthenticated,
             taskErrorVi,
-            isVideoPipeline: task.pipeline === 'motion_control' || task.pipeline === 'character_replace',
+            isVideoPipeline: task.pipeline === 'motion_control',
             statusTone: 'tone',
             idCopied: false,
             inputLabelVi: (role) => role,

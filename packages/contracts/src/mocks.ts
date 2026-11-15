@@ -68,8 +68,6 @@ export const DEFAULT_PRICING_CONFIG: PricingConfigResponse = {
     bodyRetouchCredits: 100,
     motionControlCreditsPerSecond: 50,
     motionControlMinSeconds: 3,
-    characterReplaceCreditsPerSecond: 50,
-    characterReplaceMinSeconds: 3,
   },
   tiers: [
     {

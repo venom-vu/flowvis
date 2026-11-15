@@ -18,7 +18,6 @@ export const PIPELINE_LABELS_VI: Readonly<Record<string, string>> = {
   outfit_change: 'Đổi trang phục',
   body_retouch: 'Chỉnh sửa vóc dáng',
   motion_control: 'Điều khiển chuyển động',
-  character_replace: 'Thay nhân vật video',
 };
 
 export function getPipelineLabelVi(pipeline: TaskPipeline | string): string {

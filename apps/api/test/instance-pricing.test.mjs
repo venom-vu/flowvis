@@ -39,7 +39,12 @@ describe('Giá máy RunningHub và ước tính chi phí', () => {
     for (const c of Object.values(PIPELINE_CONFIGS)) assert.equal(svc.getInstanceType(c), 'default');
     assert.deepEqual(
       Object.values(PIPELINE_CONFIGS).map((c) => c.instanceEnvVar).sort(),
-      ['RUNNINGHUB_INSTANCE_BODY_RETOUCH', 'RUNNINGHUB_INSTANCE_CHARACTER_REPLACE', 'RUNNINGHUB_INSTANCE_FACE_SWAP', 'RUNNINGHUB_INSTANCE_MOTION_CONTROL'],
+      [
+        'RUNNINGHUB_INSTANCE_BODY_RETOUCH',
+        'RUNNINGHUB_INSTANCE_FACE_SWAP',
+        'RUNNINGHUB_INSTANCE_MOTION_CONTROL',
+        'RUNNINGHUB_INSTANCE_OUTFIT_CHANGE',
+      ],
     );
     process.env.RUNNINGHUB_INSTANCE_MOTION_CONTROL = ' Plus ';
     assert.equal(svc.getInstanceType(PIPELINE_CONFIGS.motion_control), 'plus');

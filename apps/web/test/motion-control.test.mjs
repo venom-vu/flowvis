@@ -498,7 +498,6 @@ describe('@flowvis/web — Story 5.8 Motion Control', () => {
         '~/composables/useApiClient': 'export const useApiClient = () => ({ client: {} });',
         '~/composables/useAuthDialog': 'export const useAuthDialog = () => ({ open: () => {} });',
         '~/composables/usePricingConfig': 'export const usePricingConfig = () => ({ refreshAll: async () => {} });',
-        '~/composables/useCharacterReplace': `import { ref } from 'vue'; export const useCharacterReplace = () => ({ isAuthenticated: ref(true), isSubmitting: ref(false), reset: () => {}, clearState: () => {}, characterKey: ref(null), capSeconds: ref(null), seconds: ref(0), price: ref(null), hasEnoughBalance: ref(true), canSubmit: ref(false), insufficientNoteVi: ref(null), submitErrorVi: ref(null), prompt: ref(''), onTrimChange: () => {}, submit: async () => null });`,
         '~/composables/useMotionControl': 'export const useMotionControl = () => globalThis.__fwd.motion;',
         '~/utils/api-client': `export { ApiErrorCode, INTENSITY_DEFAULT, INTENSITY_LABEL_ZONES, INTENSITY_MAX, INTENSITY_MIN, IntensitySchema, getIntensityLabelVi, resolveApiErrorMessageVi } from ${JSON.stringify(apiClientUrl)};`,
         '~/utils/catalog': `export { calculateFeatureEstimatedCredits, formatNumberVi } from ${JSON.stringify(catalogUrl)};`,

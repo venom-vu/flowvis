@@ -174,7 +174,6 @@ describe('Story 6.6: [BE] Thống kê vận hành và nhật ký Admin', () => {
     await mkTask(u.id, 'face_swap', 'timed_out', { reason: 'RH_TIMEOUT', cost: 0.004, inst: 'default' });
     await mkTask(u.id, 'face_swap', 'timed_out', { reason: 'FREE_WAIT_EXPIRED', cost: 0.001, inst: 'default' });
     await mkTask(u.id, 'motion_control', 'succeeded', { cost: 0.05, inst: 'ultra', secs: 5, proc: 60 });
-    await mkTask(u.id, 'character_replace', 'succeeded', { cost: 0.025, inst: 'default', secs: 5, proc: 60 });
     await mkTask(bench.id, 'face_swap', 'succeeded', { cost: 0.08, inst: 'default', proc: 5 });
     await mkTopup(u.id, `ST${runId}1`, '2030-01-12T00:00:00Z');
     await mkTopup(bench.id, `ST${runId}B`, '2030-01-13T00:00:00Z');
@@ -214,14 +213,11 @@ describe('Story 6.6: [BE] Thống kê vận hành và nhật ký Admin', () => {
     const mm = real.margins.find((x) => x.pipeline === 'motion_control' && x.pack === 'pro');
     assert.ok(Math.abs(mm.revenueVnd - 825 * 0.5) < 1e-6);
     assert.ok(Math.abs(mm.costVnd - (0.05 / 5) * 25000) < 1e-6, 'chi phí mỗi giây = ok_cost / ok_seconds');
-    const cm = real.margins.find((x) => x.pipeline === 'character_replace' && x.pack === 'pro');
-    assert.ok(Math.abs(cm.revenueVnd - 825 * 0.5) < 1e-6, 'tính theo 50 credit/giây như Motion');
-    assert.ok(Math.abs(cm.costVnd - (0.025 / 5) * 25000) < 1e-6);
     // approved trong khoảng: u, noTask, late(02-05 ngoài khoảng, loại) => 2; bench bị loại khỏi real
     assert.equal(real.successMetrics.approvedTopups, 2);
     // cohort real có Task: u (nạp 12/01 trong 30 ngày), noTopup, late (nạp sau 30 ngày); noTask không Task => 1/3
     assert.equal(real.successMetrics.conversionRate, 1 / 3);
-    near(real.successMetrics.gpuCostUsd, 0.152);
+    near(real.successMetrics.gpuCostUsd, 0.127);
 
     const b = await stats('&scope=benchmark');
     const bf = b.pipelines.find((p) => p.pipeline === 'face_swap');

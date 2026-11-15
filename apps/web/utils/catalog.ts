@@ -18,7 +18,7 @@ export const FEATURE_CATEGORIES: readonly FeatureCategoryOption[] = [
   { id: "video", labelVi: "Chuyển động video AI", icon: "lucide:video" },
 ] as const;
 
-export type FeaturePipelineId = "face-swap" | "outfit-change" | "body-retouch" | "motion-control" | "character-replace";
+export type FeaturePipelineId = "face-swap" | "outfit-change" | "body-retouch" | "motion-control";
 
 export interface AiFeatureTool {
   id: FeaturePipelineId;
@@ -97,8 +97,6 @@ export function buildAiFeatureCatalog(
   const maxVideoSeconds = activeTierConfig.maxVideoSeconds;
   const { faceSwapCredits, outfitChangeCredits, bodyRetouchCredits, motionControlCreditsPerSecond } =
     pricing.pipelines;
-  const characterReplaceCreditsPerSecond =
-    pricing.pipelines.characterReplaceCreditsPerSecond;
 
   return [
     {
@@ -190,28 +188,6 @@ export function buildAiFeatureCatalog(
       afterLabelVi: "Video chuyển động đồng bộ",
       accentGradient: "from-violet-600/35 via-indigo-950 to-cyan-500/30",
       inputRequirementVi: "1 ảnh nhân vật rõ dáng + 1 video chuyển động mẫu",
-      outputFormatVi: "Video MP4 H.264 lưu trữ trên Cloudflare R2",
-    },
-    {
-      id: "character-replace",
-      slug: "character-replace",
-      titleVi: "Thay Nhân Vật Video",
-      subtitleVi: "Thay nhân vật trong video gốc bằng nhân vật của bạn",
-      descriptionVi:
-        "Tải video gốc, ảnh nhân vật tham chiếu và mô tả hành vi để AI thay nhân vật trong video, tính phí chính xác theo số giây đã cắt.",
-      category: "video",
-      categoryLabelVi: "Chuyển động video AI",
-      badgeVi: "Mới",
-      icon: "lucide:user-round-cog",
-      billingMode: "per_second",
-      unitCredits: characterReplaceCreditsPerSecond,
-      priceBadgeVi: `${formatNumberVi(characterReplaceCreditsPerSecond)} credit / giây`,
-      tierCapSeconds: maxVideoSeconds,
-      tierCapLabelVi: `Tối đa ${formatNumberVi(maxVideoSeconds)} giây (Hạng ${activeTierConfig.tier})`,
-      beforeLabelVi: "Video gốc + Ảnh nhân vật",
-      afterLabelVi: "Video đã thay nhân vật",
-      accentGradient: "from-cyan-500/30 via-slate-900 to-violet-600/30",
-      inputRequirementVi: "1 video gốc + 1 ảnh nhân vật rõ người + mô tả hành vi",
       outputFormatVi: "Video MP4 H.264 lưu trữ trên Cloudflare R2",
     },
   ];

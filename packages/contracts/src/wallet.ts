@@ -392,9 +392,6 @@ export const PipelinePricingSchema = z.object({
   motionControlCreditsPerSecond: z.literal(50),
   /** Số giây Trim tối thiểu của Motion Control (tùy chọn để BE Epic 2–4 chưa trả vẫn hợp lệ; BE 5.3 phải trả 3). */
   motionControlMinSeconds: z.literal(3).optional(),
-  /** Thay nhân vật video: cùng giá 50 credit/giây và tối thiểu 3 giây (bắt buộc). */
-  characterReplaceCreditsPerSecond: z.literal(50),
-  characterReplaceMinSeconds: z.literal(3),
 });
 export type PipelinePricing = z.infer<typeof PipelinePricingSchema>;
 

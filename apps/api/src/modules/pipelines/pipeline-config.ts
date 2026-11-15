@@ -113,27 +113,6 @@ export const PIPELINE_CONFIGS: Readonly<Record<string, PipelineConfig>> = {
     deadlineMs: 360_000,
     prepare: (ctx) => videoTrim.prepare(ctx),
   },
-  character_replace: {
-    pipeline: 'character_replace',
-    workflowEnvVar: 'RUNNINGHUB_WORKFLOW_CHARACTER_REPLACE',
-    runModeEnvVar: 'RUNNINGHUB_MODE_CHARACTER_REPLACE',
-    instanceEnvVar: 'RUNNINGHUB_INSTANCE_CHARACTER_REPLACE',
-    defaultRunMode: 'ai-app',
-    // Không requiredAtStartup: môi trường chưa cấu hình vẫn khởi động; adapter unconfigured ném RH_ERROR.
-    // AI App Thay nhân vật video (1955095782514987010): 352 = video, 318 = ảnh nhân vật, 284 = prompt, 339 = số giây, 341 = mốc bắt đầu.
-    inputs: [
-      { inputKey: 'videoKey', nodeId: '352', fieldName: 'video' },
-      { inputKey: 'characterKey', nodeId: '318', fieldName: 'image' },
-    ],
-    params: [
-      { paramKey: 'prompt', nodeId: '284', fieldName: 'text' },
-      { paramKey: 'seconds', nodeId: '339', fieldName: 'int' },
-    ],
-    // Video đã được backend cắt nên điểm bắt đầu luôn là 0.
-    fixedNodes: [{ nodeId: '341', fieldName: 'int', fieldValue: '0' }],
-    deadlineMs: 360_000,
-    prepare: (ctx) => videoTrim.prepare(ctx),
-  },
 };
 
 /** Ánh xạ lỗi FAILED của RunningHub theo tiền tố (không phân biệt hoa thường). */
@@ -164,6 +143,8 @@ export function mapRunningHubFailure(errorMessage: string | undefined): ReasonCo
     if (upper.startsWith(p.toUpperCase())) return 'CONTENT_BLOCKED';
   }
   const lower = msg.toLowerCase();
+  // Hết VRAM GPU ("insufficient VRAM") là lỗi workflow, không phải hết tiền tài khoản RunningHub.
+  if (lower.includes('vram')) return 'RH_ERROR';
   if (RH_BUDGET_KEYWORDS.some((k) => lower.includes(k))) return 'RH_BUDGET';
   return 'RH_ERROR';
 }

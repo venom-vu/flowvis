@@ -33,7 +33,7 @@ const { client } = useApiClient();
 
 const localTask = ref<Task | null>(props.task);
 const isVideoPipeline = computed<boolean>(
-  () => localTask.value?.pipeline === 'motion_control' || localTask.value?.pipeline === 'character_replace',
+  () => localTask.value?.pipeline === 'motion_control',
 );
 const isCancelling = ref<boolean>(false);
 const isFetching = ref<boolean>(false);

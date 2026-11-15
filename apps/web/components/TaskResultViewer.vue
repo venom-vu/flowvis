@@ -85,8 +85,7 @@ const isWorking = computed<boolean>(
 const isVideo = computed<boolean>(
   () =>
     result.value?.mediaType === 'video' ||
-    localTask.value?.pipeline === 'motion_control' ||
-    localTask.value?.pipeline === 'character_replace',
+    localTask.value?.pipeline === 'motion_control',
 );
 const isExpired = computed<boolean>(() =>
   localTask.value ? isTaskRetentionExpired(localTask.value.createdAt) : false,
