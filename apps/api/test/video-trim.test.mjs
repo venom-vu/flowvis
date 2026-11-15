@@ -38,10 +38,10 @@ const probe = (f) =>
   JSON.parse(execFileSync('ffprobe', ['-v', 'error', '-print_format', 'json', '-show_format', '-show_streams', f]).toString());
 
 describe('Story 5.4: cắt video bằng ffmpeg', () => {
-  it('buildFfmpegArgs: đối số cố định, -an, 24 FPS', () => {
+  it('buildFfmpegArgs: đối số cố định, giữ audio, 24 FPS', () => {
     const a = buildFfmpegArgs('/i', '/o.mp4', 2, 5);
     assert.deepEqual(a.slice(a.indexOf('-ss'), a.indexOf('-ss') + 2), ['-ss', '2']);
-    assert.ok(a.includes('-an') && a.includes('libx264') && a.includes('veryfast'));
+    assert.ok(!a.includes('-an') && a.includes('0:a:0?') && a.includes('aac') && a.includes('libx264') && a.includes('veryfast'));
     assert.equal(a[a.indexOf('-r') + 1], '24');
     assert.equal(a.at(-1), '/o.mp4');
   });
@@ -51,7 +51,8 @@ describe('Story 5.4: cắt video bằng ffmpeg', () => {
     assert.equal(evaluateTrimmedProbe(ok, 5), true);
     assert.equal(evaluateTrimmedProbe({ ...ok, format: { duration: '6.2' } }, 5), false);
     assert.equal(evaluateTrimmedProbe({ ...ok, streams: [{ codec_type: 'video', r_frame_rate: '30/1' }] }, 5), false);
-    assert.equal(evaluateTrimmedProbe({ ...ok, streams: [...ok.streams, { codec_type: 'audio' }] }, 5), false);
+    assert.equal(evaluateTrimmedProbe({ ...ok, streams: [...ok.streams, { codec_type: 'audio' }] }, 5), true);
+    assert.equal(evaluateTrimmedProbe({ ...ok, streams: [...ok.streams, { codec_type: 'data' }] }, 5), false);
     assert.equal(evaluateTrimmedProbe({}, 5), false);
     for (const r of ['0/0', 'abc', undefined]) {
       assert.equal(evaluateTrimmedProbe({ ...ok, streams: [{ codec_type: 'video', r_frame_rate: r }] }, 5), false, String(r));

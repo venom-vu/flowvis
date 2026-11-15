@@ -277,9 +277,9 @@ export class ResultIngestorService implements ResultIngestor {
           try {
             await run(
               'nice',
-              ['-n', '19', 'ffmpeg', '-hide_banner', '-loglevel', 'error', '-y', '-i', inFile, '-map', '0:v:0',
+              ['-n', '19', 'ffmpeg', '-hide_banner', '-loglevel', 'error', '-y', '-i', inFile, '-map', '0:v:0', '-map', '0:a:0?',
                 ...(needsReencode(probe)
-                  ? ['-c:v', 'libx264', '-pix_fmt', 'yuv420p', '-preset', 'veryfast', '-crf', '20']
+                  ? ['-c:v', 'libx264', '-pix_fmt', 'yuv420p', '-preset', 'veryfast', '-crf', '20', '-c:a', 'aac', '-b:a', '128k']
                   : ['-c', 'copy']),
                 '-metadata', `comment=${EXIF_COMMENT}`, '-metadata', `software=${EXIF_SOFTWARE}`,
                 '-movflags', '+faststart+use_metadata_tags', outFile],

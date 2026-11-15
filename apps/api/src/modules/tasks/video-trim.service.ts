@@ -91,7 +91,10 @@ export function buildFfmpegArgs(input: string, output: string, trimStart: number
     input,
     '-t',
     String(seconds),
-    '-an',
+    '-map',
+    '0:v:0',
+    '-map',
+    '0:a:0?',
     '-c:v',
     'libx264',
     '-preset',
@@ -102,6 +105,10 @@ export function buildFfmpegArgs(input: string, output: string, trimStart: number
     'scale=trunc(iw/2)*2:trunc(ih/2)*2',
     '-pix_fmt',
     'yuv420p',
+    '-c:a',
+    'aac',
+    '-b:a',
+    '128k',
     '-movflags',
     '+faststart',
     output,
@@ -118,15 +125,16 @@ export function parseFps(raw: unknown): number {
   return n! / (d ?? 1);
 }
 
-/** Hàm thuần: đúng một luồng video, 24 FPS, độ dài = seconds ± 0,5 giây. */
+/** Hàm thuần: đúng một luồng video (có thể kèm âm thanh), 24 FPS, độ dài = seconds ± 0,5 giây. */
 export function evaluateTrimmedProbe(json: unknown, seconds: number): boolean {
   const data = (json ?? {}) as {
     format?: { duration?: string | number };
     streams?: Array<{ codec_type?: string; r_frame_rate?: string; avg_frame_rate?: string }>;
   };
   const streams = data.streams ?? [];
-  if (streams.length !== 1 || streams[0]!.codec_type !== 'video') return false;
-  const fps = parseFps(streams[0]!.r_frame_rate);
+  const videos = streams.filter((x) => x.codec_type === 'video');
+  if (videos.length !== 1 || streams.some((x) => x.codec_type !== 'video' && x.codec_type !== 'audio')) return false;
+  const fps = parseFps(videos[0]!.r_frame_rate);
   if (!Number.isFinite(fps) || Math.abs(fps - TRIM_FPS) > 0.01) return false;
   if (data.format?.duration == null) return false;
   const duration = Number(data.format.duration);

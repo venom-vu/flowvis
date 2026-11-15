@@ -24,12 +24,10 @@ export interface PipelineConfig {
   readonly pipeline: string;
   /** Tên biến môi trường chứa workflow ID RunningHub. */
   readonly workflowEnvVar: string;
-  /** Tên biến môi trường chọn cách gọi RunningHub: `ai-app` hoặc `workflow`. */
-  readonly runModeEnvVar: string;
   /** Tên biến môi trường chọn loại máy RunningHub (`default`/`plus`/`ultra`); trống = default. */
   readonly instanceEnvVar: string;
-  /** Cách gọi khi biến `runModeEnvVar` để trống. */
-  readonly defaultRunMode: RunningHubRunMode;
+  /** Cách gọi RunningHub: `ai-app` hoặc `workflow` (cố định theo chức năng). */
+  readonly runMode: RunningHubRunMode;
   readonly inputs: readonly PipelineInputMapping[];
   /** Tham số từ tasks.params truyền cho workflow (giá trị dạng chuỗi). */
   readonly params?: readonly PipelineParamMapping[];
@@ -52,9 +50,8 @@ export const PIPELINE_CONFIGS: Readonly<Record<string, PipelineConfig>> = {
   face_swap: {
     pipeline: 'face_swap',
     workflowEnvVar: 'RUNNINGHUB_WORKFLOW_FACESWAP',
-    runModeEnvVar: 'RUNNINGHUB_MODE_FACESWAP',
     instanceEnvVar: 'RUNNINGHUB_INSTANCE_FACE_SWAP',
-    defaultRunMode: 'ai-app',
+    runMode: 'ai-app',
     // [ASSUMPTION] AI App Face Swap có hai node ảnh, curl mẫu không ghi mô tả: giả định node 470 = ảnh đích (giữ bố cục, kích thước), node 475 = ảnh nguồn (khuôn mặt). Nếu kết quả bị ngược thì hoán đổi hai nodeId.
     inputs: [
       { inputKey: 'targetKey', nodeId: '470', fieldName: 'image' },
@@ -65,9 +62,8 @@ export const PIPELINE_CONFIGS: Readonly<Record<string, PipelineConfig>> = {
   outfit_change: {
     pipeline: 'outfit_change',
     workflowEnvVar: 'RUNNINGHUB_WORKFLOW_OUTFIT_CHANGE',
-    runModeEnvVar: 'RUNNINGHUB_MODE_OUTFIT_CHANGE',
     instanceEnvVar: 'RUNNINGHUB_INSTANCE_OUTFIT_CHANGE',
-    defaultRunMode: 'ai-app',
+    runMode: 'ai-app',
     // Không requiredAtStartup: môi trường chưa cấu hình vẫn khởi động; adapter unconfigured ném RH_ERROR.
     // AI App Đổi trang phục (2012848202482978818): 107 = ảnh người mẫu, 285 = ảnh trang phục, 223 = prompt cố định.
     inputs: [
@@ -81,9 +77,8 @@ export const PIPELINE_CONFIGS: Readonly<Record<string, PipelineConfig>> = {
   body_retouch: {
     pipeline: 'body_retouch',
     workflowEnvVar: 'RUNNINGHUB_WORKFLOW_BODY_RESHAPE',
-    runModeEnvVar: 'RUNNINGHUB_MODE_BODY_RESHAPE',
     instanceEnvVar: 'RUNNINGHUB_INSTANCE_BODY_RETOUCH',
-    defaultRunMode: 'ai-app',
+    runMode: 'ai-app',
     requiredAtStartup: true,
     // AI App nâng ngực (2095511080751996930): node 4 = LoadImage (ảnh), node 56 = strength_model của LoRA (intensity 1-10 x 0.1 -> 0.1-1.0; mặc định 5 -> 0.5).
     inputs: [{ inputKey: 'imageKey', nodeId: '4', fieldName: 'image' }],
@@ -93,9 +88,8 @@ export const PIPELINE_CONFIGS: Readonly<Record<string, PipelineConfig>> = {
   motion_control: {
     pipeline: 'motion_control',
     workflowEnvVar: 'RUNNINGHUB_WORKFLOW_MOTION',
-    runModeEnvVar: 'RUNNINGHUB_MODE_MOTION',
     instanceEnvVar: 'RUNNINGHUB_INSTANCE_MOTION_CONTROL',
-    defaultRunMode: 'ai-app',
+    runMode: 'ai-app',
     requiredAtStartup: true,
     // AI App Motion Control (2108650752700166145): node 30 = ảnh nhân vật, node 33 = video chuyển động.
     inputs: [
