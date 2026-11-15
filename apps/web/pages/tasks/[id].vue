@@ -70,7 +70,8 @@ const taskErrorVi = computed<string | null>(() => {
 
 const isVideoPipeline = computed<boolean>(
   () =>
-    currentTask.value?.pipeline === 'motion_control',
+    currentTask.value?.pipeline === 'motion_control' ||
+    currentTask.value?.pipeline === 'motion_control_v2',
 );
 
 const INPUT_LABELS_VI: Readonly<Record<string, string>> = {
@@ -136,6 +137,7 @@ function getPipelineRoute(pipeline?: string): string {
   if (pipeline === 'outfit_change') return '/outfit-change';
   if (pipeline === 'person_replace') return '/person-replace';
   if (pipeline === 'motion_control') return '/motion-control';
+  if (pipeline === 'motion_control_v2') return '/motion-control-v2';
   return '/face-swap';
 }
 

@@ -1,7 +1,13 @@
-import { Inject, Injectable, Logger, OnModuleDestroy, OnModuleInit } from '@nestjs/common';
-import type { ReasonCode } from '@flowvis/contracts';
-import { Worker } from 'bullmq';
-import { RedisService } from '../../infra/redis.service.js';
+import {
+  Inject,
+  Injectable,
+  Logger,
+  OnModuleDestroy,
+  OnModuleInit,
+} from "@nestjs/common";
+import type { ReasonCode } from "@flowvis/contracts";
+import { Worker } from "bullmq";
+import { RedisService } from "../../infra/redis.service.js";
 import {
   RESULT_INGESTOR,
   RUNNING_HUB_PORT,
@@ -14,46 +20,55 @@ import {
   type RunningHubOutputs,
   type RunningHubPort,
   type StoragePort,
-} from '../../ports/index.js';
-import { mapRunningHubFailure, PIPELINE_CONFIGS, type PipelineConfig } from '../pipelines/pipeline-config.js';
-import { AlertService } from '../ops/alert.service.js';
-import { SettingsService } from '../ops/settings.service.js';
-import { PipelinesService } from '../pipelines/pipelines.service.js';
-import { PRICING_CONFIG } from '../wallet/tier.js';
-import { clampCoins } from './result-ingestor.js';
-import { isTerminal } from './task-transitions.js';
-import { PrepareError, videoTrim } from './video-trim.service.js';
-import { TASKS_QUEUE, TasksService } from './tasks.service.js';
+} from "../../ports/index.js";
+import {
+  mapRunningHubFailure,
+  PIPELINE_CONFIGS,
+  type PipelineConfig,
+} from "../pipelines/pipeline-config.js";
+import { AlertService } from "../ops/alert.service.js";
+import { SettingsService } from "../ops/settings.service.js";
+import { PipelinesService } from "../pipelines/pipelines.service.js";
+import { PRICING_CONFIG } from "../wallet/tier.js";
+import { clampCoins } from "./result-ingestor.js";
+import { isTerminal } from "./task-transitions.js";
+import { PrepareError, videoTrim } from "./video-trim.service.js";
+import { TASKS_QUEUE, TasksService } from "./tasks.service.js";
 
 /**
  * Số job BullMQ chạy song song. Mặc định bằng RH_MAX_CONCURRENT (cổng RunningHub) để không có job nào giữ slot
  * mà chờ cổng, và để thứ tự Priority không bị phá; WORKER_CONCURRENCY chỉ dùng khi cần ghi đè riêng. Mặc định 2.
  */
 export const WORKER_CONCURRENCY = (() => {
-  for (const name of ['WORKER_CONCURRENCY', 'RH_MAX_CONCURRENT']) {
-    const n = Number.parseInt(process.env[name] ?? '', 10);
+  for (const name of ["WORKER_CONCURRENCY", "RH_MAX_CONCURRENT"]) {
+    const n = Number.parseInt(process.env[name] ?? "", 10);
     if (Number.isFinite(n) && n > 0) return n;
   }
   return 2;
 })();
 const RH_CALL_TIMEOUT_MS = 10_000;
+/** Upload file (video đã cắt có thể vài chục MB) cần hạn dài hơn các lời gọi API nhỏ. */
+const RH_UPLOAD_TIMEOUT_MS = 300_000;
 const DEFAULT_DEADLINE_MS = 180_000;
 
 /** Mốc deadline_at chỉ đánh dấu Task đã qua cổng RunningHub; không còn dùng để hết hạn Task (RunningHub chạy bao lâu cũng chờ). Chỉ cho phép ghi đè (RH_DEADLINE_MS) khi NODE_ENV === 'test'. */
 export function deadlineMs(pipeline?: string): number {
-  const base = (pipeline && PIPELINE_CONFIGS[pipeline]?.deadlineMs) || DEFAULT_DEADLINE_MS;
-  if (process.env.NODE_ENV !== 'test') return base;
-  const n = Number.parseInt(process.env.RH_DEADLINE_MS ?? '', 10);
+  const base =
+    (pipeline && PIPELINE_CONFIGS[pipeline]?.deadlineMs) || DEFAULT_DEADLINE_MS;
+  if (process.env.NODE_ENV !== "test") return base;
+  const n = Number.parseInt(process.env.RH_DEADLINE_MS ?? "", 10);
   return Number.isFinite(n) && n > 0 ? n : base;
 }
 export const ORPHAN_MS = 10 * 60_000;
 export const FREE_WAIT_MS = 15 * 60_000;
-const FREE_PRIORITY = PRICING_CONFIG.tiers.find((t) => t.tier === 'FREE')!.priority;
+const FREE_PRIORITY = PRICING_CONFIG.tiers.find(
+  (t) => t.tier === "FREE",
+)!.priority;
 
-type TaskRow = NonNullable<Awaited<ReturnType<TasksService['getWorkerRow']>>>;
+type TaskRow = NonNullable<Awaited<ReturnType<TasksService["getWorkerRow"]>>>;
 
 function envInt(name: string, def: number): number {
-  const n = Number.parseInt(process.env[name] ?? '', 10);
+  const n = Number.parseInt(process.env[name] ?? "", 10);
   return Number.isFinite(n) && n > 0 ? n : def;
 }
 
@@ -63,10 +78,10 @@ function sleep(ms: number, signal: AbortSignal): Promise<void> {
     const t = setTimeout(done, ms);
     function done(): void {
       clearTimeout(t);
-      signal.removeEventListener('abort', done);
+      signal.removeEventListener("abort", done);
       resolve();
     }
-    signal.addEventListener('abort', done, { once: true });
+    signal.addEventListener("abort", done, { once: true });
   });
 }
 
@@ -106,7 +121,7 @@ export class TaskWorkerService implements OnModuleInit, OnModuleDestroy {
   ) {}
 
   async onModuleInit(): Promise<void> {
-    if (process.env.MOTION_PROCESS_ROLE !== 'worker') return;
+    if (process.env.MOTION_PROCESS_ROLE !== "worker") return;
     try {
       await videoTrim.cleanupStale();
     } catch (err) {
@@ -120,17 +135,26 @@ export class TaskWorkerService implements OnModuleInit, OnModuleDestroy {
         const ctrl = new AbortController();
         this.controllers.set(taskId, ctrl);
         try {
-          await this.processTask(taskId, AbortSignal.any([this.shutdown.signal, ctrl.signal]));
+          await this.processTask(
+            taskId,
+            AbortSignal.any([this.shutdown.signal, ctrl.signal]),
+          );
         } catch (err) {
           this.logger.error(`Xử lý Task ${taskId} lỗi: ${String(err)}`);
           throw err;
         } finally {
-          if (this.controllers.get(taskId) === ctrl) this.controllers.delete(taskId);
+          if (this.controllers.get(taskId) === ctrl)
+            this.controllers.delete(taskId);
         }
       },
-      { connection: this.redis.getWorkerConnectionOptions(), concurrency: WORKER_CONCURRENCY },
+      {
+        connection: this.redis.getWorkerConnectionOptions(),
+        concurrency: WORKER_CONCURRENCY,
+      },
     );
-    this.worker.on('error', (err) => this.logger.error(`BullMQ worker lỗi: ${String(err)}`));
+    this.worker.on("error", (err) =>
+      this.logger.error(`BullMQ worker lỗi: ${String(err)}`),
+    );
   }
 
   async onModuleDestroy(): Promise<void> {
@@ -151,29 +175,50 @@ export class TaskWorkerService implements OnModuleInit, OnModuleDestroy {
   }
 
   /** Hàm xử lý job (AD-5/AD-6). Gọi trực tiếp được trong test. */
-  async processTask(taskId: string, signal: AbortSignal = new AbortController().signal): Promise<void> {
+  async processTask(
+    taskId: string,
+    signal: AbortSignal = new AbortController().signal,
+  ): Promise<void> {
     let row = await this.tasks.getWorkerRow(taskId);
     if (!row || isTerminal(row.status as never)) return;
 
-    if (row.status === 'queued') {
+    if (row.status === "queued") {
       const snap = (row.tierSnapshot ?? {}) as { priority?: number };
-      if (snap.priority === FREE_PRIORITY && Date.now() - row.queuedAt.getTime() >= FREE_WAIT_MS) {
-        await this.tasks.transition(taskId, 'queued', 'timed_out', 'FREE_WAIT_EXPIRED');
+      if (
+        snap.priority === FREE_PRIORITY &&
+        Date.now() - row.queuedAt.getTime() >= FREE_WAIT_MS
+      ) {
+        await this.tasks.transition(
+          taskId,
+          "queued",
+          "timed_out",
+          "FREE_WAIT_EXPIRED",
+        );
         return;
       }
-      const { applied } = await this.tasks.transition(taskId, 'queued', 'running');
+      const { applied } = await this.tasks.transition(
+        taskId,
+        "queued",
+        "running",
+      );
       if (!applied) {
         row = await this.tasks.getWorkerRow(taskId);
-        if (!row || row.status !== 'running') return;
+        if (!row || row.status !== "running") return;
       } else {
         row = await this.tasks.getWorkerRow(taskId);
         if (!row) return;
       }
     }
-    if (row.status !== 'running') return;
-    if (!row.runninghubTaskId && !row.submitStartedAt && (await this.settings.isRhBudgetExhausted())) {
-      this.logger.warn(`Task ${taskId}: RunningHub hết ngân sách, từ chối trước khi chuẩn bị`);
-      await this.finish(taskId, 'failed', 'RH_BUDGET');
+    if (row.status !== "running") return;
+    if (
+      !row.runninghubTaskId &&
+      !row.submitStartedAt &&
+      (await this.settings.isRhBudgetExhausted())
+    ) {
+      this.logger.warn(
+        `Task ${taskId}: RunningHub hết ngân sách, từ chối trước khi chuẩn bị`,
+      );
+      await this.finish(taskId, "failed", "RH_BUDGET");
       return;
     }
     this.logger.log(`Task ${taskId}: bắt đầu xử lý pipeline ${row.pipeline}`);
@@ -181,12 +226,14 @@ export class TaskWorkerService implements OnModuleInit, OnModuleDestroy {
     const now = Date.now();
     if (row.runninghubTaskId) return this.poll(row, signal);
     if (row.submitStartedAt) {
-      await this.finish(taskId, 'failed', 'RH_SUBMIT_UNKNOWN', { orphanForMs: ORPHAN_MS });
+      await this.finish(taskId, "failed", "RH_SUBMIT_UNKNOWN", {
+        orphanForMs: ORPHAN_MS,
+      });
       return;
     }
     if (row.deadlineAt) return this.runFromUpload(row, signal, true);
     if (row.prepDeadlineAt && row.prepDeadlineAt.getTime() <= now) {
-      await this.finish(taskId, 'timed_out', 'PREP_TIMEOUT');
+      await this.finish(taskId, "timed_out", "PREP_TIMEOUT");
       return;
     }
     return this.runFromUpload(row, signal, false);
@@ -194,13 +241,20 @@ export class TaskWorkerService implements OnModuleInit, OnModuleDestroy {
 
   private async finish(
     taskId: string,
-    to: 'failed' | 'timed_out',
+    to: "failed" | "timed_out",
     reason: ReasonCode,
     opts: { gpuCoins?: number; orphanForMs?: number } = {},
   ) {
     this.logger.warn(`Task ${taskId}: kết thúc ${to} (${reason})`);
-    const result = await this.tasks.transition(taskId, 'running', to, reason, opts);
-    if (reason === 'RH_BUDGET' && result.applied) await this.onBudgetExhausted(taskId);
+    const result = await this.tasks.transition(
+      taskId,
+      "running",
+      to,
+      reason,
+      opts,
+    );
+    if (reason === "RH_BUDGET" && result.applied)
+      await this.onBudgetExhausted(taskId);
     return result;
   }
 
@@ -209,52 +263,75 @@ export class TaskWorkerService implements OnModuleInit, OnModuleDestroy {
     try {
       if (!(await this.settings.markRhBudgetExhausted())) return;
       await this.alerts.raise(`rh_budget:${new Date().toISOString()}`, {
-        kind: 'ops.rh_budget_exhausted',
-        severity: 'error',
-        message: 'RunningHub hết ngân sách. Đã tạm dừng nhận Task mới; nạp thêm coin RunningHub rồi mở lại.',
+        kind: "ops.rh_budget_exhausted",
+        severity: "error",
+        message:
+          "RunningHub hết ngân sách. Đã tạm dừng nhận Task mới; nạp thêm coin RunningHub rồi mở lại.",
         data: { taskId },
       });
     } catch (err) {
-      this.logger.error(`Không đặt được cờ hết ngân sách (Task ${taskId}): ${String(err)}`);
+      this.logger.error(
+        `Không đặt được cờ hết ngân sách (Task ${taskId}): ${String(err)}`,
+      );
     }
   }
 
   private isBudgetError(message: string): boolean {
-    return mapRunningHubFailure(message) === 'RH_BUDGET';
+    return mapRunningHubFailure(message) === "RH_BUDGET";
   }
 
-  private timeoutSignal(signal: AbortSignal): AbortSignal {
-    return AbortSignal.any([signal, AbortSignal.timeout(RH_CALL_TIMEOUT_MS)]);
+  private timeoutSignal(
+    signal: AbortSignal,
+    timeoutMs = RH_CALL_TIMEOUT_MS,
+  ): AbortSignal {
+    return AbortSignal.any([signal, AbortSignal.timeout(timeoutMs)]);
   }
 
   /** (a) chuẩn bị, (b) cổng, (c) upload, (d) submit, rồi poll. */
-  private async runFromUpload(row: TaskRow, signal: AbortSignal, gatePassed: boolean): Promise<void> {
+  private async runFromUpload(
+    row: TaskRow,
+    signal: AbortSignal,
+    gatePassed: boolean,
+  ): Promise<void> {
     const taskId = row.id;
     const config = this.pipelines.getConfig(row.pipeline);
     const workflowId = config ? this.pipelines.getWorkflowId(config) : null;
     if (!config || !workflowId) {
-      await this.finish(taskId, 'failed', 'RH_ERROR');
+      await this.finish(taskId, "failed", "RH_ERROR");
       return;
     }
 
     // (a)
     let inputs: Record<string, Buffer>;
-    const prepDeadline = config.prepare && row.prepDeadlineAt ? AbortSignal.timeout(Math.max(0, row.prepDeadlineAt.getTime() - Date.now())) : null;
+    const prepDeadline =
+      config.prepare && row.prepDeadlineAt
+        ? AbortSignal.timeout(
+            Math.max(0, row.prepDeadlineAt.getTime() - Date.now()),
+          )
+        : null;
     try {
-      inputs = await this.loadInputs(row, config, prepDeadline ? AbortSignal.any([signal, prepDeadline]) : signal);
+      inputs = await this.loadInputs(
+        row,
+        config,
+        prepDeadline ? AbortSignal.any([signal, prepDeadline]) : signal,
+      );
     } catch (err) {
       if (signal.aborted) return;
       if (prepDeadline?.aborted) {
-        await this.finish(taskId, 'timed_out', 'PREP_TIMEOUT');
+        await this.finish(taskId, "timed_out", "PREP_TIMEOUT");
         return;
       }
       if (err instanceof PrepareError) {
-        this.logger.warn(`Bước chuẩn bị Task ${taskId} lỗi (${err.reason}): ${err.message}`);
-        await this.finish(taskId, 'failed', err.reason);
+        this.logger.warn(
+          `Bước chuẩn bị Task ${taskId} lỗi (${err.reason}): ${err.message}`,
+        );
+        await this.finish(taskId, "failed", err.reason);
         return;
       }
-      this.logger.warn(`Không đọc được input của Task ${taskId}: ${String(err)}`);
-      await this.finish(taskId, 'failed', 'INPUT_FETCH_ERROR');
+      this.logger.warn(
+        `Không đọc được input của Task ${taskId}: ${String(err)}`,
+      );
+      await this.finish(taskId, "failed", "INPUT_FETCH_ERROR");
       return;
     }
 
@@ -271,14 +348,28 @@ export class TaskWorkerService implements OnModuleInit, OnModuleDestroy {
     for (const m of config.params ?? []) {
       let v = params[m.paramKey];
       // Chuỗi rỗng (vd. prompt để trống) hoặc thiếu khóa thì dùng giá trị mặc định nếu có.
-      if ((v === undefined || v === '') && m.fallback !== undefined) v = m.fallback;
-      if (typeof v !== 'string' && typeof v !== 'number' && typeof v !== 'boolean') {
-        this.logger.error(`Task ${taskId}: thiếu hoặc sai tham số "${m.paramKey}" trong tasks.params`);
-        await this.finish(taskId, 'failed', 'INTERNAL_ERROR');
+      if ((v === undefined || v === "") && m.fallback !== undefined)
+        v = m.fallback;
+      if (
+        typeof v !== "string" &&
+        typeof v !== "number" &&
+        typeof v !== "boolean"
+      ) {
+        this.logger.error(
+          `Task ${taskId}: thiếu hoặc sai tham số "${m.paramKey}" trong tasks.params`,
+        );
+        await this.finish(taskId, "failed", "INTERNAL_ERROR");
         return;
       }
-      const value = m.scale !== undefined && typeof v === 'number' ? String(Number((v * m.scale).toFixed(4))) : String(v);
-      paramNodes.push({ nodeId: m.nodeId, fieldName: m.fieldName, fieldValue: value });
+      const value =
+        m.scale !== undefined && typeof v === "number"
+          ? String(Number((v * m.scale).toFixed(4)))
+          : String(v);
+      paramNodes.push({
+        nodeId: m.nodeId,
+        fieldName: m.fieldName,
+        fieldValue: value,
+      });
     }
 
     // (c) upload
@@ -286,16 +377,30 @@ export class TaskWorkerService implements OnModuleInit, OnModuleDestroy {
     try {
       for (const m of config.inputs) {
         const bytes = inputs[m.inputKey];
-        const name = await this.rh.uploadFile(bytes, `${taskId}-${m.inputKey}`, this.timeoutSignal(signal));
-        this.logger.log(`Task ${taskId}: đã upload ${m.inputKey} (${bytes.length} byte) -> ${name}`);
-        nodeInfo.push({ nodeId: m.nodeId, fieldName: m.fieldName, fieldValue: name });
+        const name = await this.rh.uploadFile(
+          bytes,
+          `${taskId}-${m.inputKey}`,
+          this.timeoutSignal(signal, RH_UPLOAD_TIMEOUT_MS),
+        );
+        this.logger.log(
+          `Task ${taskId}: đã upload ${m.inputKey} (${bytes.length} byte) -> ${name}`,
+        );
+        nodeInfo.push({
+          nodeId: m.nodeId,
+          fieldName: m.fieldName,
+          fieldValue: name,
+        });
       }
       nodeInfo.push(...paramNodes, ...(config.fixedNodes ?? []));
     } catch (err) {
       if (signal.aborted) return;
-      this.logger.warn(`Upload RunningHub lỗi cho Task ${taskId}: ${String(err)}`);
-      const budget = err instanceof RunningHubError && this.isBudgetError(err.message);
-      await this.finish(taskId, 'failed', budget ? 'RH_BUDGET' : 'RH_ERROR');
+      console.log(RH_UPLOAD_TIMEOUT_MS);
+      this.logger.warn(
+        `Upload RunningHub lỗi cho Task ${taskId}: ${String(err)}`,
+      );
+      const budget =
+        err instanceof RunningHubError && this.isBudgetError(err.message);
+      await this.finish(taskId, "failed", budget ? "RH_BUDGET" : "RH_ERROR");
       return;
     }
 
@@ -305,20 +410,28 @@ export class TaskWorkerService implements OnModuleInit, OnModuleDestroy {
     this.logger.log(
       `Task ${taskId}: gửi ${this.pipelines.getRunMode(config)} (máy ${instanceType}) ${workflowId} với ${nodeInfo.length} node (${nodeInfo
         .map((n) => `${n.nodeId}/${n.fieldName}`)
-        .join(', ')})`,
+        .join(", ")})`,
     );
     let rhId: string;
     try {
-      rhId = await this.submitWithRetry(workflowId, nodeInfo, signal, this.pipelines.getRunMode(config), instanceType);
+      rhId = await this.submitWithRetry(
+        workflowId,
+        nodeInfo,
+        signal,
+        this.pipelines.getRunMode(config),
+        instanceType,
+      );
     } catch (err) {
       if (signal.aborted) return;
       if (err instanceof SubmitFailure) {
-        this.logger.warn(`Task ${taskId}: submit thất bại (${err.reason}): ${err.detail}`);
+        this.logger.warn(
+          `Task ${taskId}: submit thất bại (${err.reason}): ${err.detail}`,
+        );
         await this.finish(
           taskId,
-          'failed',
+          "failed",
           err.reason,
-          err.reason === 'RH_SUBMIT_UNKNOWN' ? { orphanForMs: ORPHAN_MS } : {},
+          err.reason === "RH_SUBMIT_UNKNOWN" ? { orphanForMs: ORPHAN_MS } : {},
         );
         return;
       }
@@ -331,8 +444,17 @@ export class TaskWorkerService implements OnModuleInit, OnModuleDestroy {
     return this.poll(fresh, signal);
   }
 
-  private async loadInputs(row: TaskRow, config: PipelineConfig, signal?: AbortSignal): Promise<Record<string, Buffer>> {
-    if (config.prepare) return config.prepare({ row, storage: this.storage, signal: signal ?? new AbortController().signal });
+  private async loadInputs(
+    row: TaskRow,
+    config: PipelineConfig,
+    signal?: AbortSignal,
+  ): Promise<Record<string, Buffer>> {
+    if (config.prepare)
+      return config.prepare({
+        row,
+        storage: this.storage,
+        signal: signal ?? new AbortController().signal,
+      });
     const keys = (row.inputKeys ?? {}) as Record<string, string>;
     const out: Record<string, Buffer> = {};
     for (const m of config.inputs) {
@@ -346,20 +468,26 @@ export class TaskWorkerService implements OnModuleInit, OnModuleDestroy {
   /** Trả true khi đã qua cổng (deadline_at đã ghi). */
   private async passGate(row: TaskRow, signal: AbortSignal): Promise<boolean> {
     const taskId = row.id;
-    const max = envInt('RH_MAX_CONCURRENT', 2);
-    const retryMs = envInt('RH_GATE_RETRY_MS', 5000);
+    const max = envInt("RH_MAX_CONCURRENT", 2);
+    const retryMs = envInt("RH_GATE_RETRY_MS", 5000);
     for (;;) {
       if (signal.aborted) return false;
       const result = await this.gateMutex.run(async () => {
-        if ((await this.tasks.countGateOccupied()) >= max) return 'full' as const;
-        return (await this.tasks.setDeadlineIfNull(taskId, deadlineMs(row.pipeline))) ? ('passed' as const) : ('gone' as const);
+        if ((await this.tasks.countGateOccupied()) >= max)
+          return "full" as const;
+        return (await this.tasks.setDeadlineIfNull(
+          taskId,
+          deadlineMs(row.pipeline),
+        ))
+          ? ("passed" as const)
+          : ("gone" as const);
       });
-      if (result === 'passed') return true;
-      if (result === 'gone') return false;
+      if (result === "passed") return true;
+      if (result === "gone") return false;
       const cur = await this.tasks.getWorkerRow(taskId);
-      if (!cur || cur.status !== 'running') return false;
+      if (!cur || cur.status !== "running") return false;
       if (cur.gateDeadline && cur.gateDeadline.getTime() <= Date.now()) {
-        await this.finish(taskId, 'timed_out', 'RH_GATE_TIMEOUT');
+        await this.finish(taskId, "timed_out", "RH_GATE_TIMEOUT");
         return false;
       }
       await sleep(retryMs, signal);
@@ -370,61 +498,90 @@ export class TaskWorkerService implements OnModuleInit, OnModuleDestroy {
     workflowId: string,
     nodeInfo: RunningHubNodeInfo[],
     signal: AbortSignal,
-    mode?: 'ai-app' | 'workflow',
+    mode?: "ai-app" | "workflow",
     instanceType?: RunningHubInstanceType,
   ): Promise<string> {
     for (let attempt = 1; attempt <= 2; attempt++) {
       try {
-        return await this.rh.submit(workflowId, nodeInfo, this.timeoutSignal(signal), mode, instanceType);
+        return await this.rh.submit(
+          workflowId,
+          nodeInfo,
+          this.timeoutSignal(signal),
+          mode,
+          instanceType,
+        );
       } catch (err) {
         if (err instanceof RunningHubNetworkError) {
-          this.logger.warn(`submit lần ${attempt}/2 lỗi mạng (requestSent=${err.requestSent}): ${err.message}`);
-          if (err.requestSent) throw new SubmitFailure('RH_SUBMIT_UNKNOWN', err.message);
-          if (attempt === 2) throw new SubmitFailure('RH_ERROR', err.message);
+          this.logger.warn(
+            `submit lần ${attempt}/2 lỗi mạng (requestSent=${err.requestSent}): ${err.message}`,
+          );
+          if (err.requestSent)
+            throw new SubmitFailure("RH_SUBMIT_UNKNOWN", err.message);
+          if (attempt === 2) throw new SubmitFailure("RH_ERROR", err.message);
           continue;
         }
         if (err instanceof RunningHubError) {
-          throw new SubmitFailure(this.isBudgetError(err.message) ? 'RH_BUDGET' : 'RH_ERROR', err.message);
+          throw new SubmitFailure(
+            this.isBudgetError(err.message) ? "RH_BUDGET" : "RH_ERROR",
+            err.message,
+          );
         }
         if (signal.aborted) throw err;
         // Timeout hoặc lỗi lạ: request có thể đã gửi.
-        throw new SubmitFailure('RH_SUBMIT_UNKNOWN', String(err));
+        throw new SubmitFailure("RH_SUBMIT_UNKNOWN", String(err));
       }
     }
-    throw new SubmitFailure('RH_ERROR');
+    throw new SubmitFailure("RH_ERROR");
   }
 
   /** Ghi chi phí thật; lỗi chỉ log cảnh báo, không làm hỏng Task. */
-  private async safeRecordCost(taskId: string, out: RunningHubOutputs): Promise<void> {
+  private async safeRecordCost(
+    taskId: string,
+    out: RunningHubOutputs,
+  ): Promise<void> {
     try {
-      await this.tasks.recordCost(taskId, { costUsd: out.costUsd, costSeconds: out.costSeconds });
+      await this.tasks.recordCost(taskId, {
+        costUsd: out.costUsd,
+        costSeconds: out.costSeconds,
+      });
     } catch (err) {
-      this.logger.warn(`Task ${taskId}: không ghi được chi phí GPU: ${String(err)}`);
+      this.logger.warn(
+        `Task ${taskId}: không ghi được chi phí GPU: ${String(err)}`,
+      );
     }
   }
 
   private async poll(initial: TaskRow, signal: AbortSignal): Promise<void> {
     const taskId = initial.id;
     const rhId = initial.runninghubTaskId as string;
-    const intervalMs = envInt('RH_POLL_INTERVAL_MS', 3000);
-    let lastStatus = '';
+    const intervalMs = envInt("RH_POLL_INTERVAL_MS", 3000);
+    let lastStatus = "";
     for (;;) {
       if (signal.aborted) return;
       const row = await this.tasks.getWorkerRow(taskId);
-      if (!row || row.status !== 'running') return;
+      if (!row || row.status !== "running") return;
       try {
         const out = await this.rh.outputs(rhId, this.timeoutSignal(signal));
         if (out.status !== lastStatus) {
           lastStatus = out.status;
-          this.logger.log(`Task ${taskId}: RunningHub ${rhId} trạng thái ${out.status}`);
+          this.logger.log(
+            `Task ${taskId}: RunningHub ${rhId} trạng thái ${out.status}`,
+          );
         }
-        if (out.status === 'SUCCESS' || out.status === 'FAILED') await this.safeRecordCost(taskId, out);
-        if (out.status === 'SUCCESS') {
+        if (out.status === "SUCCESS" || out.status === "FAILED")
+          await this.safeRecordCost(taskId, out);
+        if (out.status === "SUCCESS") {
           const gpuCoins = clampCoins(out.consumeMoney);
-          this.logger.log(`Task ${taskId}: RunningHub SUCCESS, tải kết quả từ ${out.fileUrl ?? '(thiếu fileUrl)'}`);
+          this.logger.log(
+            `Task ${taskId}: RunningHub SUCCESS, tải kết quả từ ${out.fileUrl ?? "(thiếu fileUrl)"}`,
+          );
           if (!out.fileUrl) {
-            this.logger.warn(`RunningHub SUCCESS nhưng thiếu fileUrl cho Task ${taskId}`);
-            await this.finish(taskId, 'failed', 'OUTPUT_UPLOAD_ERROR', { gpuCoins });
+            this.logger.warn(
+              `RunningHub SUCCESS nhưng thiếu fileUrl cho Task ${taskId}`,
+            );
+            await this.finish(taskId, "failed", "OUTPUT_UPLOAD_ERROR", {
+              gpuCoins,
+            });
             return;
           }
           try {
@@ -435,33 +592,52 @@ export class TaskWorkerService implements OnModuleInit, OnModuleDestroy {
               signal,
             );
             const after = await this.tasks.getWorkerRow(taskId);
-            if (after && after.status === 'running') {
-              this.logger.warn(`Ingestor không chuyển trạng thái Task ${taskId}`);
-              await this.finish(taskId, 'failed', 'OUTPUT_UPLOAD_ERROR', { gpuCoins });
+            if (after && after.status === "running") {
+              this.logger.warn(
+                `Ingestor không chuyển trạng thái Task ${taskId}`,
+              );
+              await this.finish(taskId, "failed", "OUTPUT_UPLOAD_ERROR", {
+                gpuCoins,
+              });
             }
           } catch (err) {
             if (signal.aborted) return;
             this.logger.warn(`Nhập kết quả Task ${taskId} lỗi: ${String(err)}`);
-            await this.finish(taskId, 'failed', 'OUTPUT_UPLOAD_ERROR', { gpuCoins });
+            await this.finish(taskId, "failed", "OUTPUT_UPLOAD_ERROR", {
+              gpuCoins,
+            });
           }
           return;
         }
-        if (out.status === 'FAILED') {
-          this.logger.warn(`Task ${taskId}: RunningHub báo FAILED: ${out.errorMessage ?? '(không có thông báo)'}`);
+        if (out.status === "FAILED") {
+          this.logger.warn(
+            `Task ${taskId}: RunningHub báo FAILED: ${out.errorMessage ?? "(không có thông báo)"}`,
+          );
           const gpuCoins = clampCoins(out.consumeMoney);
-          await this.finish(taskId, 'failed', mapRunningHubFailure(out.errorMessage), { gpuCoins });
+          await this.finish(
+            taskId,
+            "failed",
+            mapRunningHubFailure(out.errorMessage),
+            { gpuCoins },
+          );
           return;
         }
       } catch (err) {
         if (signal.aborted) return;
         if (err instanceof RunningHubError) {
-          this.logger.warn(`Task ${taskId}: RunningHub ${rhId} lỗi khi truy vấn: ${err.message}`);
+          this.logger.warn(
+            `Task ${taskId}: RunningHub ${rhId} lỗi khi truy vấn: ${err.message}`,
+          );
           // Không biết job còn chạy hay không: giữ slot cổng như RH_TIMEOUT / RH_SUBMIT_UNKNOWN.
           if (this.isBudgetError(err.message)) {
-            await this.finish(taskId, 'failed', 'RH_BUDGET', { orphanForMs: ORPHAN_MS });
+            await this.finish(taskId, "failed", "RH_BUDGET", {
+              orphanForMs: ORPHAN_MS,
+            });
             return;
           }
-          await this.finish(taskId, 'failed', 'RH_ERROR', { orphanForMs: ORPHAN_MS });
+          await this.finish(taskId, "failed", "RH_ERROR", {
+            orphanForMs: ORPHAN_MS,
+          });
           return;
         }
         // Lỗi mạng/timeout khi poll là tạm thời; thử lại tới deadline_at.
@@ -474,8 +650,8 @@ export class TaskWorkerService implements OnModuleInit, OnModuleDestroy {
 
 class SubmitFailure extends Error {
   constructor(
-    readonly reason: 'RH_ERROR' | 'RH_SUBMIT_UNKNOWN' | 'RH_BUDGET',
-    readonly detail: string = '',
+    readonly reason: "RH_ERROR" | "RH_SUBMIT_UNKNOWN" | "RH_BUDGET",
+    readonly detail: string = "",
   ) {
     super(reason);
   }

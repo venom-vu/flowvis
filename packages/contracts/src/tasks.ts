@@ -12,7 +12,7 @@ export function motionPrice(seconds: number): number {
 /** Số giây Trim tối thiểu của Motion Control. */
 export const MOTION_MIN_TRIM_SECONDS = 3;
 
-export const TASK_PIPELINES = ['face_swap', 'body_retouch', 'motion_control', 'outfit_change', 'person_replace'] as const;
+export const TASK_PIPELINES = ['face_swap', 'body_retouch', 'motion_control', 'outfit_change', 'person_replace', 'motion_control_v2'] as const;
 export type TaskPipeline = (typeof TASK_PIPELINES)[number];
 export const TaskPipelineSchema = z.enum(TASK_PIPELINES);
 
@@ -303,10 +303,10 @@ export const MotionCreateRequestSchema = z
   .strict();
 export type MotionCreateRequest = z.input<typeof MotionCreateRequestSchema>;
 /** Task Motion kèm `price` (bằng `creditCost`, = `motionPrice(số giây)`). */
-export const MotionCreateResponseSchema = TaskBaseSchema.extend({
-  pipeline: z.literal('motion_control'),
-  price: z.number().int().positive(),
-}).superRefine((t, ctx) => {
+function refineMotionTask(
+  t: { price: number; creditCost: number } & Parameters<typeof refineTask>[0],
+  ctx: z.RefinementCtx,
+): void {
   refineTask(t, ctx);
   if (t.price !== t.creditCost) {
     ctx.addIssue({
@@ -322,8 +322,28 @@ export const MotionCreateResponseSchema = TaskBaseSchema.extend({
       message: 'price Motion phải là bội của giá mỗi giây',
     });
   }
-});
+}
+export const MotionCreateResponseSchema = TaskBaseSchema.extend({
+  pipeline: z.literal('motion_control'),
+  price: z.number().int().positive(),
+}).superRefine(refineMotionTask);
 export type MotionCreateResponse = z.infer<typeof MotionCreateResponseSchema>;
+
+/** POST /tasks/motion-v2 — Motion Control v2: chỉ ảnh nhân vật + đoạn video đã cắt (không khung hình/prompt); giá theo giây như v1. */
+export const MotionV2CreateRequestSchema = z
+  .object({
+    characterKey: ConfirmedUploadKeySchema,
+    videoKey: ConfirmedUploadKeySchema,
+    trimStart: TrimSecondSchema('Điểm bắt đầu cắt'),
+    trimEnd: TrimSecondSchema('Điểm kết thúc cắt'),
+  })
+  .strict();
+export type MotionV2CreateRequest = z.input<typeof MotionV2CreateRequestSchema>;
+export const MotionV2CreateResponseSchema = TaskBaseSchema.extend({
+  pipeline: z.literal('motion_control_v2'),
+  price: z.number().int().positive(),
+}).superRefine(refineMotionTask);
+export type MotionV2CreateResponse = z.infer<typeof MotionV2CreateResponseSchema>;
 
 /** `details.reason` của VALIDATION_FAILED cho video/Trim. */
 export const VALIDATION_REASONS = [

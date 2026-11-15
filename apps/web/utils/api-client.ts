@@ -58,6 +58,8 @@ import {
   MeResponseSchema,
   MotionCreateRequestSchema,
   MotionCreateResponseSchema,
+  MotionV2CreateRequestSchema,
+  MotionV2CreateResponseSchema,
   PricingConfigResponseSchema,
   ShareInfoResponseSchema,
   TaskIdParamsSchema,
@@ -133,6 +135,8 @@ import {
   type MeResponse,
   type MotionCreateRequest,
   type MotionCreateResponse,
+  type MotionV2CreateRequest,
+  type MotionV2CreateResponse,
   type PricingConfigResponse,
   type ReasonCode,
   type ShareInfoResponse,
@@ -178,6 +182,8 @@ export {
   motionPrice,
   MotionCreateRequestSchema,
   MotionCreateResponseSchema,
+  MotionV2CreateRequestSchema,
+  MotionV2CreateResponseSchema,
   ShareInfoResponseSchema,
   type AdminAdjustRequest,
   type AdminAdjustResponse,
@@ -208,6 +214,8 @@ export {
   type AdminTopupReturnToPendingResponse,
   type MotionCreateRequest,
   type MotionCreateResponse,
+  type MotionV2CreateRequest,
+  type MotionV2CreateResponse,
   type ShareInfoResponse,
   type BodyRetouchCreateRequest,
   type BodyRetouchCreateResponse,
@@ -775,6 +783,23 @@ export function createMotionApiClient(options: MotionApiClientOptions = {}) {
           signal: options?.signal,
         },
         (payload) => MotionCreateResponseSchema.parse(payload),
+      );
+    },
+
+    async createMotionControlV2Task(
+      rawRequest: MotionV2CreateRequest,
+      options?: { signal?: AbortSignal },
+    ): Promise<MotionV2CreateResponse> {
+      const data = MotionV2CreateRequestSchema.parse(rawRequest);
+      return requestLive(
+        '/tasks/motion-v2',
+        {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(data),
+          signal: options?.signal,
+        },
+        (payload) => MotionV2CreateResponseSchema.parse(payload),
       );
     },
 

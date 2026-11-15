@@ -111,7 +111,7 @@ export class AdminStatsService {
       // Biên gộp: chỉ khi có chi phí thật để tính.
       if (r.ok_cost_n === 0) continue;
       const isMotion =
-        pipeline === "motion_control";
+        pipeline === "motion_control" || pipeline === "motion_control_v2";
       let unitUsd: number;
       let unitCredits: number;
       if (isMotion) {

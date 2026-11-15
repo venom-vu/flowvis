@@ -33,6 +33,8 @@ export function useMotionControl() {
     usePricingConfig();
   const { client } = useApiClient();
 
+  /** v1: có khung hình + prompt; v2: chỉ ảnh nhân vật + đoạn video. */
+  const variant = ref<'v1' | 'v2'>('v1');
   const characterKey = ref<string | null>(null);
   const videoKey = ref<string | null>(null);
   const trimStart = ref<number>(0);
@@ -162,14 +164,20 @@ export function useMotionControl() {
     isSubmitting.value = true;
     submitErrorVi.value = null;
     try {
-      const task = await client.createMotionControlTask({
+      const base = {
         characterKey: characterKey.value!,
         videoKey: videoKey.value!,
         trimStart: trimStart.value,
         trimEnd: trimEnd.value,
-        aspectRatio: aspectRatio.value,
-        prompt: prompt.value.trim(),
-      });
+      };
+      const task =
+        variant.value === 'v2'
+          ? await client.createMotionControlV2Task(base)
+          : await client.createMotionControlTask({
+              ...base,
+              aspectRatio: aspectRatio.value,
+              prompt: prompt.value.trim(),
+            });
       activeTask.value = task;
       refreshAll().catch(() => {});
       return task;
@@ -204,6 +212,7 @@ export function useMotionControl() {
     currentTier,
     refreshAll,
     isAuthenticated,
+    variant,
     characterKey,
     videoKey,
     trimStart,

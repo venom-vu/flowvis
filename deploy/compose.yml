@@ -13,7 +13,11 @@ services:
     volumes:
       - postgres_data:/var/lib/postgresql/data
     healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U $${POSTGRES_USER:-motion_user} -d $${POSTGRES_DB:-flowvis}"]
+      test:
+        [
+          "CMD-SHELL",
+          "pg_isready -U $${POSTGRES_USER:-motion_user} -d $${POSTGRES_DB:-flowvis}",
+        ]
       interval: 5s
       timeout: 5s
       retries: 10
@@ -64,12 +68,13 @@ services:
       RUNNINGHUB_WORKFLOW_OUTFIT_CHANGE: ${RUNNINGHUB_WORKFLOW_OUTFIT_CHANGE:-}
       RUNNINGHUB_INSTANCE_OUTFIT_CHANGE: ${RUNNINGHUB_INSTANCE_OUTFIT_CHANGE:-default}
       RUNNINGHUB_WORKFLOW_PERSON_REPLACE: ${RUNNINGHUB_WORKFLOW_PERSON_REPLACE:-}
-      RUNNINGHUB_MODE_PERSON_REPLACE: ${RUNNINGHUB_MODE_PERSON_REPLACE:-ai-app}
       RUNNINGHUB_INSTANCE_PERSON_REPLACE: ${RUNNINGHUB_INSTANCE_PERSON_REPLACE:-default}
       RUNNINGHUB_WORKFLOW_BODY_RESHAPE: ${RUNNINGHUB_WORKFLOW_BODY_RESHAPE:-}
       RUNNINGHUB_INSTANCE_BODY_RETOUCH: ${RUNNINGHUB_INSTANCE_BODY_RETOUCH:-default}
       RUNNINGHUB_WORKFLOW_MOTION: ${RUNNINGHUB_WORKFLOW_MOTION:-}
       RUNNINGHUB_INSTANCE_MOTION_CONTROL: ${RUNNINGHUB_INSTANCE_MOTION_CONTROL:-default}
+      RUNNINGHUB_WORKFLOW_MOTION_V2: ${RUNNINGHUB_WORKFLOW_MOTION_V2:-}
+      RUNNINGHUB_INSTANCE_MOTION_CONTROL_V2: ${RUNNINGHUB_INSTANCE_MOTION_CONTROL_V2:-default}
     ports:
       - "${PORT:-3001}:${PORT:-3001}"
     depends_on:
@@ -78,7 +83,13 @@ services:
       redis-7:
         condition: service_healthy
     healthcheck:
-      test: ["CMD", "node", "-e", "fetch('http://127.0.0.1:' + (process.env.PORT || 3001) + '/health').then(r => r.json()).then(b => process.exit(b.status === 'ok' ? 0 : 1)).catch(() => process.exit(1))"]
+      test:
+        [
+          "CMD",
+          "node",
+          "-e",
+          "fetch('http://127.0.0.1:' + (process.env.PORT || 3001) + '/health').then(r => r.json()).then(b => process.exit(b.status === 'ok' ? 0 : 1)).catch(() => process.exit(1))",
+        ]
       interval: 10s
       timeout: 5s
       retries: 5
@@ -109,12 +120,13 @@ services:
       RUNNINGHUB_WORKFLOW_OUTFIT_CHANGE: ${RUNNINGHUB_WORKFLOW_OUTFIT_CHANGE:-}
       RUNNINGHUB_INSTANCE_OUTFIT_CHANGE: ${RUNNINGHUB_INSTANCE_OUTFIT_CHANGE:-default}
       RUNNINGHUB_WORKFLOW_PERSON_REPLACE: ${RUNNINGHUB_WORKFLOW_PERSON_REPLACE:-}
-      RUNNINGHUB_MODE_PERSON_REPLACE: ${RUNNINGHUB_MODE_PERSON_REPLACE:-ai-app}
       RUNNINGHUB_INSTANCE_PERSON_REPLACE: ${RUNNINGHUB_INSTANCE_PERSON_REPLACE:-default}
       RUNNINGHUB_WORKFLOW_BODY_RESHAPE: ${RUNNINGHUB_WORKFLOW_BODY_RESHAPE:-}
       RUNNINGHUB_INSTANCE_BODY_RETOUCH: ${RUNNINGHUB_INSTANCE_BODY_RETOUCH:-default}
       RUNNINGHUB_WORKFLOW_MOTION: ${RUNNINGHUB_WORKFLOW_MOTION:-}
       RUNNINGHUB_INSTANCE_MOTION_CONTROL: ${RUNNINGHUB_INSTANCE_MOTION_CONTROL:-default}
+      RUNNINGHUB_WORKFLOW_MOTION_V2: ${RUNNINGHUB_WORKFLOW_MOTION_V2:-}
+      RUNNINGHUB_INSTANCE_MOTION_CONTROL_V2: ${RUNNINGHUB_INSTANCE_MOTION_CONTROL_V2:-default}
     depends_on:
       postgres-16:
         condition: service_healthy

@@ -18,7 +18,7 @@ export const FEATURE_CATEGORIES: readonly FeatureCategoryOption[] = [
   { id: "video", labelVi: "Chuyển động video AI", icon: "lucide:video" },
 ] as const;
 
-export type FeaturePipelineId = "face-swap" | "outfit-change" | "person-replace" | "body-retouch" | "motion-control";
+export type FeaturePipelineId = "face-swap" | "outfit-change" | "person-replace" | "body-retouch" | "motion-control" | "motion-control-v2";
 
 export interface AiFeatureTool {
   id: FeaturePipelineId;
@@ -201,6 +201,28 @@ export function buildAiFeatureCatalog(
       category: "video",
       categoryLabelVi: "Chuyển động video AI",
       badgeVi: "Motion GPU",
+      icon: "lucide:clapperboard",
+      billingMode: "per_second",
+      unitCredits: motionControlCreditsPerSecond,
+      priceBadgeVi: `${formatNumberVi(motionControlCreditsPerSecond)} credit / giây`,
+      tierCapSeconds: maxVideoSeconds,
+      tierCapLabelVi: `Tối đa ${formatNumberVi(maxVideoSeconds)} giây (Hạng ${activeTierConfig.tier})`,
+      beforeLabelVi: "Ảnh nhân vật + Video mẫu",
+      afterLabelVi: "Video chuyển động đồng bộ",
+      accentGradient: "from-violet-600/35 via-indigo-950 to-cyan-500/30",
+      inputRequirementVi: "1 ảnh nhân vật rõ dáng + 1 video chuyển động mẫu",
+      outputFormatVi: "Video MP4 H.264 lưu trữ trên Cloudflare R2",
+    },
+    {
+      id: "motion-control-v2",
+      slug: "motion-control-v2",
+      titleVi: "Điều Khiển Chuyển Động Video v2",
+      subtitleVi: "Chuyển hóa ảnh tĩnh thành video chuyển động theo mẫu",
+      descriptionVi:
+        "Phiên bản v2: ánh xạ chuyển động từ video mẫu sang ảnh nhân vật tĩnh, cắt thời lượng theo giây và tính phí theo độ dài.",
+      category: "video",
+      categoryLabelVi: "Chuyển động video AI",
+      badgeVi: "Motion v2",
       icon: "lucide:clapperboard",
       billingMode: "per_second",
       unitCredits: motionControlCreditsPerSecond,

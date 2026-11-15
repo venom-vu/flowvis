@@ -172,7 +172,17 @@ const isAuthenticated = computed<boolean>(() => {
   return typeof props.userBalance === 'number';
 });
 
-const isMotion = computed<boolean>(() => props.feature?.id === 'motion-control');
+const isMotion = computed<boolean>(
+  () => props.feature?.id === 'motion-control' || props.feature?.id === 'motion-control-v2',
+);
+const isMotionV2 = computed<boolean>(() => props.feature?.id === 'motion-control-v2');
+watch(
+  isMotionV2,
+  (v2) => {
+    motion.variant.value = v2 ? 'v2' : 'v1';
+  },
+  { immediate: true, flush: 'sync' },
+);
 
 const estimatedCredits = computed<number>(() => {
   if (!props.feature) {
@@ -434,8 +444,8 @@ onBeforeUnmount(() => {
 
         <div class="flex items-center gap-2">
           <NuxtLink
-            v-if="feature.id === 'face-swap' || feature.id === 'outfit-change' || feature.id === 'person-replace' || feature.id === 'body-retouch' || feature.id === 'motion-control'"
-            :to="feature.id === 'body-retouch' ? '/body-retouch' : feature.id === 'motion-control' ? '/motion-control' : feature.id === 'outfit-change' ? '/outfit-change' : feature.id === 'person-replace' ? '/person-replace' : '/face-swap'"
+            v-if="feature.id === 'face-swap' || feature.id === 'outfit-change' || feature.id === 'person-replace' || feature.id === 'body-retouch' || isMotion"
+            :to="feature.id === 'body-retouch' ? '/body-retouch' : feature.id === 'motion-control' ? '/motion-control' : feature.id === 'motion-control-v2' ? '/motion-control-v2' : feature.id === 'outfit-change' ? '/outfit-change' : feature.id === 'person-replace' ? '/person-replace' : '/face-swap'"
             data-testid="workspace-open-standalone-link"
             class="touch-target inline-flex min-h-[48px] items-center gap-1.5 rounded-xl border border-cyber-border bg-cyber-bg px-3 py-2 text-xs font-semibold text-cyber-muted transition hover:border-cyber-cyan hover:text-cyber-cyan"
             @click="emit('close')"
@@ -617,7 +627,7 @@ onBeforeUnmount(() => {
             </div>
 
             <ImageUploader
-              v-if="feature.id === 'motion-control'"
+              v-if="isMotion"
               :key="`motion-char-${motionKey}`"
               v-model="motionCharacterKey"
               id-prefix="workspace-motion-character"
@@ -729,6 +739,7 @@ onBeforeUnmount(() => {
               @change="onMotionTrimChange"
             />
             <MotionOptions
+              v-if="!isMotionV2"
               v-model:aspect-ratio="motionAspectRatio"
               v-model:prompt="motionPrompt"
               id-prefix="workspace-motion"

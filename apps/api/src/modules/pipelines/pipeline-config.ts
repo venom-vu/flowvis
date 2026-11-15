@@ -121,6 +121,44 @@ export const PIPELINE_CONFIGS: Readonly<Record<string, PipelineConfig>> = {
     deadlineMs: 360_000,
     prepare: (ctx) => videoTrim.prepare(ctx),
   },
+  motion_control_v2: {
+    pipeline: 'motion_control_v2',
+    workflowEnvVar: 'RUNNINGHUB_WORKFLOW_MOTION_V2',
+    instanceEnvVar: 'RUNNINGHUB_INSTANCE_MOTION_CONTROL_V2',
+    runMode: 'ai-app',
+    // Không requiredAtStartup: môi trường chưa cấu hình vẫn khởi động; adapter unconfigured ném RH_ERROR.
+    // AI App Motion Control v2 (2083697864529678338): 299 = ảnh nhân vật, 275 = video chuyển động (đã cắt).
+    inputs: [
+      { inputKey: 'characterKey', nodeId: '299', fieldName: 'image' },
+      { inputKey: 'videoKey', nodeId: '275', fieldName: 'video' },
+    ],
+    // Node cố định theo curl mẫu: 264 = 30, 300 = 1200, 316/317 = rộng/cao 576x1024, 293 = select 1,
+    // 265 = 1.0000000000000002, 266 = 0.3500000000000001, 271 = false, 356 = prompt chất lượng, 357 = ghi chú mặc định của workflow.
+    fixedNodes: [
+      { nodeId: '264', fieldName: 'value', fieldValue: '30' },
+      { nodeId: '300', fieldName: 'value', fieldValue: '1200' },
+      { nodeId: '316', fieldName: 'value', fieldValue: '576' },
+      { nodeId: '317', fieldName: 'value', fieldValue: '1024' },
+      { nodeId: '293', fieldName: 'select', fieldValue: '1' },
+      { nodeId: '265', fieldName: 'value', fieldValue: '1.0000000000000002' },
+      { nodeId: '266', fieldName: 'value', fieldValue: '0.3500000000000001' },
+      { nodeId: '271', fieldName: 'value', fieldValue: 'false' },
+      {
+        nodeId: '356',
+        fieldName: 'text',
+        fieldValue:
+          '完整的手指，手指清晰，最佳质量, photorealistic, 8k, ultra realistic skin, soft smooth delicate flawless skin, natural human skin texture, visible subtle skin pores, realistic subsurface',
+      },
+      {
+        nodeId: '357',
+        fieldName: 'text',
+        fieldValue:
+          '提示词优化说明：\nanimate迁移光脚做踮脚动作容易出现生成鞋跟，可以通过增加提示词”女人光着脚跳舞“来进行限制。\n参考视频中人物有美甲时容易导致生成视频的人物手指过长，可以通过增加提示词”戴着美甲的女人跳舞“来进行调整。\n防止裸舞时转身时出现红屁股：光屁股的裸体女人跳舞。\n更多提示词示范：女人拿着扇子跳舞/女人坐在凳子上跳舞等等（前提是参考图有对应物品，不然AI自动想象）\n\nQQ：160783994\n\n视频超分（视频分辨率放大两倍大概需要消耗20至35币）\nhttps://www.runninghub.ai/zh-cn/ai-detail/2089116231571095554\n动作迁移非会员版\nhttps://www.runninghub.ai/zh-cn/ai-detail/2111854957347942402',
+      },
+    ],
+    deadlineMs: 360_000,
+    prepare: (ctx) => videoTrim.prepare(ctx),
+  },
 };
 
 /** Ánh xạ lỗi FAILED của RunningHub theo tiền tố (không phân biệt hoa thường). */

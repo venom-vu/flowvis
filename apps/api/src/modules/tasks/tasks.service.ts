@@ -21,6 +21,8 @@ import {
   type OutfitChangeCreateRequest,
   type PersonReplaceCreateRequest,
   type MotionCreateRequest,
+  type MotionV2CreateRequest,
+  type MotionV2CreateResponse,
   type ValidationReason,
   MOTION_MIN_TRIM_SECONDS,
   MOTION_ASPECT_RATIO_DEFAULT,
@@ -95,6 +97,7 @@ const INPUT_DISPLAY_ORDER: Readonly<Record<string, readonly string[]>> = {
   person_replace: ['sceneKey', 'personKey'],
   body_retouch: ['imageKey'],
   motion_control: ['characterKey', 'videoKey'],
+  motion_control_v2: ['characterKey', 'videoKey'],
 };
 
 /** Chỉ lộ các tham số người dùng chọn; không lộ giá, kích thước nội bộ. */
@@ -691,9 +694,30 @@ export class TasksService {
   }
 
   async createMotionControl(userId: string, req: MotionCreateRequest): Promise<MotionCreateResponse> {
-    const { characterKey, videoKey, trimStart, trimEnd } = req;
     const frame = getMotionAspectRatio(req.aspectRatio ?? MOTION_ASPECT_RATIO_DEFAULT);
     const prompt = (req.prompt ?? '').trim();
+    const task = await this.createMotionTask(userId, 'motion_control', req, {
+      aspectRatio: frame.id,
+      width: frame.width,
+      height: frame.height,
+      prompt,
+    });
+    return task as MotionCreateResponse;
+  }
+
+  /** Motion Control v2: cùng cách tính giá/Trim, không có khung hình và prompt. */
+  async createMotionControlV2(userId: string, req: MotionV2CreateRequest): Promise<MotionV2CreateResponse> {
+    const task = await this.createMotionTask(userId, 'motion_control_v2', req, {});
+    return task as MotionV2CreateResponse;
+  }
+
+  private async createMotionTask(
+    userId: string,
+    pipeline: 'motion_control' | 'motion_control_v2',
+    req: { characterKey: string; videoKey: string; trimStart: number; trimEnd: number },
+    extraParams: Record<string, unknown>,
+  ) {
+    const { characterKey, videoKey, trimStart, trimEnd } = req;
     if (!Number.isInteger(trimStart) || !Number.isInteger(trimEnd)) {
       throw this.trimError('TRIM_NOT_WHOLE_SECOND');
     }
@@ -713,10 +737,10 @@ export class TasksService {
     if (seconds < MOTION_MIN_TRIM_SECONDS) throw this.trimError('TRIM_TOO_SHORT');
     const price = motionPrice(seconds);
     const task = await this.createPipelineTask(userId, {
-      pipeline: 'motion_control',
+      pipeline,
       amount: price,
       inputKeys: { characterKey, videoKey },
-      params: { trimStart, trimEnd, seconds, price, aspectRatio: frame.id, width: frame.width, height: frame.height, prompt },
+      params: { trimStart, trimEnd, seconds, price, ...extraParams },
       keysVerified: true,
       postHold: (snapshot) => {
         // Cap theo Tier Snapshot do ví đọc trong transaction; ném lỗi để rollback cả HOLD.
@@ -729,13 +753,13 @@ export class TasksService {
         }
       },
     });
-    return { ...task, pipeline: 'motion_control', price } as MotionCreateResponse;
+    return { ...task, pipeline, price };
   }
 
   private async createPipelineTask(
     userId: string,
     spec: {
-      pipeline: 'face_swap' | 'outfit_change' | 'person_replace' | 'body_retouch' | 'motion_control';
+      pipeline: 'face_swap' | 'outfit_change' | 'person_replace' | 'body_retouch' | 'motion_control' | 'motion_control_v2';
       amount: number;
       inputKeys: Record<string, string>;
       params: Record<string, unknown>;
