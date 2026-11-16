@@ -182,7 +182,7 @@ describe('@flowvis/web — Story 1.4 Nuxt 4 mobile-first & API client', () => {
 
     const proProfile = await liveOkClient.getMe();
     assert.equal(proProfile.tier, 'Pro');
-    assert.equal(proProfile.balance, 12050);
+    assert.equal(proProfile.balance, 11800);
     assert.equal(requestedHeaders[0].url, 'https://api.motion.ai.vn/me');
     assert.equal(requestedHeaders[0].auth, 'Bearer jwt_live_token_123');
 
@@ -246,13 +246,13 @@ describe('@flowvis/web — Story 1.4 Nuxt 4 mobile-first & API client', () => {
   it('AC5 & I/O Row 5: danh mục công cụ và tính phí lấy động từ GET /config/pricing theo từng Tier, không hardcode', () => {
     const pricing = MOCK_PRICING_CONFIG_RESPONSE;
 
-    assert.equal(getTierCapSeconds(pricing, 'FREE'), 5);
-    assert.equal(getTierCapSeconds(pricing, 'Starter'), 10);
-    assert.equal(getTierCapSeconds(pricing, 'Pro'), 15);
+    assert.equal(getTierCapSeconds(pricing, 'FREE'), 3);
+    assert.equal(getTierCapSeconds(pricing, 'Starter'), 20);
+    assert.equal(getTierCapSeconds(pricing, 'Pro'), 20);
     assert.equal(getTierCapSeconds(pricing, 'Creator'), 20);
 
     const freeCatalog = buildAiFeatureCatalog(pricing, 'FREE');
-    assert.equal(freeCatalog.length, 4);
+    assert.equal(freeCatalog.length, 6);
 
     const faceSwap = freeCatalog.find((f) => f.id === 'face-swap');
     const bodyRetouch = freeCatalog.find((f) => f.id === 'body-retouch');
@@ -270,15 +270,15 @@ describe('@flowvis/web — Story 1.4 Nuxt 4 mobile-first & API client', () => {
       motionControlFree.unitCredits,
       pricing.pipelines.motionControlCreditsPerSecond,
     );
-    assert.equal(motionControlFree.tierCapSeconds, 5);
+    assert.equal(motionControlFree.tierCapSeconds, 3);
     assert.equal(
-      calculateFeatureEstimatedCredits(motionControlFree, 4),
-      4 * pricing.pipelines.motionControlCreditsPerSecond,
+      calculateFeatureEstimatedCredits(motionControlFree, 2),
+      2 * pricing.pipelines.motionControlCreditsPerSecond,
     );
-    // Clamped ở trần 5 giây của FREE
+    // Clamped ở trần 3 giây của FREE
     assert.equal(
       calculateFeatureEstimatedCredits(motionControlFree, 12),
-      5 * pricing.pipelines.motionControlCreditsPerSecond,
+      3 * pricing.pipelines.motionControlCreditsPerSecond,
     );
 
     const creatorCatalog = buildAiFeatureCatalog(pricing, 'Creator');
@@ -291,6 +291,10 @@ describe('@flowvis/web — Story 1.4 Nuxt 4 mobile-first & API client', () => {
       calculateFeatureEstimatedCredits(motionControlCreator, 18),
       18 * pricing.pipelines.motionControlCreditsPerSecond,
     );
+    // Motion v2 giới hạn 10 giây theo chức năng, kể cả gói Creator
+    const motionV2Creator = creatorCatalog.find((f) => f.id === 'motion-control-v2');
+    assert.ok(motionV2Creator);
+    assert.equal(motionV2Creator.tierCapSeconds, 10);
 
     assert.equal(FEATURE_CATEGORIES.length, 3);
   });
@@ -518,7 +522,7 @@ describe('@flowvis/web — Story 1.4 Nuxt 4 mobile-first & API client', () => {
           'data-testid="app-bottom-nav"',
           '100 credit / lượt',
           '50 credit / giây',
-          'Tối đa 5 giây (Hạng FREE)',
+          'Tối đa 3 giây',
         ],
       },
       {

@@ -60,7 +60,7 @@ import {
  */
 export const DEFAULT_PRICING_CONFIG: PricingConfigResponse = {
   tierFloorCredits: 100,
-  trialGrantCredits: 500,
+  trialGrantCredits: 250,
   freeQueueTimeoutMinutes: 15,
   pipelines: {
     faceSwapCredits: 100,
@@ -75,7 +75,7 @@ export const DEFAULT_PRICING_CONFIG: PricingConfigResponse = {
       tier: 'FREE',
       packId: null,
       priceVnd: 0,
-      credits: 500,
+      credits: 250,
       maxVideoSeconds: 3,
       maxActiveTasks: 1,
       priority: 10,
@@ -143,14 +143,14 @@ export const MOCK_PRICING_CONFIG_RESPONSE: PricingConfigResponse =
   DEFAULT_PRICING_CONFIG;
 
 /**
- * Dữ liệu mock cho GET /me — Tài khoản dùng thử mới nhận 500 credit.
+ * Dữ liệu mock cho GET /me — Tài khoản dùng thử mới nhận 250 credit.
  */
 export const MOCK_ME_RESPONSE: MeResponse = {
   id: '00000000-0000-4000-8000-000000000001',
   email: 'creator@motion.ai.vn',
   role: 'user',
   tier: 'FREE',
-  balance: 500,
+  balance: 250,
   held: 0,
   tosVersion: TOS_VERSION,
 };
@@ -171,14 +171,14 @@ export const MOCK_ME_ZERO_BALANCE_RESPONSE: MeResponse = {
 /**
  * Dữ liệu mock cho GET /me — Tài khoản trả phí hạng Pro đang có tác vụ giữ credit.
  * Khớp chính xác bất biến AD-2 với MOCK_WALLET_LEDGER_ITEMS:
- * balance = SUM(amount) = 500 + 12000 - 250 + 0 - 100 + 100 + 50 - 250 = 12050, held = 250.
+ * balance = SUM(amount) = 250 + 12000 - 250 + 0 - 100 + 100 + 50 - 250 = 11800, held = 250.
  */
 export const MOCK_ME_PRO_RESPONSE: MeResponse = {
   id: '00000000-0000-4000-8000-000000000003',
   email: 'pro@motion.ai.vn',
   role: 'user',
   tier: 'Pro',
-  balance: 12_050,
+  balance: 11_800,
   held: 250,
   tosVersion: TOS_VERSION,
 };
@@ -277,11 +277,11 @@ export const MOCK_WALLET_LEDGER_ITEMS: LedgerEntry[] = [
     userId: '00000000-0000-4000-8000-000000000003',
     type: 'GRANT',
     labelVi: LEDGER_ENTRY_LABELS_VI.GRANT,
-    amount: 500,
+    amount: 250,
     taskId: null,
     topupId: null,
     pack: null,
-    note: 'Tặng 500 credit dùng thử khi đăng ký',
+    note: 'Tặng 250 credit dùng thử khi đăng ký',
     createdAt: '2026-11-01T09:00:00.000Z',
   },
 ];
@@ -311,7 +311,7 @@ export const MOCK_AUTH_GOOGLE_CALLBACK_RESPONSE: AuthGoogleCallbackResponse = {
   tokenType: 'Bearer',
   expiresIn: 900,
   isNewUser: true,
-  grantedCredits: 500,
+  grantedCredits: 250,
 };
 
 export const MOCK_AUTH_REFRESH_RESPONSE: AuthRefreshResponse = {

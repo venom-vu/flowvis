@@ -22,6 +22,9 @@ const DB_URL =
   'postgresql://motion_user:change_me_local_password@localhost:5432/flowvis?schema=public';
 const REDIS_URL = process.env.REDIS_URL || 'redis://localhost:6379';
 
+process.env.RUNNINGHUB_WORKFLOW_BODY_RESHAPE ??= 'wf-body';
+process.env.RUNNINGHUB_WORKFLOW_MOTION ??= 'wf-motion';
+
 function tcp(host, port) {
   return new Promise((resolve) => {
     const s = new net.Socket();
@@ -145,7 +148,7 @@ describe('Story 6.6: [BE] Thống kê vận hành và nhật ký Admin', () => {
   it('khoảng rỗng trả null/0', async () => {
     const r = await call(admin, '/admin/stats?from=2031-01-01T00:00:00.000Z&to=2031-01-02T00:00:00.000Z');
     const j = AdminStatsResponseSchema.parse(await r.json());
-    assert.equal(j.pipelines.length, 4);
+    assert.equal(j.pipelines.length, 6);
     for (const p of j.pipelines) {
       assert.deepEqual(Object.values(p.taskCounts), [0, 0, 0, 0, 0, 0]);
       assert.equal(p.successRate, null);

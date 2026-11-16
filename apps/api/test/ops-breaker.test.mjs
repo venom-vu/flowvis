@@ -30,6 +30,9 @@ const DB_URL =
   'postgresql://motion_user:change_me_local_password@localhost:5432/flowvis?schema=public';
 const REDIS_URL = process.env.REDIS_URL || 'redis://localhost:6379';
 
+process.env.RUNNINGHUB_WORKFLOW_BODY_RESHAPE ??= 'wf-body';
+process.env.RUNNINGHUB_WORKFLOW_MOTION ??= 'wf-motion';
+
 function tcp(host, port) {
   return new Promise((resolve) => {
     const s = new net.Socket();
@@ -324,14 +327,21 @@ describe('Story 6.2: [BE] Ngắt mạch và chặn tạo Task khi tạm dừng',
     const marked = Object.getOwnPropertyNames(proto).filter(
       (n) => n !== 'constructor' && typeof proto[n] === 'function' && reflector.get(CREATES_TASK_KEY, proto[n]),
     );
-    assert.deepEqual(marked.sort(), ['createBodyRetouch', 'createFaceSwap', 'createMotion']);
+    assert.deepEqual(marked.sort(), [
+      'createBodyRetouch',
+      'createFaceSwap',
+      'createMotion',
+      'createMotionV2',
+      'createOutfitChange',
+      'createPersonReplace',
+    ]);
     for (const n of marked) {
       const guards = Reflect.getMetadata('__guards__', proto[n]) ?? [];
       assert.ok(guards.includes(IntakeOpenGuard), `${n} thiếu IntakeOpenGuard`);
     }
     // mọi handler POST của TasksController có tên bắt đầu bằng create phải được đánh dấu
     for (const n of Object.getOwnPropertyNames(proto)) {
-      if (/^create(FaceSwap|BodyRetouch|Motion)/.test(n)) assert.ok(marked.includes(n), `${n} chưa đánh dấu @CreatesTask`);
+      if (/^create(FaceSwap|OutfitChange|PersonReplace|BodyRetouch|Motion)/.test(n)) assert.ok(marked.includes(n), `${n} chưa đánh dấu @CreatesTask`);
     }
   });
 });

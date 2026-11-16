@@ -267,7 +267,7 @@ describe('Smoke Motion Control FE-BE trên stack Compose (Story 5.9)', () => {
       const sample5 = makeVideo(path.join(tmp, 'sample5.mp4'), 6);
       const results = {
         10: makeVideo(path.join(tmp, 'r10.mp4'), 10),
-        5: makeVideo(path.join(tmp, 'r5.mp4'), 5),
+        3: makeVideo(path.join(tmp, 'r3.mp4'), 3),
         10.4: makeVideo(path.join(tmp, 'r104.mp4'), 10.4),
         10.6: makeVideo(path.join(tmp, 'r106.mp4'), 10.6),
       };
@@ -373,7 +373,7 @@ describe('Smoke Motion Control FE-BE trên stack Compose (Story 5.9)', () => {
 
         const admin = await login('admin');
         assert.equal((await me(admin)).role, 'admin');
-        // Mỗi IP chỉ nhận thưởng 500 credit cho 3 tài khoản/24 giờ (admin, bob, dave); các tài khoản còn lại lấy credit từ nạp tiền.
+        // Mỗi IP chỉ nhận thưởng 250 credit cho 3 tài khoản/24 giờ (admin, bob, dave); các tài khoản còn lại lấy credit từ nạp tiền.
         const bob = await login('bob');
         const dave = await login('dave');
 
@@ -434,44 +434,42 @@ describe('Smoke Motion Control FE-BE trên stack Compose (Story 5.9)', () => {
         }
 
         // 2. NO_POSE
-        assert.equal(await balance(bob), 500);
+        assert.equal(await balance(bob), 250);
         rh.mode = 'no_pose';
-        const t2 = await createMotion(bob, 0, 5, sample5);
+        const t2 = await createMotion(bob, 0, 3, sample5);
         const failed = await waitFor(bob, t2.id, (t) => t.status === 'failed', 'failed NO_POSE');
         assert.equal(failed.reasonCode, 'NO_POSE');
         assert.equal(
           getReasonCodeMessageVi('NO_POSE', 'motion_control'),
           'Không nhận diện được chuyển động cơ thể trong video mẫu',
         );
-        assert.equal(await balance(bob), 500, 'RELEASED 100%');
+        assert.equal(await balance(bob), 250, 'RELEASED 100%');
         assert.ok((await ledgerTypes(bob, t2.id)).includes('RELEASED'));
 
         // 3. Vượt Cap: Starter, trim 12 s
         const carol = await login('carol');
         await becomeTier(carol, admin, 'starter', 'MT-REF-2');
         const carolBal = await balance(carol);
-        const capRes = await createMotionRaw(carol, 0, 12);
+        const capRes = await createMotionRaw(carol, 0, 21);
         assert.equal(capRes.status, 400);
         const capBody = await capRes.json();
         assert.equal(capBody.details.reason, 'TRIM_EXCEEDS_CAP');
-        assert.equal(capBody.details.cap, 10);
+        assert.equal(capBody.details.cap, 20);
         assert.equal(await balance(carol), carolBal, 'số dư không đổi');
         const carolLedger = WalletLedgerResponseSchema.parse(await (await api(carol, 'GET', '/wallet/ledger?pageSize=50')).json());
         assert.ok(!carolLedger.items.some((i) => ['HOLD', 'RELEASED', 'CAPTURED'].includes(i.type)), 'không bút toán HOLD');
 
-        // 4. Ví FREE: 500 credit, hai video 5 s rồi video thứ ba
-        rh.resultVideo = results[5];
+        // 4. Ví FREE: 250 credit, một video 3 s rồi video thứ hai bị chặn vì hết credit
+        rh.resultVideo = results[3];
         rh.mode = 'success';
-        for (let i = 0; i < 2; i += 1) {
-          const t = await createMotion(dave, 0, 5, sample5);
-          assert.equal(t.price, 250);
-          await waitFor(dave, t.id, (x) => x.status === 'succeeded', `FREE thành công ${i + 1}`);
-        }
-        assert.equal(await balance(dave), 0);
-        const third = await createMotionRaw(dave, 0, 5, sample5);
-        assert.equal(third.status, 402);
-        assert.equal((await third.json()).code, 'INSUFFICIENT_CREDIT');
-        assert.equal(await balance(dave), 0, 'không HOLD thứ ba');
+        const free1 = await createMotion(dave, 0, 3, sample5);
+        assert.equal(free1.price, 150);
+        await waitFor(dave, free1.id, (x) => x.status === 'succeeded', 'FREE thành công');
+        assert.equal(await balance(dave), 100);
+        const second = await createMotionRaw(dave, 0, 3, sample5);
+        assert.equal(second.status, 402);
+        assert.equal((await second.json()).code, 'INSUFFICIENT_CREDIT');
+        assert.equal(await balance(dave), 100, 'không HOLD lần hai');
 
         // 5. Hai Task song song
         const erin = await login('erin');

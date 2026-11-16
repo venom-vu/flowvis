@@ -524,7 +524,7 @@ describe('@flowvis/contracts', () => {
       assert.equal(parsed.success, true);
 
       assert.equal(MOCK_PRICING_CONFIG_RESPONSE.tierFloorCredits, 100);
-      assert.equal(MOCK_PRICING_CONFIG_RESPONSE.trialGrantCredits, 500);
+      assert.equal(MOCK_PRICING_CONFIG_RESPONSE.trialGrantCredits, 250);
       assert.equal(
         MOCK_PRICING_CONFIG_RESPONSE.pipelines.faceSwapCredits,
         100,

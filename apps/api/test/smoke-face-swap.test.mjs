@@ -309,7 +309,7 @@ describe('Smoke Face Swap FE-BE trên stack Compose (Story 2.14)', () => {
 
         // 1. Thành công
         const alice = await login('alice');
-        assert.equal(await balance(alice), 500);
+        assert.equal(await balance(alice), 250);
         rh.mode = 'running';
         const t1 = await createTask(alice);
         assert.equal(t1.creditCost, 100);
@@ -353,13 +353,13 @@ describe('Smoke Face Swap FE-BE trên stack Compose (Story 2.14)', () => {
 
         // 3. NO_FACE
         const bob = await login('bob');
-        assert.equal(await balance(bob), 500);
+        assert.equal(await balance(bob), 250);
         rh.mode = 'no_face';
         const t2 = await createTask(bob);
         const failed = await waitFor(bob, t2.id, (t) => t.status === 'failed', 'failed NO_FACE');
         assert.equal(failed.reasonCode, 'NO_FACE');
         assert.equal(getReasonCodeMessageVi('NO_FACE'), 'Không nhận diện được khuôn mặt trong ảnh');
-        assert.equal(await balance(bob), 500, 'RELEASED 100%');
+        assert.equal(await balance(bob), 250, 'RELEASED 100%');
         assert.ok((await ledgerTypes(bob, t2.id)).includes('RELEASED'));
 
         // 4. Quá hạn (hạn chót ép 10 giây)
@@ -368,7 +368,7 @@ describe('Smoke Face Swap FE-BE trên stack Compose (Story 2.14)', () => {
         const t3 = await createTask(carol);
         const timedOut = await waitFor(carol, t3.id, (t) => t.status === 'timed_out', 'timed_out', 120_000);
         assert.equal(timedOut.reasonCode, 'RH_TIMEOUT');
-        assert.equal(await balance(carol), 500);
+        assert.equal(await balance(carol), 250);
         assert.ok((await ledgerTypes(carol, t3.id)).includes('RELEASED'));
         // Kết quả đến muộn: chuyển RH sang SUCCESS rồi chờ qua hơn một chu kỳ poll; không được tải ảnh hay đổi trạng thái.
         const fetchesBefore = rh.fileFetches;
@@ -377,7 +377,7 @@ describe('Smoke Face Swap FE-BE trên stack Compose (Story 2.14)', () => {
         assert.equal(rh.fileFetches, fetchesBefore, 'không được tải result.png sau khi timed_out');
         const after = await waitFor(carol, t3.id, () => true, 'sau kết quả muộn');
         assert.equal(after.status, 'timed_out');
-        assert.equal(await balance(carol), 500);
+        assert.equal(await balance(carol), 250);
         assert.ok(!(await ledgerTypes(carol, t3.id)).includes('CAPTURED'));
 
         // Payload gửi RunningHub: mỗi Task upload 2 ảnh và submit đúng workflow, đúng ánh xạ node

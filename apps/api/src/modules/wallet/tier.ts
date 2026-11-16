@@ -11,7 +11,7 @@ export const TIER_FLOOR_CREDITS = 100;
 /** Nguồn cấu hình giá/Cap/Priority duy nhất phía server (AD-10). */
 export const PRICING_CONFIG: PricingConfigResponse = {
   tierFloorCredits: 100,
-  trialGrantCredits: 500,
+  trialGrantCredits: 250,
   freeQueueTimeoutMinutes: 15,
   pipelines: {
     faceSwapCredits: 100,
@@ -22,7 +22,7 @@ export const PRICING_CONFIG: PricingConfigResponse = {
     motionControlMinSeconds: 3,
   },
   tiers: [
-    { tier: 'FREE', packId: null, priceVnd: 0, credits: 500, maxVideoSeconds: 3, maxActiveTasks: 1, priority: 10 },
+    { tier: 'FREE', packId: null, priceVnd: 0, credits: 250, maxVideoSeconds: 3, maxActiveTasks: 1, priority: 10 },
     { tier: 'Starter', packId: 'starter', priceVnd: 49_000, credits: 5_000, maxVideoSeconds: 20, maxActiveTasks: 2, priority: 3 },
     { tier: 'Pro', packId: 'pro', priceVnd: 99_000, credits: 12_000, maxVideoSeconds: 20, maxActiveTasks: 3, priority: 2 },
     { tier: 'Creator', packId: 'creator', priceVnd: 199_000, credits: 30_000, maxVideoSeconds: 20, maxActiveTasks: 5, priority: 1 },

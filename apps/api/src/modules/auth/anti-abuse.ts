@@ -1,7 +1,7 @@
 import crypto from 'node:crypto';
 
 /** Số credit tặng khi đăng ký hợp lệ (FR12). */
-export const SIGNUP_GRANT_AMOUNT = 500n;
+export const SIGNUP_GRANT_AMOUNT = 250n;
 /** Số tài khoản nhận thưởng tối đa trên mỗi IP trong cửa sổ thời gian. */
 export const SIGNUP_GRANT_MAX_PER_IP = 3;
 /** Cửa sổ đếm theo IP: 24 giờ. */

@@ -20,6 +20,9 @@ const DB_URL =
   'postgresql://motion_user:change_me_local_password@localhost:5432/flowvis?schema=public';
 const REDIS_URL = process.env.REDIS_URL || 'redis://localhost:6379';
 
+process.env.RUNNINGHUB_WORKFLOW_BODY_RESHAPE ??= 'wf-body';
+process.env.RUNNINGHUB_WORKFLOW_MOTION ??= 'wf-motion';
+
 Queue.prototype.add = async function (name, data, opts) { return { id: opts?.jobId }; };
 Queue.prototype.getJob = async function () { return null; };
 

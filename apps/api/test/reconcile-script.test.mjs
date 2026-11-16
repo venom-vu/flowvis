@@ -79,7 +79,13 @@ describe('Story 1.11: script đối soát nhánh lệch', () => {
     try {
       execFileSync('node', ['dist/scripts/reconcile.js'], {
         cwd: apiRoot,
-        env: { ...process.env, DATABASE_URL: DB_URL, REDIS_URL },
+        env: {
+          RUNNINGHUB_WORKFLOW_BODY_RESHAPE: 'wf-body',
+          RUNNINGHUB_WORKFLOW_MOTION: 'wf-motion',
+          ...process.env,
+          DATABASE_URL: DB_URL,
+          REDIS_URL,
+        },
         encoding: 'utf8',
         stdio: 'pipe',
       });

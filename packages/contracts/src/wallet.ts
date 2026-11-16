@@ -46,7 +46,7 @@ const TIER_SPECS: Record<
     maxVideoSeconds: 3,
     maxActiveTasks: 1,
     priceVnd: 0,
-    credits: 500,
+    credits: 250,
   },
   Starter: {
     packId: 'starter',
@@ -515,7 +515,7 @@ export type PricingConfigRequest = z.infer<typeof PricingConfigRequestSchema>;
 export const PricingConfigResponseSchema = z
   .object({
     tierFloorCredits: z.literal(100),
-    trialGrantCredits: z.literal(500),
+    trialGrantCredits: z.literal(250),
     freeQueueTimeoutMinutes: z.literal(15),
     pipelines: PipelinePricingSchema,
     tiers: z.array(TierConfigSchema).length(4),

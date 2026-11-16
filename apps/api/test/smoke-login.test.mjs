@@ -68,7 +68,7 @@ function startFakeGoogle(port) {
 
 describe('Smoke đăng nhập FE-BE trên stack Compose', () => {
   it(
-    'đăng nhập Google giả, tặng 500 credit một lần, chống lạm dụng, hợp đồng và đối soát',
+    'đăng nhập Google giả, tặng 250 credit một lần, chống lạm dụng, hợp đồng và đối soát',
     {
       skip:
         process.env.RUN_COMPOSE_E2E === '1'
@@ -144,8 +144,8 @@ describe('Smoke đăng nhập FE-BE trên stack Compose', () => {
         const first = await login('alice', undefined);
         assert.ok(first.cookie, 'phải có cookie motion_device');
         assert.equal(first.session.isNewUser, true);
-        assert.equal(first.session.grantedCredits, 500);
-        assert.equal(first.me.balance, 500);
+        assert.equal(first.session.grantedCredits, 250);
+        assert.equal(first.me.balance, 250);
         assert.equal(first.me.email, 'alice@smoke.test');
         assert.equal(first.ledger.items.filter((i) => i.type === 'GRANT').length, 1);
         assert.equal(first.ledger.items.length, 1);

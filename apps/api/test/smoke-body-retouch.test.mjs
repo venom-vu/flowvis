@@ -329,7 +329,7 @@ describe('Smoke Body Retouch FE-BE trên stack Compose (Story 4.6)', () => {
 
         // 1. Thành công, intensity 8
         const alice = await login('alice');
-        assert.equal(await balance(alice), 500);
+        assert.equal(await balance(alice), 250);
         rh.mode = 'running';
         const { task: t1, imageKey: img1 } = await createBodyTask(alice, 8);
         assert.equal(t1.creditCost, 100);
@@ -360,7 +360,7 @@ describe('Smoke Body Retouch FE-BE trên stack Compose (Story 4.6)', () => {
 
         // 2. NO_POSE
         const bob = await login('bob');
-        assert.equal(await balance(bob), 500);
+        assert.equal(await balance(bob), 250);
         rh.mode = 'no_pose';
         const { task: t2 } = await createBodyTask(bob, 5);
         const failed = await waitFor(bob, t2.id, (t) => t.status === 'failed', 'failed NO_POSE');
@@ -369,7 +369,7 @@ describe('Smoke Body Retouch FE-BE trên stack Compose (Story 4.6)', () => {
           getReasonCodeMessageVi('NO_POSE', 'body_retouch'),
           'Không tìm thấy người trong ảnh. Vui lòng chọn ảnh có người rõ thân.',
         );
-        assert.equal(await balance(bob), 500, 'RELEASED 100%');
+        assert.equal(await balance(bob), 250, 'RELEASED 100%');
         assert.ok((await ledgerTypes(bob, t2.id)).includes('RELEASED'));
 
         // 3. Chung hàng đợi với Face Swap

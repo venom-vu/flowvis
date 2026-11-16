@@ -89,7 +89,7 @@ async function ensureInfraRunning() {
 process.env.RUNNINGHUB_WORKFLOW_BODY_RESHAPE ??= 'wf-body';
 process.env.RUNNINGHUB_WORKFLOW_MOTION ??= 'wf-motion';
 
-describe('Story 1.8: [BE] Tặng 500 credit và chống lạm dụng', () => {
+describe('Story 1.8: [BE] Tặng 250 credit và chống lạm dụng', () => {
   let app;
   let baseUrl;
   let prisma;
@@ -361,7 +361,7 @@ describe('Story 1.8: [BE] Tặng 500 credit và chống lạm dụng', () => {
       const dupFpHash = `fp-dup-${crypto.randomBytes(8).toString('hex')}`;
       await pool.query(
         `INSERT INTO signup_grants (user_id, fingerprint_hash, ip_hash, granted)
-         VALUES ($1, $2, 'ip1', 500)`,
+         VALUES ($1, $2, 'ip1', 250)`,
         [u1, dupFpHash],
       );
 
@@ -370,7 +370,7 @@ describe('Story 1.8: [BE] Tặng 500 credit và chống lạm dụng', () => {
         async () => {
           await pool.query(
             `INSERT INTO signup_grants (user_id, fingerprint_hash, ip_hash, granted)
-             VALUES ($1, $2, 'ip2', 500)`,
+             VALUES ($1, $2, 'ip2', 250)`,
             [u2, dupFpHash],
           );
         },
@@ -410,7 +410,7 @@ describe('Story 1.8: [BE] Tặng 500 credit và chống lạm dụng', () => {
       );
       await pool.query(
         `INSERT INTO signup_grants (user_id, fingerprint_hash, ip_hash, granted)
-         VALUES ($1, 'fphash-del', 'iphash-del', 500)`,
+         VALUES ($1, 'fphash-del', 'iphash-del', 250)`,
         [u],
       );
 
@@ -518,10 +518,10 @@ describe('Story 1.8: [BE] Tặng 500 credit và chống lạm dụng', () => {
   });
 
   // =========================================================================
-  // 3. Nghiệp vụ Tặng 500 Credit & Chống Lạm Dụng End-to-End
+  // 3. Nghiệp vụ Tặng 250 Credit & Chống Lạm Dụng End-to-End
   // =========================================================================
-  describe('Nghiệp vụ tặng 500 credit và quy tắc chống lạm dụng', () => {
-    it('Thiết bị và IP mới: tặng đúng 500 credit, ghi 1 bút toán GRANT và 1 dòng signup_grants', async () => {
+  describe('Nghiệp vụ tặng 250 credit và quy tắc chống lạm dụng', () => {
+    it('Thiết bị và IP mới: tặng đúng 250 credit, ghi 1 bút toán GRANT và 1 dòng signup_grants', async () => {
       const email = `newuser-${crypto.randomBytes(4).toString('hex')}@flowvis.vn`;
       const googleId = `gid-${crypto.randomBytes(4).toString('hex')}`;
       const deviceId = `dev-${crypto.randomBytes(6).toString('hex')}`;
@@ -530,7 +530,7 @@ describe('Story 1.8: [BE] Tặng 500 credit và chống lạm dụng', () => {
       const res = await registerViaApi({ email, googleId, deviceId, clientIp });
       assert.equal(res.status, 200);
       assert.equal(res.body.isNewUser, true);
-      assert.equal(res.body.grantedCredits, 500);
+      assert.equal(res.body.grantedCredits, 250);
 
       // Kiểm tra user trong DB
       const user = await prisma.user.findUnique({
@@ -540,19 +540,19 @@ describe('Story 1.8: [BE] Tặng 500 credit và chống lạm dụng', () => {
       assert.ok(user, 'User phải được tạo');
       createdUserIds.push(user.id);
 
-      assert.equal(user.balance, 500n, 'Số dư phải là 500 credit');
+      assert.equal(user.balance, 250n, 'Số dư phải là 250 credit');
       assert.equal(user.held, 0n, 'Held phải là 0');
 
       // Kiểm tra signup_grants
       assert.ok(user.signupGrant, 'Phải có bản ghi signup_grants');
-      assert.equal(user.signupGrant.granted, 500n);
+      assert.equal(user.signupGrant.granted, 250n);
       assert.match(user.signupGrant.fingerprintHash, /^[0-9a-f]{64}$/);
       assert.match(user.signupGrant.ipHash, /^[0-9a-f]{64}$/);
 
       // Kiểm tra ledger_entries
       assert.equal(user.ledgerEntries.length, 1, 'Phải có đúng 1 bút toán ledger');
       assert.equal(user.ledgerEntries[0].type, 'GRANT');
-      assert.equal(user.ledgerEntries[0].amount, 500n);
+      assert.equal(user.ledgerEntries[0].amount, 250n);
     });
 
     it('Thiết bị đã nhận: user tạo với balance = 0, granted = 0, không có bút toán GRANT', async () => {
@@ -560,7 +560,7 @@ describe('Story 1.8: [BE] Tặng 500 credit và chống lạm dụng', () => {
       const ip1 = `198.51.100.1`;
       const ip2 = `198.51.100.2`;
 
-      // 1. Tài khoản thứ nhất nhận 500 credit
+      // 1. Tài khoản thứ nhất nhận 250 credit
       const email1 = `u1-${crypto.randomBytes(4).toString('hex')}@flowvis.vn`;
       const gid1 = `gid-1-${crypto.randomBytes(4).toString('hex')}`;
       const res1 = await registerViaApi({
@@ -575,8 +575,8 @@ describe('Story 1.8: [BE] Tặng 500 credit và chống lạm dụng', () => {
         include: { signupGrant: true, ledgerEntries: true },
       });
       createdUserIds.push(user1.id);
-      assert.equal(user1.balance, 500n);
-      assert.equal(user1.signupGrant?.granted, 500n);
+      assert.equal(user1.balance, 250n);
+      assert.equal(user1.signupGrant?.granted, 250n);
       assert.equal(user1.ledgerEntries.length, 1);
 
       // 2. Tài khoản thứ hai cùng deviceId (khác IP, khác email)
@@ -608,7 +608,7 @@ describe('Story 1.8: [BE] Tặng 500 credit và chống lạm dụng', () => {
     it('IP đạt giới hạn 3 tài khoản trong 24h: tài khoản thứ 4 cùng IP nhận 0 credit', async () => {
       const fixedIp = `203.0.113.${Math.floor(Math.random() * 200) + 10}`;
 
-      // Tạo 3 tài khoản đầu tiên cùng IP nhưng khác thiết bị -> cả 3 nhận 500
+      // Tạo 3 tài khoản đầu tiên cùng IP nhưng khác thiết bị -> cả 3 nhận 250
       for (let i = 1; i <= SIGNUP_GRANT_MAX_PER_IP; i++) {
         const email = `ip3-${i}-${crypto.randomBytes(3).toString('hex')}@flowvis.vn`;
         const gid = `gid-ip3-${i}-${crypto.randomBytes(3).toString('hex')}`;
@@ -620,8 +620,8 @@ describe('Story 1.8: [BE] Tặng 500 credit và chống lạm dụng', () => {
           include: { signupGrant: true },
         });
         createdUserIds.push(user.id);
-        assert.equal(user.balance, 500n, `Tài khoản thứ ${i} cùng IP phải nhận 500 credit`);
-        assert.equal(user.signupGrant?.granted, 500n);
+        assert.equal(user.balance, 250n, `Tài khoản thứ ${i} cùng IP phải nhận 250 credit`);
+        assert.equal(user.signupGrant?.granted, 250n);
       }
 
       // Tài khoản thứ 4 cùng IP (thiết bị mới)
@@ -644,7 +644,7 @@ describe('Story 1.8: [BE] Tặng 500 credit và chống lạm dụng', () => {
       assert.equal(user4.ledgerEntries.length, 0);
     });
 
-    it('IP đã đủ 3 tài khoản nhưng quá 24h: lại được nhận 500 credit', async () => {
+    it('IP đã đủ 3 tài khoản nhưng quá 24h: lại được nhận 250 credit', async () => {
       const agedIp = `198.18.0.${Math.floor(Math.random() * 200) + 10}`;
 
       // Tạo 3 tài khoản ban đầu trên IP này
@@ -668,14 +668,14 @@ describe('Story 1.8: [BE] Tặng 500 credit và chống lạm dụng', () => {
         [usersToAge],
       );
 
-      // Tạo tài khoản thứ 4 trên IP này (thiết bị mới) -> vì 3 grant trước đã quá 24h, phải nhận 500!
+      // Tạo tài khoản thứ 4 trên IP này (thiết bị mới) -> vì 3 grant trước đã quá 24h, phải nhận 250!
       const email4 = `aged-4-${crypto.randomBytes(3).toString('hex')}@flowvis.vn`;
       const gid4 = `gid-aged-4-${crypto.randomBytes(3).toString('hex')}`;
       const deviceId4 = `dev-aged-4-${crypto.randomBytes(5).toString('hex')}`;
       const res4 = await registerViaApi({ email: email4, googleId: gid4, deviceId: deviceId4, clientIp: agedIp });
       assert.equal(res4.status, 200);
       assert.equal(res4.body.isNewUser, true);
-      assert.equal(res4.body.grantedCredits, 500);
+      assert.equal(res4.body.grantedCredits, 250);
 
       const user4 = await prisma.user.findUnique({
         where: { email: email4 },
@@ -683,8 +683,8 @@ describe('Story 1.8: [BE] Tặng 500 credit và chống lạm dụng', () => {
       });
       createdUserIds.push(user4.id);
 
-      assert.equal(user4.balance, 500n, 'IP có grant cũ hơn 24h phải được nhận lại 500 credit');
-      assert.equal(user4.signupGrant?.granted, 500n);
+      assert.equal(user4.balance, 250n, 'IP có grant cũ hơn 24h phải được nhận lại 250 credit');
+      assert.equal(user4.signupGrant?.granted, 250n);
     });
 
     it('User đã tồn tại đăng nhập lại: không tặng thêm credit và không ghi thêm signup_grants', async () => {
@@ -696,10 +696,10 @@ describe('Story 1.8: [BE] Tặng 500 credit và chống lạm dụng', () => {
       // Đăng ký lần đầu
       const res1 = await registerViaApi({ email, googleId, deviceId, clientIp });
       assert.equal(res1.body.isNewUser, true);
-      assert.equal(res1.body.grantedCredits, 500);
+      assert.equal(res1.body.grantedCredits, 250);
       const user = await prisma.user.findUnique({ where: { email } });
       createdUserIds.push(user.id);
-      assert.equal(user.balance, 500n);
+      assert.equal(user.balance, 250n);
 
       const grantsCountBefore = await prisma.signupGrant.count({
         where: { userId: user.id },
@@ -717,7 +717,7 @@ describe('Story 1.8: [BE] Tặng 500 credit và chống lạm dụng', () => {
       assert.equal(res2.body.grantedCredits, undefined, 'Đăng nhập lại không có grantedCredits');
 
       const userAfter = await prisma.user.findUnique({ where: { email } });
-      assert.equal(userAfter.balance, 500n, 'Số dư credit không được thay đổi');
+      assert.equal(userAfter.balance, 250n, 'Số dư credit không được thay đổi');
 
       const grantsCountAfter = await prisma.signupGrant.count({
         where: { userId: user.id },
@@ -725,7 +725,7 @@ describe('Story 1.8: [BE] Tặng 500 credit và chống lạm dụng', () => {
       assert.equal(grantsCountAfter, 1, 'Không được tạo thêm bản ghi signup_grants');
     });
 
-    it('Không có giới hạn trần tổng: nhiều tài khoản khác nhau hoàn toàn đều nhận 500 credit', async () => {
+    it('Không có giới hạn trần tổng: nhiều tài khoản khác nhau hoàn toàn đều nhận 250 credit', async () => {
       for (let i = 0; i < 5; i++) {
         const email = `scale-${i}-${crypto.randomBytes(3).toString('hex')}@flowvis.vn`;
         const gid = `gid-scale-${i}-${crypto.randomBytes(3).toString('hex')}`;
@@ -736,7 +736,7 @@ describe('Story 1.8: [BE] Tặng 500 credit và chống lạm dụng', () => {
         assert.equal(res.status, 200);
         const user = await prisma.user.findUnique({ where: { email } });
         createdUserIds.push(user.id);
-        assert.equal(user.balance, 500n);
+        assert.equal(user.balance, 250n);
       }
     });
   });
@@ -745,7 +745,7 @@ describe('Story 1.8: [BE] Tặng 500 credit và chống lạm dụng', () => {
   // 4. Chống Đua Đồng Thời (Concurrency & Advisory Lock)
   // =========================================================================
   describe('Chống đua đồng thời (Concurrency & Advisory Locks)', () => {
-    it('5 đăng ký song song cùng IP, thiết bị khác nhau: đúng 3 nhận 500, 2 nhận 0', async () => {
+    it('5 đăng ký song song cùng IP, thiết bị khác nhau: đúng 3 nhận 250, 2 nhận 0', async () => {
       const concurrentIp = `203.0.113.${Math.floor(Math.random() * 200) + 1}`;
       const promises = [];
 
@@ -773,13 +773,13 @@ describe('Story 1.8: [BE] Tặng 500 credit và chống lạm dụng', () => {
         createdUserIds.push(g.userId);
       }
 
-      const granted500 = grants.filter((g) => g.granted === 500n);
+      const granted250 = grants.filter((g) => g.granted === 250n);
       const granted0 = grants.filter((g) => g.granted === 0n);
 
       assert.equal(
-        granted500.length,
+        granted250.length,
         3,
-        `Đúng 3 tài khoản nhận 500 credit (thực tế: ${granted500.length})`,
+        `Đúng 3 tài khoản nhận 250 credit (thực tế: ${granted250.length})`,
       );
       assert.equal(
         granted0.length,
@@ -788,7 +788,7 @@ describe('Story 1.8: [BE] Tặng 500 credit và chống lạm dụng', () => {
       );
     });
 
-    it('5 đăng ký song song cùng thiết bị, IP khác nhau: đúng 1 nhận 500, 4 nhận 0', async () => {
+    it('5 đăng ký song song cùng thiết bị, IP khác nhau: đúng 1 nhận 250, 4 nhận 0', async () => {
       const sharedDeviceId = `dev-conc-${crypto.randomBytes(6).toString('hex')}`;
       await warmDevice(sharedDeviceId);
       const promises = [];
@@ -817,13 +817,13 @@ describe('Story 1.8: [BE] Tặng 500 credit và chống lạm dụng', () => {
         createdUserIds.push(g.userId);
       }
 
-      const granted500 = grants.filter((g) => g.granted === 500n);
+      const granted250 = grants.filter((g) => g.granted === 250n);
       const granted0 = grants.filter((g) => g.granted === 0n);
 
       assert.equal(
-        granted500.length,
+        granted250.length,
         1,
-        `Đúng 1 tài khoản nhận 500 credit (thực tế: ${granted500.length})`,
+        `Đúng 1 tài khoản nhận 250 credit (thực tế: ${granted250.length})`,
       );
       assert.equal(
         granted0.length,
@@ -991,7 +991,7 @@ describe('Story 1.8: [BE] Tặng 500 credit và chống lạm dụng', () => {
       assert.equal(after.balance, owner.balance, 'credit không bị ảnh hưởng');
     });
 
-    it('5 callback đồng thời của cùng một tài khoản: không có 500, đúng 1 user và 1 lần tặng', async () => {
+    it('5 callback đồng thời của cùng một tài khoản: không có 250, đúng 1 user và 1 lần tặng', async () => {
       const email = `same-${crypto.randomBytes(4).toString('hex')}@flowvis.vn`;
       const gid = `gid-same-${crypto.randomBytes(4).toString('hex')}`;
       const deviceId = `dev-same-${crypto.randomBytes(4).toString('hex')}`;
@@ -1013,7 +1013,7 @@ describe('Story 1.8: [BE] Tặng 500 credit và chống lạm dụng', () => {
       });
       assert.equal(users.length, 1);
       createdUserIds.push(users[0].id);
-      assert.equal(users[0].balance, 500n);
+      assert.equal(users[0].balance, 250n);
       assert.equal(users[0].ledgerEntries.length, 1);
       assert.ok(users[0].signupGrant);
     });

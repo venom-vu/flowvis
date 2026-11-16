@@ -283,6 +283,7 @@ describe('@flowvis/web — Story 5.8 Motion Control', () => {
   describe('useMotionControl — lỗi tạo Task', () => {
     it('TRIM_EXCEEDS_CAP: gọi lại me/pricing, thu hẹp Cap và hiện "tối đa {cap} giây"', async () => {
       const { calls } = setup({
+        me: { ...MOCK_ME_RESPONSE, balance: 1000 },
         createImpl: () => {
           throw new MotionApiClientError({
             status: 400,
@@ -303,6 +304,7 @@ describe('@flowvis/web — Story 5.8 Motion Control', () => {
 
     it('TRIM_EXCEEDS_CAP: lỗi tải lại me/pricing vẫn giữ thông báo', async () => {
       setup({
+        me: { ...MOCK_ME_RESPONSE, balance: 1000 },
         createImpl: () => {
           throw new MotionApiClientError({
             status: 400,
