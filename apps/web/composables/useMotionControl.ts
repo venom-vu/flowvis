@@ -4,6 +4,7 @@ import { computed, ref, watch } from 'vue';
 import {
   MOTION_ASPECT_RATIO_DEFAULT,
   MOTION_MIN_TRIM_SECONDS,
+  motionCapSeconds,
   type MotionAspectRatio,
   type Task,
 } from '@flowvis/contracts';
@@ -53,8 +54,12 @@ export function useMotionControl() {
   const capSeconds = computed<number | null>(() => {
     const tierCap = currentTierCapSeconds.value;
     const override = serverCapOverride.value;
-    if (tierCap == null) return override;
-    return override == null ? tierCap : Math.min(tierCap, override);
+    const featureCap =
+      tierCap == null
+        ? null
+        : motionCapSeconds(variant.value === 'v2' ? 'motion_control_v2' : 'motion_control', tierCap);
+    if (featureCap == null) return override;
+    return override == null ? featureCap : Math.min(featureCap, override);
   });
 
   const capUsable = computed<boolean>(
@@ -138,7 +143,7 @@ export function useMotionControl() {
         } catch {
           // Giữ thông báo cũ nếu tải lại thất bại.
         }
-        submitErrorVi.value = `Gói hiện tại của bạn cho phép tối đa ${cap} giây`;
+        submitErrorVi.value = `Chức năng này cho phép tối đa ${cap} giây`;
         return;
       }
     }

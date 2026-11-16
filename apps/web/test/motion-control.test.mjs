@@ -297,7 +297,7 @@ describe('@flowvis/web — Story 5.8 Motion Control', () => {
       await mc.submit();
       assert.equal(calls.refresh >= 1, true);
       assert.equal(mc.capSeconds.value, 4);
-      assert.equal(mc.submitErrorVi.value, 'Gói hiện tại của bạn cho phép tối đa 4 giây');
+      assert.equal(mc.submitErrorVi.value, 'Chức năng này cho phép tối đa 4 giây');
       assert.equal(mc.activeTask.value, null);
     });
 
@@ -317,7 +317,7 @@ describe('@flowvis/web — Story 5.8 Motion Control', () => {
       const mc = mod.useMotionControl();
       fillValid(mc, { start: 0, end: 8 });
       await mc.submit();
-      assert.equal(mc.submitErrorVi.value, 'Gói hiện tại của bạn cho phép tối đa 5 giây');
+      assert.equal(mc.submitErrorVi.value, 'Chức năng này cho phép tối đa 5 giây');
     });
 
     for (const code of [
@@ -504,6 +504,7 @@ describe('@flowvis/web — Story 5.8 Motion Control', () => {
       });
       const submitCalls = [];
       const motion = {
+        variant: ref('v1'),
         isAuthenticated: ref(true),
         isSubmitting: ref(false),
         characterKey: ref(MOCK_MOTION_CREATE_REQUEST.characterKey),

@@ -495,7 +495,7 @@ onBeforeUnmount(() => {
           data-testid="video-cap-notice"
           class="flex flex-wrap items-center gap-x-2 text-xs text-cyber-warning"
         >
-          <span>Gói {{ tierName ?? '' }} cho phép tối đa {{ capSeconds }} giây</span>
+          <span>Chức năng này cho phép tối đa {{ capSeconds }} giây</span>
           <NuxtLink
             to="/pricing"
             data-testid="video-cap-upgrade-link"

@@ -182,7 +182,7 @@ const {
         data-testid="motion-cap-unusable-note"
         class="rounded-xl border border-cyber-warning/40 bg-cyber-warning/10 p-4 text-xs text-cyber-warning"
       >
-        Gói hiện tại chỉ cho phép tối đa {{ capSeconds }} giây, chưa đủ để tạo
+        Chỉ cho phép tối đa {{ capSeconds }} giây, chưa đủ để tạo
         đoạn Motion Control.
         <NuxtLink to="/pricing" class="font-semibold underline">
           Xem bảng giá

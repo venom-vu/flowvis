@@ -73,7 +73,7 @@ Gói hợp đồng dùng chung (Shared Contracts) giữa Backend (`@flowvis/api`
 ### 8. Motion Control (Epic 5: `src/uploads.ts`, `src/tasks.ts`, `src/wallet.ts`)
 
 - Pipeline `motion_control` nằm trong `TASK_PIPELINES`. `motionPrice(seconds)` = 50 × số giây nguyên (từ chối số không nguyên hoặc <= 0); là nơi duy nhất giữ hằng 50 phía mã nguồn.
-- `GET /config/pricing`: `pipelines.motionControlCreditsPerSecond` (50), `pipelines.motionControlMinSeconds` (3, tùy chọn trong schema cho tới khi BE 5.3 trả), Cap theo Tier ở `tiers[].maxVideoSeconds` (5, 10, 15, 20).
+- `GET /config/pricing`: `pipelines.motionControlCreditsPerSecond` (50), `pipelines.motionControlMinSeconds` (3, tùy chọn trong schema cho tới khi BE 5.3 trả), Cap theo Tier ở `tiers[].maxVideoSeconds` (FREE 3, các gói trả phí 20); Cap thực tế của Motion = min(Cap Tier, giới hạn chức năng `MOTION_MAX_SECONDS`: v1 20 giây, v2 10 giây) qua `motionCapSeconds()`.
 - `POST /uploads` nhận thêm video (`video/mp4`, `video/quicktime`, tối đa 100 MB; `UploadCreateRequestSchema` là union ảnh/video). Confirm video trả `UploadConfirmVideoResponseSchema` `{ key, video: VideoMeta }` (`durationSeconds`, `width`, `height`).
 - `POST /tasks/motion`: `MotionCreateRequestSchema` `{ characterKey, videoKey, trimStart, trimEnd }` `.strict()` (số nguyên giây, không `consent`/credit); `MotionCreateResponseSchema` = Task kèm `price`.
 - `VALIDATION_FAILED` `details.reason` thuộc `VALIDATION_REASONS` (6 giá trị); `ValidationDetailsSchema` bắt buộc `cap` với `TRIM_EXCEEDS_CAP`; thông báo qua `getValidationReasonMessageVi(reason, cap)`.

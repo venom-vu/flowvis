@@ -152,7 +152,7 @@ describe('Story 1.7: [BE] Tier, API ví và đối soát sổ cái', () => {
     await topup(u, 5000, 'starter');
     assert.equal((await row(u)).tierPack, 'starter');
     const snap = await tx((t) => wallet.hold(t, u, uuid(), 100));
-    assert.deepEqual(snap, { tier: 'Starter', priority: 3, maxVideoSeconds: 10 });
+    assert.deepEqual(snap, { tier: 'Starter', priority: 3, maxVideoSeconds: 20 });
     assert.ok(TierSnapshotSchema.safeParse(snap).success);
   });
 
@@ -179,7 +179,7 @@ describe('Story 1.7: [BE] Tier, API ví và đối soát sổ cái', () => {
     assert.equal((await row(u)).tierPack, 'starter');
     const snap = await tx((t) => wallet.hold(t, u, uuid(), 100));
     assert.equal(snap.priority, 3);
-    assert.equal(snap.maxVideoSeconds, 10);
+    assert.equal(snap.maxVideoSeconds, 20);
   });
 
   it('ngưỡng 99 / 100 qua ADJUST', async () => {
@@ -197,7 +197,7 @@ describe('Story 1.7: [BE] Tier, API ví và đối soát sổ cái', () => {
     assert.equal(r.balance, 50n);
     assert.equal(r.tierPack, 'pro');
     const snap = await tx((t) => wallet.hold(t, u, uuid(), 50));
-    assert.deepEqual(snap, { tier: 'Pro', priority: 2, maxVideoSeconds: 15 });
+    assert.deepEqual(snap, { tier: 'Pro', priority: 2, maxVideoSeconds: 20 });
   });
 
   it('RELEASED không tính lại Tier', async () => {

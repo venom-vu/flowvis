@@ -541,13 +541,13 @@ describe('@flowvis/contracts', () => {
       const tiersByKey = Object.fromEntries(
         MOCK_PRICING_CONFIG_RESPONSE.tiers.map((t) => [t.tier, t]),
       );
-      assert.equal(tiersByKey.FREE.maxVideoSeconds, 5);
+      assert.equal(tiersByKey.FREE.maxVideoSeconds, 3);
       assert.equal(tiersByKey.FREE.priority, 10);
-      assert.equal(tiersByKey.Starter.maxVideoSeconds, 10);
+      assert.equal(tiersByKey.Starter.maxVideoSeconds, 20);
       assert.equal(tiersByKey.Starter.priority, 3);
       assert.equal(tiersByKey.Starter.priceVnd, 49_000);
       assert.equal(tiersByKey.Starter.credits, 5_000);
-      assert.equal(tiersByKey.Pro.maxVideoSeconds, 15);
+      assert.equal(tiersByKey.Pro.maxVideoSeconds, 20);
       assert.equal(tiersByKey.Pro.priority, 2);
       assert.equal(tiersByKey.Pro.priceVnd, 99_000);
       assert.equal(tiersByKey.Pro.credits, 12_000);
@@ -560,7 +560,7 @@ describe('@flowvis/contracts', () => {
         TierSnapshotSchema.safeParse({
           tier: 'Pro',
           priority: 2,
-          maxVideoSeconds: 15,
+          maxVideoSeconds: 20,
         }).success,
         true,
       );
@@ -723,11 +723,11 @@ describe('@flowvis/contracts', () => {
         withPack(0, { credits: 1 }),
         withPack(0, { id: 'pro' }),
         withPack(0, { priority: 1 }),
-        withPack(0, { maxVideoSeconds: 20 }),
+        withPack(0, { maxVideoSeconds: 3 }),
         withTier(1, { priceVnd: 1 }),
         withTier(1, { credits: 1 }),
         withTier(1, { packId: 'pro' }),
-        withTier(1, { maxVideoSeconds: 20 }),
+        withTier(1, { maxVideoSeconds: 3 }),
       ];
       bad.forEach((payload, i) => {
         assert.equal(
@@ -1185,7 +1185,7 @@ describe('@flowvis/contracts', () => {
       }
       assert.equal(ValidationDetailsSchema.safeParse({ reason: 'NOPE' }).success, false);
       assert.equal(ValidationDetailsSchema.safeParse({ reason: 'TRIM_EXCEEDS_CAP' }).success, false);
-      assert.equal(getValidationReasonMessageVi('TRIM_EXCEEDS_CAP', 10), 'Gói của bạn cho phép tối đa 10 giây');
+      assert.equal(getValidationReasonMessageVi('TRIM_EXCEEDS_CAP', 10), 'Chỉ cho phép tối đa 10 giây');
       assert.equal(
         getReasonCodeMessageVi('NO_POSE', 'motion_control'),
         'Không nhận diện được chuyển động cơ thể trong video mẫu',

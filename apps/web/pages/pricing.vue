@@ -251,9 +251,9 @@ function dismissCreateError(): void {
               <li class="flex items-center gap-2">
                 <span aria-hidden="true">-</span>
                 <span>
-                  Video tối đa:
+                  Motion Control:
                   <strong class="font-mono text-cyber-text">
-                    {{ formatNumberVi(tierItem.maxVideoSeconds) }} giây
+                    {{ tierItem.maxVideoSeconds >= 20 ? 'v1 tối đa 20 giây, v2 tối đa 10 giây' : `tối đa ${formatNumberVi(tierItem.maxVideoSeconds)} giây` }}
                   </strong>
                 </span>
               </li>

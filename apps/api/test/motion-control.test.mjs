@@ -63,6 +63,7 @@ Queue.prototype.getJob = async function () { return null; };
 
 process.env.RUNNINGHUB_WORKFLOW_BODY_RESHAPE ??= 'wf-body';
 process.env.RUNNINGHUB_WORKFLOW_MOTION ??= 'wf-motion';
+process.env.RUNNINGHUB_WORKFLOW_MOTION_V2 ??= 'wf-motion-v2';
 
 describe('Story 5.3: [BE] Tạo Task Motion Control', () => {
   let app, baseUrl, pool, prisma, jwt, worker, tasksSvc;
@@ -157,32 +158,47 @@ describe('Story 5.3: [BE] Tạo Task Motion Control', () => {
     assert.equal((await ok20.json()).price, 1000);
   });
 
-  it('Cap theo Tier: FREE 5 ok / 6 bị từ chối; Starter 12; Creator 20 ok', async () => {
+  it('Cap theo Tier: FREE 3 ok / 4 bị từ chối; Starter 20 ok / 21 bị từ chối; Creator 20 ok', async () => {
     const free = await newUser({ balance: 1000 });
     const v = await vid(free, 20); const c = await img(free);
-    let res = await post(free, { characterKey: c, videoKey: v, trimStart: 0, trimEnd: 5 });
+    let res = await post(free, { characterKey: c, videoKey: v, trimStart: 0, trimEnd: 3 });
     assert.equal(res.status, 201);
-    assert.equal((await res.json()).price, 250);
+    assert.equal((await res.json()).price, 150);
     const free2 = await newUser({ balance: 1000 });
-    res = await post(free2, { characterKey: await img(free2), videoKey: await vid(free2, 20), trimStart: 0, trimEnd: 6 });
-    await expectReason(res, 'TRIM_EXCEEDS_CAP', 5);
+    res = await post(free2, { characterKey: await img(free2), videoKey: await vid(free2, 20), trimStart: 0, trimEnd: 4 });
+    await expectReason(res, 'TRIM_EXCEEDS_CAP', 3);
     assert.deepEqual(await countFor(free2), { tasks: 0, ledger: 1 }, 'chỉ còn bút toán cấp credit, không HOLD');
     assert.equal((await pool.query(`SELECT count(*)::int n FROM ledger_entries WHERE user_id=$1 AND type='HOLD'`, [free2.id])).rows[0].n, 0);
     assert.equal(Number((await pool.query(`SELECT balance, held FROM users WHERE id=$1`, [free2.id])).rows[0].balance), 1000);
 
     const st = await newUser({ tierPack: 'starter' });
-    res = await post(st, { characterKey: await img(st), videoKey: await vid(st, 20), trimStart: 0, trimEnd: 12 });
-    await expectReason(res, 'TRIM_EXCEEDS_CAP', 10);
+    res = await post(st, { characterKey: await img(st), videoKey: await vid(st, 30), trimStart: 0, trimEnd: 21 });
+    await expectReason(res, 'TRIM_EXCEEDS_CAP', 20);
+    res = await post(st, { characterKey: await img(st), videoKey: await vid(st, 30), trimStart: 0, trimEnd: 20 });
+    assert.equal(res.status, 201);
     const cr = await newUser({ tierPack: 'creator' });
     res = await post(cr, { characterKey: await img(cr), videoKey: await vid(cr, 20), trimStart: 0, trimEnd: 20 });
     assert.equal(res.status, 201);
   });
 
-  it('Tier đổi sau khi tải video: Pro rơi về FREE, trim 8 s => cap 5', async () => {
+  it('Tier đổi sau khi tải video: Pro rơi về FREE, trim 8 s => cap 3', async () => {
     const u = await newUser({ tierPack: 'pro' });
     const v = await vid(u, 20); const c = await img(u);
     await pool.query(`UPDATE users SET tier_pack=NULL WHERE id=$1`, [u.id]);
-    await expectReason(await post(u, { characterKey: c, videoKey: v, trimStart: 0, trimEnd: 8 }), 'TRIM_EXCEEDS_CAP', 5);
+    await expectReason(await post(u, { characterKey: c, videoKey: v, trimStart: 0, trimEnd: 8 }), 'TRIM_EXCEEDS_CAP', 3);
+  });
+
+  it('Motion v2: cap 10 giây theo chức năng (gói trả phí), FREE vẫn 3 giây', async () => {
+    const postV2 = (user, body) => fetch(`${baseUrl}/tasks/motion-v2`, { method: 'POST', headers: { Authorization: `Bearer ${user.token}`, 'Content-Type': 'application/json' }, body: JSON.stringify(body) });
+    const cr = await newUser({ tierPack: 'creator' });
+    let res = await postV2(cr, { characterKey: await img(cr), videoKey: await vid(cr, 20), trimStart: 0, trimEnd: 11 });
+    await expectReason(res, 'TRIM_EXCEEDS_CAP', 10);
+    res = await postV2(cr, { characterKey: await img(cr), videoKey: await vid(cr, 20), trimStart: 0, trimEnd: 10 });
+    assert.equal(res.status, 201);
+    assert.equal((await res.json()).price, 500);
+    const free = await newUser({ balance: 1000 });
+    res = await postV2(free, { characterKey: await img(free), videoKey: await vid(free, 20), trimStart: 0, trimEnd: 4 });
+    await expectReason(res, 'TRIM_EXCEEDS_CAP', 3);
   });
 
   it('Trim sai: không HOLD, không Task', async () => {

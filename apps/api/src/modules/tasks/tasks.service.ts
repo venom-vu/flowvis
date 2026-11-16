@@ -28,6 +28,7 @@ import {
   MOTION_ASPECT_RATIO_DEFAULT,
   getMotionAspectRatio,
   CONTENT_REMOVED_MESSAGE_VI,
+  motionCapSeconds,
   motionPrice,
   type ReasonCode,
   type Task,
@@ -743,13 +744,14 @@ export class TasksService {
       params: { trimStart, trimEnd, seconds, price, ...extraParams },
       keysVerified: true,
       postHold: (snapshot) => {
-        // Cap theo Tier Snapshot do ví đọc trong transaction; ném lỗi để rollback cả HOLD.
-        const cap = snapshot.maxVideoSeconds;
-        if (!Number.isFinite(cap) || cap < MOTION_MIN_TRIM_SECONDS) {
-          throw new Error(`Cap Tier Snapshot không hợp lệ: ${String(cap)}`);
+        // Cap = min(giới hạn của chức năng, Cap Tier Snapshot do ví đọc trong transaction); ném lỗi để rollback cả HOLD.
+        const tierCap = snapshot.maxVideoSeconds;
+        if (!Number.isFinite(tierCap) || tierCap < MOTION_MIN_TRIM_SECONDS) {
+          throw new Error(`Cap Tier Snapshot không hợp lệ: ${String(tierCap)}`);
         }
+        const cap = motionCapSeconds(pipeline, tierCap);
         if (seconds > cap) {
-          throw this.trimError('TRIM_EXCEEDS_CAP', snapshot.maxVideoSeconds);
+          throw this.trimError('TRIM_EXCEEDS_CAP', cap);
         }
       },
     });

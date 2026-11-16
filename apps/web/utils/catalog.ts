@@ -3,6 +3,7 @@ import type {
   PricingConfigResponse,
   TierConfig,
 } from "@flowvis/contracts";
+import { motionCapSeconds } from "@flowvis/contracts";
 
 export type FeatureCategoryId = "all" | "image" | "video";
 
@@ -94,7 +95,9 @@ export function buildAiFeatureCatalog(
   currentTier: AccountTier = "FREE",
 ): AiFeatureTool[] {
   const activeTierConfig = resolveTierConfig(pricing, currentTier);
-  const maxVideoSeconds = activeTierConfig.maxVideoSeconds;
+  const tierCapSeconds = activeTierConfig.maxVideoSeconds;
+  const motionV1Cap = motionCapSeconds("motion_control", tierCapSeconds);
+  const motionV2Cap = motionCapSeconds("motion_control_v2", tierCapSeconds);
   const { faceSwapCredits, outfitChangeCredits, personReplaceCredits, bodyRetouchCredits, motionControlCreditsPerSecond } =
     pricing.pipelines;
 
@@ -205,8 +208,8 @@ export function buildAiFeatureCatalog(
       billingMode: "per_second",
       unitCredits: motionControlCreditsPerSecond,
       priceBadgeVi: `${formatNumberVi(motionControlCreditsPerSecond)} credit / giây`,
-      tierCapSeconds: maxVideoSeconds,
-      tierCapLabelVi: `Tối đa ${formatNumberVi(maxVideoSeconds)} giây (Hạng ${activeTierConfig.tier})`,
+      tierCapSeconds: motionV1Cap,
+      tierCapLabelVi: `Tối đa ${formatNumberVi(motionV1Cap)} giây`,
       beforeLabelVi: "Ảnh nhân vật + Video mẫu",
       afterLabelVi: "Video chuyển động đồng bộ",
       accentGradient: "from-violet-600/35 via-indigo-950 to-cyan-500/30",
@@ -227,8 +230,8 @@ export function buildAiFeatureCatalog(
       billingMode: "per_second",
       unitCredits: motionControlCreditsPerSecond,
       priceBadgeVi: `${formatNumberVi(motionControlCreditsPerSecond)} credit / giây`,
-      tierCapSeconds: maxVideoSeconds,
-      tierCapLabelVi: `Tối đa ${formatNumberVi(maxVideoSeconds)} giây (Hạng ${activeTierConfig.tier})`,
+      tierCapSeconds: motionV2Cap,
+      tierCapLabelVi: `Tối đa ${formatNumberVi(motionV2Cap)} giây`,
       beforeLabelVi: "Ảnh nhân vật + Video mẫu",
       afterLabelVi: "Video chuyển động đồng bộ",
       accentGradient: "from-violet-600/35 via-indigo-950 to-cyan-500/30",

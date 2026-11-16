@@ -12,6 +12,18 @@ export function motionPrice(seconds: number): number {
 /** Số giây Trim tối thiểu của Motion Control. */
 export const MOTION_MIN_TRIM_SECONDS = 3;
 
+/** Số giây Trim tối đa theo chức năng Motion; gói FREE bị giới hạn thêm bởi `maxVideoSeconds` của Tier (3 giây). */
+export const MOTION_MAX_SECONDS = {
+  motion_control: 20,
+  motion_control_v2: 10,
+} as const;
+export type MotionPipeline = keyof typeof MOTION_MAX_SECONDS;
+
+/** Cap thực tế = nhỏ hơn giữa giới hạn của chức năng và Cap của Tier. */
+export function motionCapSeconds(pipeline: MotionPipeline, tierCapSeconds: number): number {
+  return Math.min(MOTION_MAX_SECONDS[pipeline], tierCapSeconds);
+}
+
 export const TASK_PIPELINES = ['face_swap', 'body_retouch', 'motion_control', 'outfit_change', 'person_replace', 'motion_control_v2'] as const;
 export type TaskPipeline = (typeof TASK_PIPELINES)[number];
 export const TaskPipelineSchema = z.enum(TASK_PIPELINES);
@@ -388,7 +400,7 @@ export const VALIDATION_REASON_MESSAGES_VI: Readonly<Record<ValidationReason, st
   VIDEO_UNREADABLE: 'Không đọc được video. Vui lòng chọn video MP4 hoặc MOV khác.',
   VIDEO_TOO_SHORT: `Video quá ngắn, cần dài ít nhất ${MOTION_MIN_TRIM_SECONDS} giây.`,
   TRIM_TOO_SHORT: `Đoạn cắt cần dài ít nhất ${MOTION_MIN_TRIM_SECONDS} giây.`,
-  TRIM_EXCEEDS_CAP: 'Gói của bạn cho phép tối đa {cap} giây',
+  TRIM_EXCEEDS_CAP: 'Chỉ cho phép tối đa {cap} giây',
   TRIM_OUT_OF_VIDEO: 'Đoạn cắt nằm ngoài độ dài của video.',
   TRIM_NOT_WHOLE_SECOND: 'Đoạn cắt phải tính theo từng giây nguyên.',
   REASON_REQUIRED: 'Vui lòng nhập lý do.',

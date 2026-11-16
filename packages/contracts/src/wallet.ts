@@ -34,7 +34,7 @@ const TIER_SPECS: Record<
   {
     packId: TopupPackId | null;
     priority: 10 | 3 | 2 | 1;
-    maxVideoSeconds: 5 | 10 | 15 | 20;
+    maxVideoSeconds: 3 | 20;
     maxActiveTasks: 1 | 2 | 3 | 5;
     priceVnd: number;
     credits: number;
@@ -43,7 +43,7 @@ const TIER_SPECS: Record<
   FREE: {
     packId: null,
     priority: 10,
-    maxVideoSeconds: 5,
+    maxVideoSeconds: 3,
     maxActiveTasks: 1,
     priceVnd: 0,
     credits: 500,
@@ -51,7 +51,7 @@ const TIER_SPECS: Record<
   Starter: {
     packId: 'starter',
     priority: 3,
-    maxVideoSeconds: 10,
+    maxVideoSeconds: 20,
     maxActiveTasks: 2,
     priceVnd: 49_000,
     credits: 5_000,
@@ -59,7 +59,7 @@ const TIER_SPECS: Record<
   Pro: {
     packId: 'pro',
     priority: 2,
-    maxVideoSeconds: 15,
+    maxVideoSeconds: 20,
     maxActiveTasks: 3,
     priceVnd: 99_000,
     credits: 12_000,
@@ -137,12 +137,7 @@ export const TierSnapshotSchema = z
       z.literal(2),
       z.literal(1),
     ]),
-    maxVideoSeconds: z.union([
-      z.literal(5),
-      z.literal(10),
-      z.literal(15),
-      z.literal(20),
-    ]),
+    maxVideoSeconds: z.union([z.literal(3), z.literal(20)]),
   })
   .superRefine((val, ctx) => {
     const spec = TIER_SPECS[val.tier];
@@ -402,12 +397,7 @@ export const TierConfigSchema = z
     packId: TopupPackIdSchema.nullable(),
     priceVnd: z.number().int().nonnegative(),
     credits: z.number().int().nonnegative(),
-    maxVideoSeconds: z.union([
-      z.literal(5),
-      z.literal(10),
-      z.literal(15),
-      z.literal(20),
-    ]),
+    maxVideoSeconds: z.union([z.literal(3), z.literal(20)]),
     /** Số Task active (queued + running) tối đa của một user thuộc Tier này. */
     maxActiveTasks: z.union([
       z.literal(1),
@@ -476,7 +466,7 @@ export const TopupPackConfigSchema = z
     name: z.string().min(1),
     priceVnd: z.number().int().positive(),
     credits: z.number().int().positive(),
-    maxVideoSeconds: z.union([z.literal(10), z.literal(15), z.literal(20)]),
+    maxVideoSeconds: z.literal(20),
     priority: z.union([z.literal(3), z.literal(2), z.literal(1)]),
   })
   .superRefine((val, ctx) => {
