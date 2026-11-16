@@ -48,6 +48,9 @@ services:
       context: ..
       dockerfile: deploy/Dockerfile
     restart: unless-stopped
+    env_file:
+      - path: .env
+        required: false
     command:
       - sh
       - -c
@@ -76,7 +79,7 @@ services:
       RUNNINGHUB_WORKFLOW_MOTION_V2: ${RUNNINGHUB_WORKFLOW_MOTION_V2:-}
       RUNNINGHUB_INSTANCE_MOTION_CONTROL_V2: ${RUNNINGHUB_INSTANCE_MOTION_CONTROL_V2:-default}
     ports:
-      - "${PORT:-3001}:${PORT:-3001}"
+      - "127.0.0.1:${PORT:-3001}:${PORT:-3001}"
     depends_on:
       postgres-16:
         condition: service_healthy
@@ -99,6 +102,9 @@ services:
       context: ..
       dockerfile: deploy/Dockerfile
     restart: unless-stopped
+    env_file:
+      - path: .env
+        required: false
     command: ["node", "apps/api/dist/worker.js"]
     environment:
       DATABASE_URL: ${DATABASE_URL:-postgresql://${POSTGRES_USER:-motion_user}:${POSTGRES_PASSWORD:-change_me_local_password}@postgres-16:5432/${POSTGRES_DB:-flowvis}?schema=public}
