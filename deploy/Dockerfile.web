@@ -1,0 +1,30 @@
+# Frontend Nuxt chạy bằng Node (preset node-server) trên VPS.
+# Build: docker compose -f deploy/compose.yml --env-file deploy/.env up -d --build
+FROM node:22-bookworm-slim AS base
+ENV PNPM_HOME="/pnpm"
+ENV PATH="$PNPM_HOME:$PATH"
+RUN corepack enable && corepack prepare pnpm@10.21.0 --activate
+
+FROM base AS build
+WORKDIR /app
+COPY package.json pnpm-lock.yaml pnpm-workspace.yaml tsconfig.base.json ./
+COPY packages/contracts/package.json packages/contracts/tsconfig.json ./packages/contracts/
+COPY packages/contracts/src ./packages/contracts/src
+COPY apps/web/package.json ./apps/web/
+RUN pnpm install --frozen-lockfile --filter . --filter @flowvis/contracts --filter @flowvis/web
+COPY apps/web ./apps/web
+# NUXT_PUBLIC_* được nạp lúc build; thiếu NUXT_PUBLIC_REPORT_EMAIL thì build production bị chặn.
+ARG NUXT_PUBLIC_API_BASE_URL
+ARG NUXT_PUBLIC_REPORT_EMAIL
+ENV NODE_ENV=production \
+    NUXT_PUBLIC_API_BASE_URL=${NUXT_PUBLIC_API_BASE_URL} \
+    NUXT_PUBLIC_REPORT_EMAIL=${NUXT_PUBLIC_REPORT_EMAIL}
+RUN pnpm --filter @flowvis/contracts run build && pnpm --filter @flowvis/web run build
+
+FROM base AS runtime
+WORKDIR /app
+ENV NODE_ENV=production HOST=0.0.0.0 PORT=3000
+COPY --chown=node:node --from=build /app/apps/web/.output ./.output
+USER node
+EXPOSE 3000
+CMD ["node", ".output/server/index.mjs"]

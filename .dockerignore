@@ -1,0 +1,12 @@
+.git
+**/node_modules
+**/.nuxt
+**/.output
+**/dist
+**/.env
+**/.env.*
+!**/.env.example
+_bmad
+_bmad-output
+.claude
+.agent

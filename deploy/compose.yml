@@ -139,6 +139,32 @@ services:
       redis-7:
         condition: service_healthy
 
+  # Frontend Nuxt (NUXT_PUBLIC_* được nạp lúc build, đổi giá trị thì phải build lại).
+  nuxt-web:
+    build:
+      context: ..
+      dockerfile: deploy/Dockerfile.web
+      args:
+        NUXT_PUBLIC_API_BASE_URL: ${NUXT_PUBLIC_API_BASE_URL:-}
+        NUXT_PUBLIC_REPORT_EMAIL: ${NUXT_PUBLIC_REPORT_EMAIL:-}
+    restart: unless-stopped
+    environment:
+      NUXT_PUBLIC_API_BASE_URL: ${NUXT_PUBLIC_API_BASE_URL:-}
+      NUXT_PUBLIC_REPORT_EMAIL: ${NUXT_PUBLIC_REPORT_EMAIL:-}
+    ports:
+      - "127.0.0.1:${WEB_PORT:-3000}:3000"
+    healthcheck:
+      test:
+        [
+          "CMD",
+          "node",
+          "-e",
+          "fetch('http://127.0.0.1:3000/').then(r => process.exit(r.status < 500 ? 0 : 1)).catch(() => process.exit(1))",
+        ]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
 volumes:
   postgres_data:
   redis_data:

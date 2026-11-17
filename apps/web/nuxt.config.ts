@@ -13,14 +13,19 @@ export default defineNuxtConfig({
   modules: ['@nuxtjs/tailwindcss', '@nuxt/icon', 'shadcn-nuxt'],
   shadcn: { prefix: '', componentDir: './components/ui' },
   css: ['~/assets/css/main.css'],
-  nitro: {
-    preset: 'cloudflare-pages',
-    output: {
-      dir: '.output/public',
-      publicDir: '.output/public',
-      serverDir: '.output/public/_worker.js',
-    },
-  },
+  // Mặc định build server Node (.output/server/index.mjs) để chạy trên VPS (deploy/Dockerfile.web).
+  // Muốn deploy Cloudflare Pages: đặt NITRO_PRESET=cloudflare-pages trong .env/biến môi trường lúc build.
+  nitro:
+    process.env.NITRO_PRESET === 'cloudflare-pages'
+      ? {
+          preset: 'cloudflare-pages',
+          output: {
+            dir: '.output/public',
+            publicDir: '.output/public',
+            serverDir: '.output/public/_worker.js',
+          },
+        }
+      : { preset: 'node-server' },
   runtimeConfig: {
     public: {
       apiBaseUrl: process.env.NUXT_PUBLIC_API_BASE_URL || 'http://localhost:8080',
