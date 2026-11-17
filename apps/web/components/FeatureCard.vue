@@ -30,10 +30,28 @@ function handleOpenWorkspace(): void {
       @keydown.space.prevent="handleOpenWorkspace"
     >
       <div
-        class="relative h-44 w-full overflow-hidden border-b border-cyber-border bg-gradient-to-br p-4"
+        class="relative h-56 w-full overflow-hidden border-b border-cyber-border bg-gradient-to-br p-4"
         :class="feature.accentGradient"
       >
-        <div class="flex items-center justify-between gap-2">
+        <video
+          v-if="feature.bannerType === 'video'"
+          :src="feature.bannerUrl"
+          class="absolute inset-0 h-full w-full object-cover"
+          autoplay
+          loop
+          muted
+          playsinline
+          preload="metadata"
+          aria-hidden="true"
+        />
+        <img
+          v-else
+          :src="feature.bannerUrl"
+          :alt="feature.titleVi"
+          class="absolute inset-0 h-full w-full object-cover"
+          loading="lazy"
+        />
+        <div class="relative flex items-center justify-between gap-2">
           <span
             class="inline-flex items-center gap-1.5 rounded-full border border-cyber-border bg-cyber-bg/80 px-2.5 py-1 text-xs font-medium text-cyber-text"
           >
@@ -48,27 +66,6 @@ function handleOpenWorkspace(): void {
           </span>
         </div>
 
-        <!-- Mô phỏng trực quan so sánh Trước / Sau ngay trên Card -->
-        <div
-          class="mt-4 grid grid-cols-2 gap-2 rounded-xl border border-cyber-border/80 bg-cyber-bg/75 p-2.5 backdrop-blur-sm"
-        >
-          <div class="rounded-lg border border-cyber-border/60 bg-cyber-surface/70 p-2">
-            <span class="block text-[10px] uppercase tracking-wider text-cyber-muted">
-              Trước
-            </span>
-            <p class="mt-0.5 truncate text-xs font-medium text-cyber-text">
-              {{ feature.beforeLabelVi }}
-            </p>
-          </div>
-          <div class="rounded-lg border border-cyber-cyan/40 bg-cyber-cyan/10 p-2">
-            <span class="block text-[10px] uppercase tracking-wider text-cyber-cyan">
-              Sau AI
-            </span>
-            <p class="mt-0.5 truncate text-xs font-medium text-cyber-text">
-              {{ feature.afterLabelVi }}
-            </p>
-          </div>
-        </div>
       </div>
 
       <!-- Nội dung mô tả tính năng & đơn giá động từ /config/pricing -->

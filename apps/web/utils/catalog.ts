@@ -39,6 +39,8 @@ export interface AiFeatureTool {
   beforeLabelVi: string;
   afterLabelVi: string;
   accentGradient: string;
+  bannerUrl: string;
+  bannerType: "image" | "video";
   inputRequirementVi: string;
   outputFormatVi: string;
 }
@@ -120,6 +122,8 @@ export function buildAiFeatureCatalog(
       tierCapLabelVi: null,
       beforeLabelVi: "Ảnh gốc tham chiếu",
       afterLabelVi: "Khuôn mặt đã đồng bộ AI",
+      bannerUrl: "/banner/face-swap.png",
+      bannerType: "image",
       accentGradient: "from-violet-600/30 via-slate-900 to-cyan-500/20",
       inputRequirementVi: "1 ảnh khuôn mặt nguồn + 1 ảnh đích rõ mặt",
       outputFormatVi:
@@ -143,6 +147,8 @@ export function buildAiFeatureCatalog(
       tierCapLabelVi: null,
       beforeLabelVi: "Ảnh người mẫu gốc",
       afterLabelVi: "Người mẫu đã đổi trang phục",
+      bannerUrl: "/banner/change-outfit.png",
+      bannerType: "image",
       accentGradient: "from-cyan-500/25 via-slate-900 to-violet-600/25",
       inputRequirementVi: "1 ảnh người mẫu rõ dáng + 1 ảnh trang phục cần mặc",
       outputFormatVi:
@@ -166,6 +172,8 @@ export function buildAiFeatureCatalog(
       tierCapLabelVi: null,
       beforeLabelVi: "Ảnh gốc",
       afterLabelVi: "Ảnh đã đổi người",
+      bannerUrl: "/banner/change-person.png",
+      bannerType: "image",
       accentGradient: "from-violet-600/25 via-slate-900 to-cyan-500/25",
       inputRequirementVi: "1 ảnh gốc + 1 ảnh nhân vật mới rõ nét",
       outputFormatVi:
@@ -189,6 +197,8 @@ export function buildAiFeatureCatalog(
       tierCapLabelVi: null,
       beforeLabelVi: "Tỷ lệ khung hình gốc",
       afterLabelVi: "Vòng 1 đã nâng tự nhiên AI",
+      bannerUrl: "/banner/breast-augmentation.png",
+      bannerType: "image",
       accentGradient: "from-cyan-500/25 via-slate-900 to-violet-600/25",
       inputRequirementVi: "1 ảnh toàn thân hoặc bán thân đủ ánh sáng",
       outputFormatVi:
@@ -212,6 +222,8 @@ export function buildAiFeatureCatalog(
       tierCapLabelVi: `Tối đa ${formatNumberVi(motionV1Cap)} giây`,
       beforeLabelVi: "Ảnh nhân vật + Video mẫu",
       afterLabelVi: "Video chuyển động đồng bộ",
+      bannerUrl: "/banner/motion-control.mp4",
+      bannerType: "video",
       accentGradient: "from-violet-600/35 via-indigo-950 to-cyan-500/30",
       inputRequirementVi: "1 ảnh nhân vật rõ dáng + 1 video chuyển động mẫu",
       outputFormatVi: "Video MP4 H.264 lưu trữ trên Cloudflare R2",
@@ -234,6 +246,8 @@ export function buildAiFeatureCatalog(
       tierCapLabelVi: `Tối đa ${formatNumberVi(motionV2Cap)} giây`,
       beforeLabelVi: "Ảnh nhân vật + Video mẫu",
       afterLabelVi: "Video chuyển động đồng bộ",
+      bannerUrl: "/banner/motion-control-v2.mp4",
+      bannerType: "video",
       accentGradient: "from-violet-600/35 via-indigo-950 to-cyan-500/30",
       inputRequirementVi: "1 ảnh nhân vật rõ dáng + 1 video chuyển động mẫu",
       outputFormatVi: "Video MP4 H.264 lưu trữ trên Cloudflare R2",
