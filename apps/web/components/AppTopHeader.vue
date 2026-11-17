@@ -33,6 +33,11 @@ const baseNavItems = [
     labelVi: "Kho Công Cụ AI",
     icon: "lucide:layout-grid",
   },
+  {
+    to: "/tiktok-downloader",
+    labelVi: "Tải TikTok",
+    icon: "lucide:download",
+  },
 ] as const;
 
 const navItems = baseNavItems;

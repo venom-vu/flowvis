@@ -139,6 +139,20 @@ function closeWorkspace(): void {
       </div>
     </section>
 
+    <!-- Lối tắt tới tiện ích miễn phí tải video TikTok (chạy hoàn toàn ở trình duyệt) -->
+    <NuxtLink
+      to="/tiktok-downloader"
+      data-testid="tiktok-downloader-shortcut"
+      class="touch-target flex min-h-[48px] items-center gap-3 rounded-2xl border border-cyber-cyan/40 bg-cyber-surface/75 p-4 transition hover:border-cyber-cyan"
+    >
+      <Icon name="lucide:download" class="h-5 w-5 shrink-0 text-cyber-cyan" />
+      <span class="flex-1 text-sm text-cyber-text">
+        <span class="font-semibold">Tải video TikTok không logo</span>
+        <span class="text-cyber-muted"> — miễn phí, dùng làm video mẫu cho Motion Control</span>
+      </span>
+      <Icon name="lucide:chevron-right" class="h-4 w-4 shrink-0 text-cyber-muted" />
+    </NuxtLink>
+
     <!-- Banner thông báo lỗi tiếng Việt (nếu có) -->
     <ApiErrorBanner
       :message-vi="errorMessageVi"
