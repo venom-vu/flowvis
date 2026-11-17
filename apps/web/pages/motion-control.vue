@@ -1,16 +1,12 @@
 <script setup lang="ts">
+import { usePageSeo } from '~/composables/usePageSeo';
 import { useAuthDialog } from '~/composables/useAuthDialog';
 import { useMotionControl } from '~/composables/useMotionControl';
 
-useHead({
+usePageSeo({
   title: 'Điều Khiển Chuyển Động (Motion Control) — flowvis',
-  meta: [
-    {
-      name: 'description',
-      content:
-        'Cho nhân vật trong ảnh chuyển động theo video mẫu. Cắt đoạn video theo từng giây và xem giá credit ngay khi kéo thanh trượt.',
-    },
-  ],
+  description:
+    'Cho nhân vật trong ảnh chuyển động theo video mẫu. Cắt đoạn video theo từng giây và xem giá credit ngay khi kéo thanh trượt.',
 });
 
 const { open: openAuthDialog } = useAuthDialog();
@@ -284,5 +280,7 @@ const {
         </div>
       </div>
     </section>
+
+    <ToolSeoSection tool="motion-control" />
   </div>
 </template>

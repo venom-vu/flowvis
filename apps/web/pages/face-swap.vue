@@ -1,4 +1,5 @@
 <script setup lang="ts">
+import { usePageSeo } from '~/composables/usePageSeo';
 import { useSystemStatus } from '~/composables/useSystemStatus';
 import { isPausedError } from '~/utils/system-status';
 import { computed, ref } from 'vue';
@@ -8,15 +9,10 @@ import { useApiClient } from '~/composables/useApiClient';
 import { useAuthDialog } from '~/composables/useAuthDialog';
 import { resolveApiErrorMessageVi } from '~/utils/api-client';
 
-useHead({
+usePageSeo({
   title: 'Hoán Đổi Khuôn Mặt (Face Swap) — flowvis',
-  meta: [
-    {
-      name: 'description',
-      content:
-        'Ghép khuôn mặt từ ảnh nguồn vào bất kỳ ảnh đích nào chỉ bằng một lần bấm. Giữ nguyên ánh sáng, góc nghiêng và độ phân giải gốc.',
-    },
-  ],
+  description:
+    'Ghép khuôn mặt từ ảnh nguồn vào bất kỳ ảnh đích nào chỉ bằng một lần bấm. Giữ nguyên ánh sáng, góc nghiêng và độ phân giải gốc.',
 });
 
 const { pricing, me, refreshAll } = usePricingConfig();
@@ -312,5 +308,7 @@ function handleReset(): void {
         </div>
       </div>
     </section>
+
+    <ToolSeoSection tool="face-swap" />
   </div>
 </template>

@@ -35,7 +35,7 @@ const token = computed<string>(() => {
 });
 
 const apiBaseUrl = computed(() => {
-  const raw = (config.public?.apiBaseUrl || 'http://localhost:8080') as string;
+  const raw = (config.public?.apiBaseUrl || 'http://localhost:8000') as string;
   return raw.replace(/\/+$/, '');
 });
 

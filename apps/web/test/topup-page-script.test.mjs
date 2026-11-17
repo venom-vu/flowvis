@@ -80,6 +80,7 @@ describe('pages/pricing.vue: handleSelectPack mở QR trực tiếp hoặc dialo
       {
         '~/composables/useAuth': `export const useAuth = () => ({ isAuthenticated: globalThis.__pr.authed });`,
         '~/composables/useAuthDialog': `export const useAuthDialog = () => ({ open: (...a) => globalThis.__pr.calls.push(['openAuthDialog', ...a]) });`,
+        '~/composables/usePageSeo': `export const usePageSeo = () => {};`,
         '~/composables/usePricingConfig': `import { ref } from 'vue';
 export const usePricingConfig = () => ({ pricing: ref(null), currentTier: ref('FREE'), isLoading: ref(false), errorMessageVi: ref(null), refreshAll: async () => {}, clearError: () => {} });`,
         '~/composables/useTopup': `import { ref } from 'vue';

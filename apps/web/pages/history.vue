@@ -15,6 +15,15 @@ import {
 } from '~/utils/wallet-ledger';
 import { badgeClass, getLedgerTypeTone } from '~/utils/status-badge';
 import { USER_TABLE_PAGE_SIZE, userTable } from '~/utils/user-table';
+import { usePageSeo } from '~/composables/usePageSeo';
+
+usePageSeo({
+  title: 'Lịch Sử Credit — flowvis',
+  description:
+    'Lịch sử giao dịch credit của tài khoản flowvis.',
+  noindex: true,
+});
+
 
 const { client, accessToken } = useApiClient();
 const { isAuthenticated, sessionChecked } = useAuth();

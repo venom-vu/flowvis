@@ -26,9 +26,27 @@ export default defineNuxtConfig({
           },
         }
       : { preset: 'node-server' },
+  // Header bảo mật cho mọi trang; trang riêng tư/quản trị thêm X-Robots-Tag để máy tìm kiếm không index.
+  // Không đặt CSP ở đây vì trang tải font từ Google Fonts và dùng script inline của Nuxt.
+  routeRules: {
+    '/**': {
+      headers: {
+        'Strict-Transport-Security': 'max-age=31536000',
+        'X-Content-Type-Options': 'nosniff',
+        'X-Frame-Options': 'SAMEORIGIN',
+        'Referrer-Policy': 'strict-origin-when-cross-origin',
+      },
+    },
+    '/admin/**': { headers: { 'X-Robots-Tag': 'noindex, nofollow' } },
+    '/history': { headers: { 'X-Robots-Tag': 'noindex, nofollow' } },
+    '/tasks/**': { headers: { 'X-Robots-Tag': 'noindex, nofollow' } },
+    '/share/**': { headers: { 'X-Robots-Tag': 'noindex, nofollow' } },
+    '/auth/**': { headers: { 'X-Robots-Tag': 'noindex, nofollow' } },
+  },
   runtimeConfig: {
     public: {
-      apiBaseUrl: process.env.NUXT_PUBLIC_API_BASE_URL || 'http://localhost:8080',
+      siteUrl: process.env.NUXT_PUBLIC_SITE_URL || 'https://flowvis.adasweep.xyz',
+      apiBaseUrl: process.env.NUXT_PUBLIC_API_BASE_URL || 'http://localhost:8000',
       reportEmail: process.env.NUXT_PUBLIC_REPORT_EMAIL || '',
     },
   },
@@ -59,6 +77,7 @@ export default defineNuxtConfig({
       title: 'flowvis — Tạo Ảnh & Video AI',
       meta: [
         { charset: 'utf-8' },
+        { name: 'theme-color', content: '#0F172A' },
         {
           name: 'viewport',
           content: 'width=device-width, initial-scale=1, maximum-scale=5',
@@ -70,6 +89,8 @@ export default defineNuxtConfig({
         },
       ],
       link: [
+        { rel: 'icon', type: 'image/svg+xml', href: '/favicon.svg' },
+        { rel: 'apple-touch-icon', href: '/apple-touch-icon.png' },
         { rel: 'preconnect', href: 'https://fonts.googleapis.com' },
         {
           rel: 'preconnect',
@@ -78,7 +99,7 @@ export default defineNuxtConfig({
         },
         {
           rel: 'stylesheet',
-          href: 'https://fonts.googleapis.com/css2?family=Geist:wght@400;500;600;700&family=Geist+Mono:wght@400;500;600&family=JetBrains+Mono:wght@400;500;600;700&family=Space+Grotesk:wght@400;500;600;700&display=swap',
+          href: 'https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500;600;700&family=Space+Grotesk:wght@400;500;600;700&display=swap',
         },
       ],
     },

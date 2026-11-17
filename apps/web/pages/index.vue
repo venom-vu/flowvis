@@ -7,6 +7,18 @@ import {
   type AiFeatureTool,
   type FeatureCategoryId,
 } from "~/utils/catalog";
+import { usePageSeo } from '~/composables/usePageSeo';
+import { useJsonLd } from '~/composables/useJsonLd';
+import { buildSoftwareApplicationJsonLd } from '~/utils/seo-jsonld';
+
+usePageSeo({
+  title: 'Kho Công Cụ AI — flowvis: Face Swap, Đổi Trang Phục, Motion Control',
+  description:
+    'Kho công cụ tạo ảnh và video AI: hoán đổi khuôn mặt, đổi trang phục, nâng ngực, đổi người và điều khiển chuyển động. Trả theo credit, tặng 250 CR khi đăng ký.',
+});
+
+
+useJsonLd(buildSoftwareApplicationJsonLd);
 
 const {
   pricing,

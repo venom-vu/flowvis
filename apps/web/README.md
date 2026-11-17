@@ -23,7 +23,7 @@ nitro: {
 
 ## 2. Kết nối API
 
-FE luôn gọi backend thật tại `NUXT_PUBLIC_API_BASE_URL` (mặc định `http://localhost:8080`), parse phản hồi qua Zod schema của `@flowvis/contracts` và ánh xạ mã lỗi `ApiErrorCode` sang tiếng Việt qua `API_ERROR_MESSAGES_VI`. Không còn chế độ mock; cần chạy `apps/api` (kèm Postgres, Redis) khi phát triển.
+FE luôn gọi backend thật tại `NUXT_PUBLIC_API_BASE_URL` (mặc định `http://localhost:8000`), parse phản hồi qua Zod schema của `@flowvis/contracts` và ánh xạ mã lỗi `ApiErrorCode` sang tiếng Việt qua `API_ERROR_MESSAGES_VI`. Không còn chế độ mock; cần chạy `apps/api` (kèm Postgres, Redis) khi phát triển.
 
 ## 3. Các lệnh phát triển
 

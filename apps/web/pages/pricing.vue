@@ -14,6 +14,14 @@ import {
   getTopupStatusBadge,
 } from '~/utils/status-badge';
 import { USER_TABLE_PAGE_SIZE, userTable } from '~/utils/user-table';
+import { usePageSeo } from '~/composables/usePageSeo';
+
+usePageSeo({
+  title: 'Bảng Giá Gói Nạp Credit — flowvis',
+  description:
+    'Bảng giá gói nạp credit và quyền lợi hạng tài khoản flowvis. Thanh toán nhanh qua VietQR.',
+});
+
 
 const { isAuthenticated } = useAuth();
 const { open: openAuthDialog } = useAuthDialog();

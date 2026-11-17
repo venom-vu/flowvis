@@ -28,7 +28,7 @@ export function useApiClient(): {
   );
 
   const baseUrl = String(
-    runtimeConfig.public.apiBaseUrl || 'http://localhost:8080',
+    runtimeConfig.public.apiBaseUrl || 'http://localhost:8000',
   );
 
   function setAccessToken(token: string | null): void {

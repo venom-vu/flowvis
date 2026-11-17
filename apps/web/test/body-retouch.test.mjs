@@ -328,6 +328,7 @@ describe('@flowvis/web — Story 4.4 Trang Body Retouch và thanh mức điều 
       pageComp = await loadSetup(
         'pages/body-retouch.vue',
         {
+          '~/composables/usePageSeo': `export const usePageSeo = () => {};`,
           '~/composables/usePricingConfig': `export const usePricingConfig = () => globalThis.__brPage.pricingConfig;`,
           '~/composables/useApiClient': `export const useApiClient = () => ({ client: globalThis.__brPage.client });`,
           '~/composables/useSystemStatus': `const intakePaused = globalThis.__sysStatus; export const useSystemStatus = () => ({ intakePaused, markPaused: () => { intakePaused.value = true; }, refresh: async () => {} });`,

@@ -1,4 +1,5 @@
 <script setup lang="ts">
+import { usePageSeo } from '~/composables/usePageSeo';
 import { useSystemStatus } from '~/composables/useSystemStatus';
 import { isPausedError } from '~/utils/system-status';
 import { computed, ref, watch } from 'vue';
@@ -17,15 +18,10 @@ import {
   resolveApiErrorMessageVi,
 } from '~/utils/api-client';
 
-useHead({
+usePageSeo({
   title: 'Nâng Ngực AI (Body Retouch) — flowvis',
-  meta: [
-    {
-      name: 'description',
-      content:
-        'Tăng kích cỡ và tôn dáng vòng một đầy đặn tự nhiên theo 10 mức độ chỉ bằng một lần bấm. Bảo toàn chi tiết trang phục, hậu cảnh và độ phân giải gốc.',
-    },
-  ],
+  description:
+    'Tăng kích cỡ và tôn dáng vòng một đầy đặn tự nhiên theo 10 mức độ chỉ bằng một lần bấm. Bảo toàn chi tiết trang phục, hậu cảnh và độ phân giải gốc.',
 });
 
 const { pricing, me, refreshAll } = usePricingConfig();
@@ -428,5 +424,7 @@ function handleReset(): void {
         </div>
       </div>
     </section>
+
+    <ToolSeoSection tool="body-retouch" />
   </div>
 </template>

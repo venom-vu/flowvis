@@ -1,4 +1,5 @@
 <script setup lang="ts">
+import { usePageSeo } from '~/composables/usePageSeo';
 import { useSystemStatus } from '~/composables/useSystemStatus';
 import { isPausedError } from '~/utils/system-status';
 import { computed, ref } from 'vue';
@@ -8,15 +9,10 @@ import { useApiClient } from '~/composables/useApiClient';
 import { useAuthDialog } from '~/composables/useAuthDialog';
 import { resolveApiErrorMessageVi } from '~/utils/api-client';
 
-useHead({
+usePageSeo({
   title: 'Đổi Trang Phục AI — flowvis',
-  meta: [
-    {
-      name: 'description',
-      content:
-        'Cho người mẫu mặc trang phục bất kỳ chỉ bằng một lần bấm. Giữ nguyên dáng người, khuôn mặt và bối cảnh.',
-    },
-  ],
+  description:
+    'Cho người mẫu mặc trang phục bất kỳ chỉ bằng một lần bấm. Giữ nguyên dáng người, khuôn mặt và bối cảnh.',
 });
 
 const { pricing, me, refreshAll } = usePricingConfig();
@@ -312,5 +308,7 @@ function handleReset(): void {
         </div>
       </div>
     </section>
+
+    <ToolSeoSection tool="outfit-change" />
   </div>
 </template>

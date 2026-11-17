@@ -1,4 +1,5 @@
 <script setup lang="ts">
+import { usePageSeo } from '~/composables/usePageSeo';
 import { useSystemStatus } from '~/composables/useSystemStatus';
 import { isPausedError } from '~/utils/system-status';
 import { computed, ref } from 'vue';
@@ -8,15 +9,10 @@ import { useApiClient } from '~/composables/useApiClient';
 import { useAuthDialog } from '~/composables/useAuthDialog';
 import { resolveApiErrorMessageVi } from '~/utils/api-client';
 
-useHead({
+usePageSeo({
   title: 'Đổi Người Trong Ảnh AI — flowvis',
-  meta: [
-    {
-      name: 'description',
-      content:
-        'Thay nhân vật trong ảnh bằng người khác chỉ bằng một lần bấm. Giữ nguyên bối cảnh và bố cục của ảnh gốc.',
-    },
-  ],
+  description:
+    'Thay nhân vật trong ảnh bằng người khác chỉ bằng một lần bấm. Giữ nguyên bối cảnh và bố cục của ảnh gốc.',
 });
 
 const { pricing, me, refreshAll } = usePricingConfig();
@@ -312,5 +308,7 @@ function handleReset(): void {
         </div>
       </div>
     </section>
+
+    <ToolSeoSection tool="person-replace" />
   </div>
 </template>

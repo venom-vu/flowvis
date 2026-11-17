@@ -1,8 +1,9 @@
 <script setup lang="ts">
+import { usePageSeo } from '~/composables/usePageSeo';
 import { useRuntimeConfig } from '#imports';
 import { privacy } from '~/content/legal/privacy';
 
-useHead({ title: 'Chính sách quyền riêng tư - flowvis' });
+usePageSeo({ title: 'Chính sách quyền riêng tư - flowvis', description: 'Cách flowvis thu thập, lưu trữ và bảo vệ dữ liệu cá nhân, ảnh và video bạn tải lên.' });
 const contactEmail = String(useRuntimeConfig().public.reportEmail || '');
 </script>
 

@@ -1,9 +1,19 @@
 <script setup lang="ts">
 import { provide } from 'vue';
-import { useRoute } from '#imports';
+import { useHead, useRoute } from '#imports';
 import { UI_VARIANT_KEY } from '~/utils/form-ui';
 
 provide(UI_VARIANT_KEY, 'admin');
+
+// Geist chỉ dùng ở trang quản trị nên chỉ nạp tại đây, không tải cho trang người dùng.
+useHead({
+  link: [
+    {
+      rel: 'stylesheet',
+      href: 'https://fonts.googleapis.com/css2?family=Geist:wght@400;500;600;700&family=Geist+Mono:wght@400;500;600&display=swap',
+    },
+  ],
+});
 
 const route = useRoute();
 
