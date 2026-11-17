@@ -16,6 +16,22 @@ export function buildReportMailto(email: string): string {
   )}&body=${encodeURIComponent(REPORT_MAILTO_BODY)}`;
 }
 
+/** Chuẩn hóa URL nhóm/OA Zalo công khai; chỉ chấp nhận http(s), rỗng hoặc không hợp lệ trả về null. */
+export function resolveZaloJoinUrl(rawUrl: unknown): string | null {
+  if (typeof rawUrl !== 'string') return null;
+  const trimmed = rawUrl.trim();
+  if (!trimmed) return null;
+  try {
+    const parsed = new URL(trimmed);
+    if (parsed.protocol !== 'http:' && parsed.protocol !== 'https:') {
+      return null;
+    }
+    return trimmed;
+  } catch {
+    return null;
+  }
+}
+
 export function isPausedError(error: unknown): boolean {
   if (!error || typeof error !== 'object') return false;
   const e = error as { status?: unknown; code?: unknown };

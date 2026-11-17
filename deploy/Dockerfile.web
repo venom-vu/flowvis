@@ -16,9 +16,11 @@ COPY apps/web ./apps/web
 # NUXT_PUBLIC_* được nạp lúc build; thiếu NUXT_PUBLIC_REPORT_EMAIL thì build production bị chặn.
 ARG NUXT_PUBLIC_API_BASE_URL
 ARG NUXT_PUBLIC_REPORT_EMAIL
+ARG NUXT_PUBLIC_ZALO_URL
 ENV NODE_ENV=production \
     NUXT_PUBLIC_API_BASE_URL=${NUXT_PUBLIC_API_BASE_URL} \
-    NUXT_PUBLIC_REPORT_EMAIL=${NUXT_PUBLIC_REPORT_EMAIL}
+    NUXT_PUBLIC_REPORT_EMAIL=${NUXT_PUBLIC_REPORT_EMAIL} \
+    NUXT_PUBLIC_ZALO_URL=${NUXT_PUBLIC_ZALO_URL}
 RUN pnpm --filter @flowvis/contracts run build && pnpm --filter @flowvis/web run build
 
 FROM base AS runtime

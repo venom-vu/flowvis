@@ -49,6 +49,8 @@ const authPending = computed<boolean>(
 
     <AppFooter />
 
+    <ZaloFloatingButton />
+
     <AppBottomNav />
     <AuthDialog />
   </div>
