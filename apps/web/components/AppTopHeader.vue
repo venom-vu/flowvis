@@ -76,7 +76,7 @@ function isActiveRoute(targetPath: string): boolean {
       <NuxtLink
         to="/"
         aria-label="Trang chủ flowvis"
-        class="touch-target inline-flex min-h-[48px] min-w-[48px] items-center gap-2.5 rounded-lg px-2 text-cyber-text transition hover:text-cyber-violet"
+        class="touch-target inline-flex min-h-[48px] min-w-[48px] items-center gap-2.5 rounded-lg pr-2 text-cyber-text transition hover:text-cyber-violet"
       >
         <span class="font-display text-2xl font-bold tracking-tight">
           flowvis
@@ -156,8 +156,12 @@ function isActiveRoute(targetPath: string): boolean {
           aria-label="Đang kiểm tra phiên đăng nhập"
           class="flex items-center gap-2"
         >
-          <div class="h-[48px] w-[104px] animate-pulse rounded-xl border border-cyber-border bg-cyber-surface" />
-          <div class="h-[48px] w-[48px] animate-pulse rounded-full border border-cyber-border bg-cyber-surface" />
+          <div
+            class="h-[48px] w-[104px] animate-pulse rounded-xl border border-cyber-border bg-cyber-surface"
+          />
+          <div
+            class="h-[48px] w-[48px] animate-pulse rounded-full border border-cyber-border bg-cyber-surface"
+          />
         </div>
 
         <AccountPopover v-if="isLoggedIn" :email="email" :role="role" />

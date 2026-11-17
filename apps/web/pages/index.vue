@@ -7,16 +7,15 @@ import {
   type AiFeatureTool,
   type FeatureCategoryId,
 } from "~/utils/catalog";
-import { usePageSeo } from '~/composables/usePageSeo';
-import { useJsonLd } from '~/composables/useJsonLd';
-import { buildSoftwareApplicationJsonLd } from '~/utils/seo-jsonld';
+import { usePageSeo } from "~/composables/usePageSeo";
+import { useJsonLd } from "~/composables/useJsonLd";
+import { buildSoftwareApplicationJsonLd } from "~/utils/seo-jsonld";
 
 usePageSeo({
-  title: 'Kho Công Cụ AI — flowvis: Face Swap, Đổi Trang Phục, Motion Control',
+  title: "Kho Công Cụ AI — flowvis: Face Swap, Đổi Trang Phục, Motion Control",
   description:
-    'Kho công cụ tạo ảnh và video AI: hoán đổi khuôn mặt, đổi trang phục, nâng ngực, đổi người và điều khiển chuyển động. Trả theo credit, tặng 250 CR khi đăng ký.',
+    "Kho công cụ tạo ảnh và video AI: hoán đổi khuôn mặt, đổi trang phục, nâng ngực, đổi người và điều khiển chuyển động. Trả theo credit, tặng 250 CR khi đăng ký.",
 });
-
 
 useJsonLd(buildSoftwareApplicationJsonLd);
 
@@ -106,7 +105,7 @@ function closeWorkspace(): void {
           </p>
         </div>
 
-        <div
+        <!-- <div
           v-if="pricing"
           data-testid="catalog-pricing-summary"
           class="grid grid-cols-2 gap-3 rounded-xl border border-cyber-border bg-cyber-bg/75 p-3.5 sm:grid-cols-3"
@@ -135,12 +134,12 @@ function closeWorkspace(): void {
               {{ formatNumberVi(pricing.tierFloorCredits) }} CR
             </span>
           </div>
-        </div>
+        </div> -->
       </div>
     </section>
 
     <!-- Lối tắt tới tiện ích miễn phí tải video TikTok (chạy hoàn toàn ở trình duyệt) -->
-    <NuxtLink
+    <!-- <NuxtLink
       to="/tiktok-downloader"
       data-testid="tiktok-downloader-shortcut"
       class="touch-target flex min-h-[48px] items-center gap-3 rounded-2xl border border-cyber-cyan/40 bg-cyber-surface/75 p-4 transition hover:border-cyber-cyan"
@@ -148,10 +147,15 @@ function closeWorkspace(): void {
       <Icon name="lucide:download" class="h-5 w-5 shrink-0 text-cyber-cyan" />
       <span class="flex-1 text-sm text-cyber-text">
         <span class="font-semibold">Tải video TikTok không logo</span>
-        <span class="text-cyber-muted"> — miễn phí, dùng làm video mẫu cho Motion Control</span>
+        <span class="text-cyber-muted">
+          — miễn phí, dùng làm video mẫu cho Motion Control</span
+        >
       </span>
-      <Icon name="lucide:chevron-right" class="h-4 w-4 shrink-0 text-cyber-muted" />
-    </NuxtLink>
+      <Icon
+        name="lucide:chevron-right"
+        class="h-4 w-4 shrink-0 text-cyber-muted"
+      />
+    </NuxtLink> -->
 
     <!-- Banner thông báo lỗi tiếng Việt (nếu có) -->
     <ApiErrorBanner

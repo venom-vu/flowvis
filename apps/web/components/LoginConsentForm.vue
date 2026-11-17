@@ -158,6 +158,15 @@ async function handleGoogleLogin(): Promise<void> {
           data-testid="tos-link"
           @click.stop
         >Điều khoản dịch vụ</NuxtLink>
+        và
+        <NuxtLink
+          to="/privacy"
+          target="_blank"
+          rel="noopener"
+          class="text-cyber-violet underline"
+          data-testid="privacy-link"
+          @click.stop
+        >Chính sách quyền riêng tư</NuxtLink>
       </span>
     </label>
   </div>

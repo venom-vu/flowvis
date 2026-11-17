@@ -17,15 +17,15 @@ const linkClass =
 <template>
   <footer
     data-testid="app-footer"
-    class="border-t border-cyber-border bg-cyber-bg px-4 pt-2"
+    class="border-t border-cyber-border bg-cyber-bg pt-2"
     :class="hasZaloButton ? 'pb-32 lg:pb-4' : 'pb-20 lg:pb-4'"
   >
     <nav
       aria-label="Chân trang"
-      class="mx-auto flex max-w-7xl flex-wrap items-center justify-center gap-x-2 sm:justify-between"
+      class="mx-auto flex w-full max-w-7xl flex-wrap items-center justify-center gap-x-2 px-4 sm:justify-between sm:px-6 lg:px-8"
       :class="hasZaloButton ? 'lg:pr-48' : ''"
     >
-      <span class="hidden text-xs text-cyber-muted sm:inline">flowvis</span>
+      <span class="text-xs text-cyber-muted">© 2026 flowvis. All rights reserved.</span>
       <div class="flex flex-wrap items-center justify-center">
         <NuxtLink to="/terms" :class="linkClass">Điều khoản dịch vụ</NuxtLink>
         <NuxtLink to="/privacy" :class="linkClass">Chính sách quyền riêng tư</NuxtLink>

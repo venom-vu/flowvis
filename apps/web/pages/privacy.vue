@@ -1,22 +1,28 @@
 <script setup lang="ts">
-import { usePageSeo } from '~/composables/usePageSeo';
 import { useRuntimeConfig } from '#imports';
+import { usePageSeo } from '~/composables/usePageSeo';
 import { privacy } from '~/content/legal/privacy';
+import { resolveZaloJoinUrl } from '~/utils/system-status';
 
-usePageSeo({ title: 'Chính sách quyền riêng tư - flowvis', description: 'Cách flowvis thu thập, lưu trữ và bảo vệ dữ liệu cá nhân, ảnh và video bạn tải lên.' });
-const contactEmail = String(useRuntimeConfig().public.reportEmail || '');
+usePageSeo({
+  title: 'Chính sách quyền riêng tư — flowvis',
+  description:
+    'Chính sách quyền riêng tư chính thức của flowvis: dữ liệu thu thập, mục đích sử dụng, thời gian lưu trữ tự động xóa và quyền xóa dữ liệu cá nhân.',
+});
+
+const publicConfig = useRuntimeConfig().public;
+const contactEmail = String(publicConfig.reportEmail || '').trim();
+const zaloUrl = resolveZaloJoinUrl(publicConfig.zaloUrl);
 </script>
 
 <template>
-  <div>
-    <LegalDocumentView :doc="privacy" testid="page-privacy" />
-    <p
-      v-if="contactEmail"
-      class="mx-auto max-w-3xl pb-4 text-sm text-cyber-muted"
-      data-testid="privacy-contact-email"
-    >
-      Email liên hệ:
-      <a :href="`mailto:${contactEmail}`" class="text-cyber-cyan underline">{{ contactEmail }}</a>
-    </p>
-  </div>
+  <LegalDocumentView
+    :doc="privacy"
+    testid="page-privacy"
+    contact-testid="privacy-contact-email"
+    :contact-email="contactEmail"
+    :zalo-url="zaloUrl"
+    companion-to="/terms"
+    companion-label="Đọc Điều khoản dịch vụ"
+  />
 </template>

@@ -261,13 +261,14 @@ function handleRecreate(): void {
         </div>
 
         <p class="text-[11px] text-cyber-muted" data-testid="vietqr-tos-note">
-          Khi nạp tiền, bạn cam kết theo
+          Khi nạp tiền, bạn xác nhận đồng ý với
           <NuxtLink
             to="/terms"
             target="_blank"
             rel="noopener"
             class="text-cyber-cyan underline"
-          >Điều khoản dịch vụ</NuxtLink>.
+          >Điều khoản dịch vụ</NuxtLink>
+          (bao gồm quy định credit và chính sách hoàn tiền).
         </p>
 
         <!-- Trạng thái 1: awaiting_transfer (Chờ chuyển khoản - Bố cục 2 cột ngang) -->
