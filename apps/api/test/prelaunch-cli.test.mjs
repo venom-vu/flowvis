@@ -51,7 +51,7 @@ describe('Story 6.11: CLI prelaunch-notify', () => {
     assert.equal(typeof out.latencyMs, 'number');
     const hit = hits.find((h) => h.url === '/ok');
     assert.ok(hit);
-    assert.match(JSON.parse(hit.body).content, /prelaunch\.discord_test/);
+    assert.match(JSON.stringify(JSON.parse(hit.body).embeds), /prelaunch\.discord_test/);
   });
 
   it('webhook trả 500: in {ok:false}, thoát 1, không lộ URL', async () => {

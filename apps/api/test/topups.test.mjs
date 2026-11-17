@@ -853,10 +853,11 @@ describe('Story 3.4: [BE] Thông báo Discord cho Admin', () => {
     assert.equal(reqs[0].url, WEBHOOK_PATH);
     const parsed = JSON.parse(reqs[0].body);
     assert.deepEqual(parsed.allowed_mentions, { parse: [] });
-    assert.ok(parsed.content.length <= 2000);
-    for (const needle of [code, '99.000đ', 'pro', 'giờ VN']) assert.ok(parsed.content.includes(needle), needle);
-    assert.ok(!parsed.content.includes('{'), 'không còn dòng JSON');
-    assert.ok(!/\dT\d{2}:\d{2}.*Z/.test(parsed.content), 'không dùng giờ UTC dạng ISO');
+    const text = parsed.embeds[0].description;
+    assert.ok(text.length <= 2000);
+    for (const needle of [code, '99.000đ', 'pro', 'giờ VN']) assert.ok(text.includes(needle), needle);
+    assert.ok(!text.includes('{'), 'không còn dòng JSON');
+    assert.ok(!/\dT\d{2}:\d{2}.*Z/.test(text), 'không dùng giờ UTC dạng ISO');
     for (const bad of [u.email, 'jwt', u.token, '0123456789', 'CONG TY FLOWVIS', 'secret-token-xyz', 'Bearer'])
       assert.ok(!reqs[0].body.includes(bad), bad);
   });

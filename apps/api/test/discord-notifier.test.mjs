@@ -38,10 +38,10 @@ describe('DiscordNotifierAdapter: cắt nội dung và timeout', () => {
     mode = 'ok';
     received.length = 0;
     // Biểu tượng ngoài BMP chiếm 2 đơn vị UTF-16: cắt theo đơn vị sẽ tạo surrogate lẻ.
-    const message = '😀'.repeat(1500);
+    const message = '😀'.repeat(2500);
     await new DiscordNotifierAdapter(url).notify({ kind: 'LEDGER_MISMATCH', severity: 'error', message });
     assert.equal(received.length, 1);
-    const { content } = received[0];
+    const content = received[0].embeds[0].description;
     assert.ok(Array.from(content).length <= 2000, `độ dài ${Array.from(content).length}`);
     assert.ok(content.endsWith('…'));
     assert.doesNotMatch(content, /[\uD800-\uDBFF](?![\uDC00-\uDFFF])|(?<![\uD800-\uDBFF])[\uDC00-\uDFFF]/);
@@ -51,7 +51,31 @@ describe('DiscordNotifierAdapter: cắt nội dung và timeout', () => {
     mode = 'ok';
     received.length = 0;
     await new DiscordNotifierAdapter(url).notify({ kind: 'X', message: 'ngắn' });
-    assert.equal(received[0].content, '[info] X: ngắn');
+    const embed = received[0].embeds[0];
+    assert.equal(embed.description, 'ngắn');
+    assert.equal(embed.title, 'Thông tin: X');
+    assert.equal(embed.color, 0x5865f2);
+    assert.equal(embed.fields, undefined);
+    assert.deepEqual(received[0].allowed_mentions, { parse: [] });
+  });
+
+  it('mức độ quyết định màu, kind đã biết có tiêu đề tiếng Việt, mỗi khóa data là một trường', async () => {
+    mode = 'ok';
+    received.length = 0;
+    await new DiscordNotifierAdapter(url).notify({
+      kind: 'ops.breaker_triggered',
+      severity: 'error',
+      message: 'm',
+      data: { rule: 'R', errorRate: 0.5, nested: { a: 1 } },
+    });
+    const embed = received[0].embeds[0];
+    assert.equal(embed.title, 'Lỗi: Ngắt mạch đã kích hoạt');
+    assert.equal(embed.color, 0xed4245);
+    assert.deepEqual(
+      embed.fields.map((f) => [f.name, f.value]),
+      [['Quy tắc', 'R'], ['Tỉ lệ lỗi', '0.5'], ['nested', '{"a":1}']],
+    );
+    assert.equal(embed.footer.text, 'flowvis · ops.breaker_triggered');
   });
 
   it('máy chủ nhận kết nối nhưng không trả lời: notify bị từ chối nhanh, lỗi không lộ URL webhook', { timeout: 6000 }, async () => {

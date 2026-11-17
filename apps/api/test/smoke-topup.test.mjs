@@ -78,7 +78,7 @@ function startFakeDiscord(messages) {
   return listen(
     http.createServer(async (req, res) => {
       if (req.method === 'POST' && req.url === '/hook') {
-        messages.push(JSON.parse((await readBody(req)).toString()).content);
+        messages.push(JSON.parse((await readBody(req)).toString()).embeds[0].description);
         res.statusCode = 204;
         return res.end();
       }
