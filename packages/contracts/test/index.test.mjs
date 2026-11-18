@@ -926,7 +926,7 @@ describe('@flowvis/contracts', () => {
     const KEY = 'in/10000000-0000-4000-8000-000000000001/60000000-0000-4000-8000-000000000001';
 
     it('exports pipelines and intensity constants', () => {
-      assert.deepEqual([...TASK_PIPELINES], ['face_swap', 'body_retouch', 'motion_control', 'outfit_change', 'person_replace', 'motion_control_v2']);
+      assert.deepEqual([...TASK_PIPELINES], ['face_swap', 'body_retouch', 'motion_control', 'outfit_change', 'person_replace', 'motion_control_v2', 'motion_background']);
       assert.deepEqual([INTENSITY_MIN, INTENSITY_MAX, INTENSITY_DEFAULT], [1, 10, 5]);
     });
 

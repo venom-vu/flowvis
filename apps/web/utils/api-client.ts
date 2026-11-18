@@ -60,6 +60,8 @@ import {
   MotionCreateResponseSchema,
   MotionV2CreateRequestSchema,
   MotionV2CreateResponseSchema,
+  MotionBackgroundCreateRequestSchema,
+  MotionBackgroundCreateResponseSchema,
   PricingConfigResponseSchema,
   ShareInfoResponseSchema,
   TaskIdParamsSchema,
@@ -137,6 +139,8 @@ import {
   type MotionCreateResponse,
   type MotionV2CreateRequest,
   type MotionV2CreateResponse,
+  type MotionBackgroundCreateRequest,
+  type MotionBackgroundCreateResponse,
   type PricingConfigResponse,
   type ReasonCode,
   type ShareInfoResponse,
@@ -184,6 +188,8 @@ export {
   MotionCreateResponseSchema,
   MotionV2CreateRequestSchema,
   MotionV2CreateResponseSchema,
+  MotionBackgroundCreateRequestSchema,
+  MotionBackgroundCreateResponseSchema,
   ShareInfoResponseSchema,
   type AdminAdjustRequest,
   type AdminAdjustResponse,
@@ -800,6 +806,23 @@ export function createMotionApiClient(options: MotionApiClientOptions = {}) {
           signal: options?.signal,
         },
         (payload) => MotionV2CreateResponseSchema.parse(payload),
+      );
+    },
+
+    async createMotionBackgroundTask(
+      rawRequest: MotionBackgroundCreateRequest,
+      options?: { signal?: AbortSignal },
+    ): Promise<MotionBackgroundCreateResponse> {
+      const data = MotionBackgroundCreateRequestSchema.parse(rawRequest);
+      return requestLive(
+        '/tasks/motion-background',
+        {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(data),
+          signal: options?.signal,
+        },
+        (payload) => MotionBackgroundCreateResponseSchema.parse(payload),
       );
     },
 

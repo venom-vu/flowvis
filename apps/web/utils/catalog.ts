@@ -19,7 +19,10 @@ export const FEATURE_CATEGORIES: readonly FeatureCategoryOption[] = [
   { id: "video", labelVi: "Chuyển động video AI", icon: "lucide:video" },
 ] as const;
 
-export type FeaturePipelineId = "face-swap" | "outfit-change" | "person-replace" | "body-retouch" | "motion-control" | "motion-control-v2";
+export type FeaturePipelineId = "face-swap" | "outfit-change" | "person-replace" | "body-retouch" | "motion-control" | "motion-control-v2" | "motion-background";
+
+/** Chức năng tạm ẩn khỏi kho công cụ, sitemap và trang riêng (backend giữ nguyên); xóa id khỏi đây để bật lại. */
+export const HIDDEN_FEATURE_IDS: readonly FeaturePipelineId[] = ["person-replace", "motion-background"];
 
 export interface AiFeatureTool {
   id: FeaturePipelineId;
@@ -100,10 +103,11 @@ export function buildAiFeatureCatalog(
   const tierCapSeconds = activeTierConfig.maxVideoSeconds;
   const motionV1Cap = motionCapSeconds("motion_control", tierCapSeconds);
   const motionV2Cap = motionCapSeconds("motion_control_v2", tierCapSeconds);
+  const motionBgCap = motionCapSeconds("motion_background", tierCapSeconds);
   const { faceSwapCredits, outfitChangeCredits, personReplaceCredits, bodyRetouchCredits, motionControlCreditsPerSecond } =
     pricing.pipelines;
 
-  return [
+  const all: AiFeatureTool[] = [
     {
       id: "face-swap",
       slug: "face-swap",
@@ -252,7 +256,35 @@ export function buildAiFeatureCatalog(
       inputRequirementVi: "1 ảnh nhân vật rõ dáng + 1 video chuyển động mẫu",
       outputFormatVi: "Video MP4 H.264 lưu trữ trên Cloudflare R2",
     },
+    {
+      id: "motion-background",
+      slug: "motion-background",
+      titleVi: "Motion Control Nền Video",
+      subtitleVi: "Chuyển động theo video mẫu, giữ nền cho video",
+      descriptionVi:
+        "Ánh xạ chuyển động từ video mẫu sang ảnh nhân vật kèm nền, cắt thời lượng theo giây và tính phí theo độ dài.",
+      category: "video",
+      categoryLabelVi: "Chuyển động video AI",
+      badgeVi: "Motion nền",
+      icon: "lucide:clapperboard",
+      billingMode: "per_second",
+      unitCredits: motionControlCreditsPerSecond,
+      priceBadgeVi: `${formatNumberVi(motionControlCreditsPerSecond)} credit / giây`,
+      tierCapSeconds: motionBgCap,
+      tierCapLabelVi: `Tối đa ${formatNumberVi(motionBgCap)} giây`,
+      beforeLabelVi: "Ảnh nhân vật + Video mẫu",
+      afterLabelVi: "Video chuyển động đồng bộ",
+      bannerUrl: "/banner/motion-control-v2.mp4",
+      bannerType: "video",
+      accentGradient: "from-violet-600/35 via-indigo-950 to-cyan-500/30",
+      inputRequirementVi: "1 ảnh nhân vật rõ dáng + 1 video chuyển động mẫu",
+      outputFormatVi: "Video MP4 H.264 lưu trữ trên Cloudflare R2",
+    },
   ];
+  // Chức năng video lên đầu; sort ổn định nên thứ tự trong từng nhóm giữ nguyên.
+  return all
+    .filter((f) => !HIDDEN_FEATURE_IDS.includes(f.id))
+    .sort((a, b) => Number(b.category === "video") - Number(a.category === "video"));
 }
 
 export function calculateFeatureEstimatedCredits(

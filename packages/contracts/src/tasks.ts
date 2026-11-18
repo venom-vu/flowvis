@@ -16,6 +16,7 @@ export const MOTION_MIN_TRIM_SECONDS = 3;
 export const MOTION_MAX_SECONDS = {
   motion_control: 20,
   motion_control_v2: 10,
+  motion_background: 20,
 } as const;
 export type MotionPipeline = keyof typeof MOTION_MAX_SECONDS;
 
@@ -24,7 +25,7 @@ export function motionCapSeconds(pipeline: MotionPipeline, tierCapSeconds: numbe
   return Math.min(MOTION_MAX_SECONDS[pipeline], tierCapSeconds);
 }
 
-export const TASK_PIPELINES = ['face_swap', 'body_retouch', 'motion_control', 'outfit_change', 'person_replace', 'motion_control_v2'] as const;
+export const TASK_PIPELINES = ['face_swap', 'body_retouch', 'motion_control', 'outfit_change', 'person_replace', 'motion_control_v2', 'motion_background'] as const;
 export type TaskPipeline = (typeof TASK_PIPELINES)[number];
 export const TaskPipelineSchema = z.enum(TASK_PIPELINES);
 
@@ -356,6 +357,15 @@ export const MotionV2CreateResponseSchema = TaskBaseSchema.extend({
   price: z.number().int().positive(),
 }).superRefine(refineMotionTask);
 export type MotionV2CreateResponse = z.infer<typeof MotionV2CreateResponseSchema>;
+
+/** POST /tasks/motion-background — Motion control nền video: ảnh nền/nhân vật + đoạn video đã cắt; giá theo giây như v1. */
+export const MotionBackgroundCreateRequestSchema = MotionV2CreateRequestSchema;
+export type MotionBackgroundCreateRequest = z.input<typeof MotionBackgroundCreateRequestSchema>;
+export const MotionBackgroundCreateResponseSchema = TaskBaseSchema.extend({
+  pipeline: z.literal('motion_background'),
+  price: z.number().int().positive(),
+}).superRefine(refineMotionTask);
+export type MotionBackgroundCreateResponse = z.infer<typeof MotionBackgroundCreateResponseSchema>;
 
 /** `details.reason` của VALIDATION_FAILED cho video/Trim. */
 export const VALIDATION_REASONS = [

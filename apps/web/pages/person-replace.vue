@@ -1,4 +1,6 @@
 <script setup lang="ts">
+// Tạm ẩn: chuyển về trang chủ (bật lại bằng cách xóa dòng này và id khỏi HIDDEN_FEATURE_IDS).
+definePageMeta({ middleware: () => navigateTo('/', { replace: true }) });
 import { usePageSeo } from '~/composables/usePageSeo';
 import { useSystemStatus } from '~/composables/useSystemStatus';
 import { isPausedError } from '~/utils/system-status';

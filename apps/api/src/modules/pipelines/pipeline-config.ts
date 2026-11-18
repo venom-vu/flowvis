@@ -43,9 +43,6 @@ export interface PipelineConfig {
   readonly deadlineMs?: number;
 }
 
-/** Prompt mặc định khi người dùng để trống (workflow gốc dùng tiếng Trung). */
-const DEFAULT_MOTION_PROMPT = '美女跳舞';
-
 export const PIPELINE_CONFIGS: Readonly<Record<string, PipelineConfig>> = {
   face_swap: {
     pipeline: 'face_swap',
@@ -105,19 +102,11 @@ export const PIPELINE_CONFIGS: Readonly<Record<string, PipelineConfig>> = {
     instanceEnvVar: 'RUNNINGHUB_INSTANCE_MOTION_CONTROL',
     runMode: 'ai-app',
     requiredAtStartup: true,
-    // AI App Motion Control (2108650752700166145): node 30 = ảnh nhân vật, node 33 = video chuyển động.
+    // AI App Motion Control (2122377113419743233): node 30 = ảnh nhân vật, node 33 = video chuyển động. Không có tham số/node cố định.
     inputs: [
       { inputKey: 'characterKey', nodeId: '30', fieldName: 'image' },
       { inputKey: 'videoKey', nodeId: '33', fieldName: 'video' },
     ],
-    // Tham số người dùng chọn: 134/135 = rộng/cao theo khung hình, 277 = prompt (mặc định dọc 576x1024).
-    params: [
-      { paramKey: 'width', nodeId: '134', fieldName: 'value', fallback: '576' },
-      { paramKey: 'height', nodeId: '135', fieldName: 'value', fallback: '1024' },
-      { paramKey: 'prompt', nodeId: '277', fieldName: 'text', fallback: DEFAULT_MOTION_PROMPT },
-    ],
-    // Node cố định: 278 = fps.
-    fixedNodes: [{ nodeId: '278', fieldName: 'value', fieldValue: '24' }],
     deadlineMs: 360_000,
     prepare: (ctx) => videoTrim.prepare(ctx),
   },
@@ -155,6 +144,20 @@ export const PIPELINE_CONFIGS: Readonly<Record<string, PipelineConfig>> = {
         fieldValue:
           '提示词优化说明：\nanimate迁移光脚做踮脚动作容易出现生成鞋跟，可以通过增加提示词”女人光着脚跳舞“来进行限制。\n参考视频中人物有美甲时容易导致生成视频的人物手指过长，可以通过增加提示词”戴着美甲的女人跳舞“来进行调整。\n防止裸舞时转身时出现红屁股：光屁股的裸体女人跳舞。\n更多提示词示范：女人拿着扇子跳舞/女人坐在凳子上跳舞等等（前提是参考图有对应物品，不然AI自动想象）\n\nQQ：160783994\n\n视频超分（视频分辨率放大两倍大概需要消耗20至35币）\nhttps://www.runninghub.ai/zh-cn/ai-detail/2089116231571095554\n动作迁移非会员版\nhttps://www.runninghub.ai/zh-cn/ai-detail/2111854957347942402',
       },
+    ],
+    deadlineMs: 360_000,
+    prepare: (ctx) => videoTrim.prepare(ctx),
+  },
+  motion_background: {
+    pipeline: 'motion_background',
+    workflowEnvVar: 'RUNNINGHUB_WORKFLOW_MOTION_BACKGROUND',
+    instanceEnvVar: 'RUNNINGHUB_INSTANCE_MOTION_BACKGROUND',
+    runMode: 'ai-app',
+    // Không requiredAtStartup: môi trường chưa cấu hình vẫn khởi động; adapter unconfigured ném RH_ERROR.
+    // AI App Motion control nền video (2097276664149921793): 286 = ảnh, 274 = video (đã cắt). Không có tham số/node cố định.
+    inputs: [
+      { inputKey: 'characterKey', nodeId: '286', fieldName: 'image' },
+      { inputKey: 'videoKey', nodeId: '274', fieldName: 'video' },
     ],
     deadlineMs: 360_000,
     prepare: (ctx) => videoTrim.prepare(ctx),

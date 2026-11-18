@@ -23,6 +23,8 @@ import {
   type MotionCreateRequest,
   type MotionV2CreateRequest,
   type MotionV2CreateResponse,
+  type MotionBackgroundCreateRequest,
+  type MotionBackgroundCreateResponse,
   type ValidationReason,
   MOTION_MIN_TRIM_SECONDS,
   MOTION_ASPECT_RATIO_DEFAULT,
@@ -99,6 +101,7 @@ const INPUT_DISPLAY_ORDER: Readonly<Record<string, readonly string[]>> = {
   body_retouch: ['imageKey'],
   motion_control: ['characterKey', 'videoKey'],
   motion_control_v2: ['characterKey', 'videoKey'],
+  motion_background: ['characterKey', 'videoKey'],
 };
 
 /** Chỉ lộ các tham số người dùng chọn; không lộ giá, kích thước nội bộ. */
@@ -712,9 +715,15 @@ export class TasksService {
     return task as MotionV2CreateResponse;
   }
 
+  /** Motion control nền video: cùng cách tính giá/Trim như v2. */
+  async createMotionBackground(userId: string, req: MotionBackgroundCreateRequest): Promise<MotionBackgroundCreateResponse> {
+    const task = await this.createMotionTask(userId, 'motion_background', req, {});
+    return task as MotionBackgroundCreateResponse;
+  }
+
   private async createMotionTask(
     userId: string,
-    pipeline: 'motion_control' | 'motion_control_v2',
+    pipeline: 'motion_control' | 'motion_control_v2' | 'motion_background',
     req: { characterKey: string; videoKey: string; trimStart: number; trimEnd: number },
     extraParams: Record<string, unknown>,
   ) {
@@ -761,7 +770,7 @@ export class TasksService {
   private async createPipelineTask(
     userId: string,
     spec: {
-      pipeline: 'face_swap' | 'outfit_change' | 'person_replace' | 'body_retouch' | 'motion_control' | 'motion_control_v2';
+      pipeline: 'face_swap' | 'outfit_change' | 'person_replace' | 'body_retouch' | 'motion_control' | 'motion_control_v2' | 'motion_background';
       amount: number;
       inputKeys: Record<string, string>;
       params: Record<string, unknown>;

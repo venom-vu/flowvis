@@ -66,8 +66,6 @@ const motionSeconds = motion.seconds;
 const motionInsufficientNoteVi = motion.insufficientNoteVi;
 const motionSubmitErrorVi = motion.submitErrorVi;
 const motionIsSubmitting = motion.isSubmitting;
-const motionAspectRatio = motion.aspectRatio;
-const motionPrompt = motion.prompt;
 const motionKey = ref<number>(0);
 
 // Dọn sạch trạng thái Motion và buộc VideoTrimmer/ImageUploader remount.
@@ -173,13 +171,16 @@ const isAuthenticated = computed<boolean>(() => {
 });
 
 const isMotion = computed<boolean>(
-  () => props.feature?.id === 'motion-control' || props.feature?.id === 'motion-control-v2',
+  () => props.feature?.id === 'motion-control' ||
+    props.feature?.id === 'motion-control-v2' ||
+    props.feature?.id === 'motion-background',
 );
 const isMotionV2 = computed<boolean>(() => props.feature?.id === 'motion-control-v2');
+const isMotionBackground = computed<boolean>(() => props.feature?.id === 'motion-background');
 watch(
-  isMotionV2,
-  (v2) => {
-    motion.variant.value = v2 ? 'v2' : 'v1';
+  [isMotionV2, isMotionBackground],
+  ([v2, bg]) => {
+    motion.variant.value = bg ? 'bg' : v2 ? 'v2' : 'v1';
   },
   { immediate: true, flush: 'sync' },
 );
@@ -445,7 +446,7 @@ onBeforeUnmount(() => {
         <div class="flex items-center gap-2">
           <NuxtLink
             v-if="feature.id === 'face-swap' || feature.id === 'outfit-change' || feature.id === 'person-replace' || feature.id === 'body-retouch' || isMotion"
-            :to="feature.id === 'body-retouch' ? '/body-retouch' : feature.id === 'motion-control' ? '/motion-control' : feature.id === 'motion-control-v2' ? '/motion-control-v2' : feature.id === 'outfit-change' ? '/outfit-change' : feature.id === 'person-replace' ? '/person-replace' : '/face-swap'"
+            :to="feature.id === 'body-retouch' ? '/body-retouch' : feature.id === 'motion-control' ? '/motion-control' : feature.id === 'motion-control-v2' ? '/motion-control-v2' : feature.id === 'motion-background' ? '/motion-background' : feature.id === 'outfit-change' ? '/outfit-change' : feature.id === 'person-replace' ? '/person-replace' : '/face-swap'"
             data-testid="workspace-open-standalone-link"
             class="touch-target inline-flex min-h-[48px] items-center gap-1.5 rounded-xl border border-cyber-border bg-cyber-bg px-3 py-2 text-xs font-semibold text-cyber-muted transition hover:border-cyber-cyan hover:text-cyber-cyan"
             @click="emit('close')"
@@ -737,13 +738,6 @@ onBeforeUnmount(() => {
               :cap-seconds="motionCapSeconds"
               :tier-name="userTier"
               @change="onMotionTrimChange"
-            />
-            <MotionOptions
-              v-if="!isMotionV2"
-              v-model:aspect-ratio="motionAspectRatio"
-              v-model:prompt="motionPrompt"
-              id-prefix="workspace-motion"
-              :disabled="motionIsSubmitting"
             />
             <p
               v-if="motionSeconds > 0"

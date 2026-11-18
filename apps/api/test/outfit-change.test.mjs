@@ -70,3 +70,19 @@ describe('motion_control_v2: cấu hình pipeline RunningHub', () => {
     assert.equal(typeof cfg.prepare, 'function');
   });
 });
+
+describe('motion_background: cấu hình pipeline RunningHub', () => {
+  const cfg = PIPELINE_CONFIGS.motion_background;
+
+  it('ánh xạ node ảnh (286), video (274), không có tham số/node cố định', () => {
+    assert.deepEqual(cfg.inputs, [
+      { inputKey: 'characterKey', nodeId: '286', fieldName: 'image' },
+      { inputKey: 'videoKey', nodeId: '274', fieldName: 'video' },
+    ]);
+    assert.equal(cfg.params, undefined);
+    assert.equal(cfg.fixedNodes, undefined);
+    assert.equal(cfg.workflowEnvVar, 'RUNNINGHUB_WORKFLOW_MOTION_BACKGROUND');
+    assert.equal(cfg.instanceEnvVar, 'RUNNINGHUB_INSTANCE_MOTION_BACKGROUND');
+    assert.equal(typeof cfg.prepare, 'function');
+  });
+});

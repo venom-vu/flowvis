@@ -9,6 +9,8 @@ import {
   type OutfitChangeCreateResponse,
   MotionCreateRequestSchema,
   MotionV2CreateRequestSchema,
+  MotionBackgroundCreateRequestSchema,
+  type MotionBackgroundCreateResponse,
   type MotionV2CreateResponse,
   getValidationReasonMessageVi,
   type MotionCreateResponse,
@@ -177,6 +179,40 @@ export class TasksController {
       });
     }
     return this.tasks.createMotionControlV2(user.sub, parsed.data);
+  }
+
+  @Post('motion-background')
+  @CreatesTask()
+  @UseGuards(IntakeOpenGuard)
+  async createMotionBackground(
+    @CurrentUser() user: JwtUserPayload,
+    @Body() body: unknown,
+  ): Promise<MotionBackgroundCreateResponse> {
+    const parsed = MotionBackgroundCreateRequestSchema.safeParse(body);
+    if (!parsed.success) {
+      const code = ApiErrorCode.VALIDATION_FAILED;
+      // Thứ tự xác định: trimStart trước trimEnd.
+      const trimIssue = ['trimStart', 'trimEnd']
+        .map((k) => parsed.error.issues.find((i) => i.path[0] === k))
+        .find((i) => i !== undefined);
+      let reason: 'TRIM_NOT_WHOLE_SECOND' | 'TRIM_OUT_OF_VIDEO' | null = null;
+      if (trimIssue?.code === 'too_small') reason = 'TRIM_OUT_OF_VIDEO';
+      else if (trimIssue?.code === 'invalid_type' && trimIssue.expected === 'integer') {
+        reason = 'TRIM_NOT_WHOLE_SECOND';
+      }
+      if (reason) {
+        throw new BadRequestException({
+          code,
+          message: getValidationReasonMessageVi(reason),
+          details: { reason },
+        });
+      }
+      throw new BadRequestException({
+        code,
+        message: parsed.error.issues[0]?.message ?? getApiErrorMessageVi(code),
+      });
+    }
+    return this.tasks.createMotionBackground(user.sub, parsed.data);
   }
 
   @Get()

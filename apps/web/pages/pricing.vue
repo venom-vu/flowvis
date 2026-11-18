@@ -261,7 +261,7 @@ function dismissCreateError(): void {
                 <span>
                   Motion Control:
                   <strong class="font-mono text-cyber-text">
-                    {{ tierItem.maxVideoSeconds >= 20 ? 'v1 tối đa 20 giây, v2 tối đa 10 giây' : `tối đa ${formatNumberVi(tierItem.maxVideoSeconds)} giây` }}
+                    {{ tierItem.maxVideoSeconds >= 20 ? 'v1 và Motion nền video tối đa 20 giây, v2 tối đa 10 giây' : `tối đa ${formatNumberVi(tierItem.maxVideoSeconds)} giây` }}
                   </strong>
                 </span>
               </li>

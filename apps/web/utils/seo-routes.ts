@@ -3,7 +3,6 @@ export const SITEMAP_PATHS = [
   '/',
   '/face-swap',
   '/outfit-change',
-  '/person-replace',
   '/body-retouch',
   '/motion-control',
   '/motion-control-v2',

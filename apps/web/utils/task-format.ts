@@ -20,6 +20,7 @@ export const PIPELINE_LABELS_VI: Readonly<Record<string, string>> = {
   body_retouch: 'Chỉnh sửa vóc dáng',
   motion_control: 'Điều khiển chuyển động',
   motion_control_v2: 'Điều khiển chuyển động v2',
+  motion_background: 'Motion control nền video',
 };
 
 export function getPipelineLabelVi(pipeline: TaskPipeline | string): string {

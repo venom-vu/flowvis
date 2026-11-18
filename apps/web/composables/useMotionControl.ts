@@ -35,7 +35,7 @@ export function useMotionControl() {
   const { client } = useApiClient();
 
   /** v1: có khung hình + prompt; v2: chỉ ảnh nhân vật + đoạn video. */
-  const variant = ref<'v1' | 'v2'>('v1');
+  const variant = ref<'v1' | 'v2' | 'bg'>('v1');
   const characterKey = ref<string | null>(null);
   const videoKey = ref<string | null>(null);
   const trimStart = ref<number>(0);
@@ -57,7 +57,10 @@ export function useMotionControl() {
     const featureCap =
       tierCap == null
         ? null
-        : motionCapSeconds(variant.value === 'v2' ? 'motion_control_v2' : 'motion_control', tierCap);
+        : motionCapSeconds(
+            variant.value === 'v2' ? 'motion_control_v2' : variant.value === 'bg' ? 'motion_background' : 'motion_control',
+            tierCap,
+          );
     if (featureCap == null) return override;
     return override == null ? featureCap : Math.min(featureCap, override);
   });
@@ -178,7 +181,9 @@ export function useMotionControl() {
       const task =
         variant.value === 'v2'
           ? await client.createMotionControlV2Task(base)
-          : await client.createMotionControlTask({
+          : variant.value === 'bg'
+            ? await client.createMotionBackgroundTask(base)
+            : await client.createMotionControlTask({
               ...base,
               aspectRatio: aspectRatio.value,
               prompt: prompt.value.trim(),

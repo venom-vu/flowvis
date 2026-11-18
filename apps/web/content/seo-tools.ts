@@ -91,6 +91,20 @@ export const TOOL_SEO_CONTENT = {
       'Chỉ cắt đúng đoạn cần dùng để tiết kiệm credit.',
     ],
   },
+  'motion-background': {
+    heading: 'Motion control nền video: tạo video chuyển động từ ảnh và video mẫu',
+    intro:
+      'Ánh xạ chuyển động từ video mẫu sang ảnh nhân vật kèm nền, cắt thời lượng theo giây và tính phí theo độ dài.',
+    steps: [
+      'Tải ảnh nhân vật rõ dáng.',
+      'Tải video chuyển động mẫu rồi cắt đoạn cần dùng.',
+      'Bấm tạo và tải video kết quả khi hoàn tất.',
+    ],
+    tips: [
+      'Chọn video mẫu có một người chuyển động rõ ràng.',
+      'Chỉ cắt đúng đoạn cần dùng để tiết kiệm credit.',
+    ],
+  },
 } as const satisfies Record<string, ToolSeoContent>;
 
 export type ToolSeoId = keyof typeof TOOL_SEO_CONTENT;
