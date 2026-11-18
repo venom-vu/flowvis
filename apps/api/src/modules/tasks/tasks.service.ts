@@ -514,18 +514,22 @@ export class TasksService {
     }
 
     let rows;
+    let total: number;
     try {
-      rows = await this.prisma.task.findMany({
-        where: { userId },
-        orderBy: [{ createdAt: 'desc' }, { id: 'desc' }],
-        take: pageSize + 1,
-        ...(cursor
-          ? {
-              cursor: { id: cursor },
-              skip: 1,
-            }
-          : {}),
-      });
+      [rows, total] = await Promise.all([
+        this.prisma.task.findMany({
+          where: { userId },
+          orderBy: [{ createdAt: 'desc' }, { id: 'desc' }],
+          take: pageSize + 1,
+          ...(cursor
+            ? {
+                cursor: { id: cursor },
+                skip: 1,
+              }
+            : {}),
+        }),
+        this.prisma.task.count({ where: { userId } }),
+      ]);
     } catch (err) {
       if ((err as { code?: unknown }).code === 'P2025') {
         throw this.apiError(BadRequestException, ApiErrorCode.VALIDATION_FAILED);
@@ -567,6 +571,7 @@ export class TasksService {
       items: mappedItems,
       pageSize,
       hasMore,
+      total,
       nextCursor,
     };
   }

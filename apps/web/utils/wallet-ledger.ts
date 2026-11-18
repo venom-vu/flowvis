@@ -46,6 +46,7 @@ export interface WalletLedgerPaginationState {
   entries: ComputedRef<LedgerEntry[]>;
   nextCursor: WritableComputedRef<string | null>;
   hasMore: WritableComputedRef<boolean>;
+  total: ComputedRef<number | null>;
   loadingMore: Ref<boolean>;
   loadMoreErrorVi: Ref<string | null>;
   syncInitialData: (data: WalletLedgerResponse | null | undefined) => void;
@@ -109,6 +110,11 @@ export function createWalletLedgerPagination(
     },
   });
 
+  const totalOverride = ref<number | undefined>(undefined);
+  const total = computed<number | null>(
+    () => totalOverride.value ?? initialResponse.value?.total ?? null,
+  );
+
   const loadingMore = ref<boolean>(false);
   const loadMoreErrorVi = ref<string | null>(null);
   let operationSeq = 0;
@@ -120,6 +126,7 @@ export function createWalletLedgerPagination(
     additionalItems.value = [];
     cursorOverride.value = undefined;
     hasMoreOverride.value = undefined;
+    totalOverride.value = undefined;
     loadMoreErrorVi.value = null;
   }
 
@@ -163,6 +170,7 @@ export function createWalletLedgerPagination(
       const normalizedHasMore = Boolean(res.hasMore && res.nextCursor?.trim());
       nextCursor.value = res.nextCursor?.trim() || null;
       hasMore.value = normalizedHasMore;
+      totalOverride.value = res.total;
       return true;
     } catch (err) {
       if (currentSeq !== operationSeq) {
@@ -205,6 +213,7 @@ export function createWalletLedgerPagination(
     entries,
     nextCursor,
     hasMore,
+    total,
     loadingMore,
     loadMoreErrorVi,
     syncInitialData,

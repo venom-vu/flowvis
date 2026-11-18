@@ -21,7 +21,7 @@ export interface LegalDocument {
 export const terms: LegalDocument = {
   version: '2026-11-01',
   effectiveDate: '01/11/2026',
-  updatedAt: '17/11/2026',
+  updatedAt: '19/11/2026',
   status: 'final',
   title: 'Điều khoản dịch vụ',
   subtitle:
@@ -54,10 +54,10 @@ export const terms: LegalDocument = {
         'flowvis cung cấp các công cụ xử lý ảnh và video bằng AI:',
       ],
       bullets: [
-        'Ảnh: Hoán đổi khuôn mặt, Đổi trang phục, Đổi người trong ảnh, Tinh chỉnh dáng người.',
-        'Video: Điều khiển chuyển động (Motion Control), cắt đoạn theo từng giây.',
+        'Ảnh: Hoán đổi khuôn mặt (Face Swap), Đổi trang phục và Nâng ngực AI (Body Retouch).',
+        'Video: Điều khiển chuyển động Video (Motion Control V1 và V2 chất lượng cao), cắt đoạn theo từng giây.',
         'Tiện ích tải video TikTok không logo, chạy ngay trên trình duyệt của bạn.',
-        'Tệp hỗ trợ: ảnh JPG, PNG, WebP (tối đa 10 MB); video MP4, MOV (tối đa 100 MB).',
+        'Tệp hỗ trợ: ảnh JPG, PNG, WebP (tối đa 10 MB, cạnh ngắn tối thiểu 512 px, tỷ lệ từ 1:2 đến 2:1); video MP4, MOV (tối đa 100 MB, dài tối thiểu 5 giây).',
       ],
     },
     {
@@ -90,7 +90,7 @@ export const terms: LegalDocument = {
       id: 'ket-qua-ai-va-chia-se',
       heading: '6. Kết quả AI và chia sẻ',
       paragraphs: [
-        'Ảnh kết quả được gắn dấu hiệu nhận biết là nội dung do AI tạo. Bạn không được cố ý xóa hoặc giả mạo dấu hiệu này để đánh lừa người xem.',
+        'Ảnh và video kết quả được gắn dấu hiệu nhận biết là nội dung do AI tạo. Bạn không được cố ý xóa hoặc giả mạo dấu hiệu này để đánh lừa người xem.',
         'Nếu bạn tuân thủ Điều khoản, bạn được dùng kết quả cho mục đích cá nhân lẫn thương mại hợp pháp và tự chịu trách nhiệm về việc sử dụng đó.',
         'Liên kết chia sẻ cho phép bất kỳ ai có đường dẫn xem kết quả cho đến khi bạn thu hồi, liên kết hết hạn sau 30 ngày hoặc bị gỡ do vi phạm.',
       ],
@@ -102,10 +102,13 @@ export const terms: LegalDocument = {
         'Mỗi tác vụ AI được tính bằng credit, hiển thị rõ trước khi bạn bắt đầu:',
       ],
       bullets: [
-        'Công cụ xử lý ảnh: 100 credit mỗi lượt.',
-        'Motion Control: 50 credit mỗi giây video sau khi cắt (tối thiểu 3 giây).',
-        'Credit được tạm giữ khi tạo tác vụ và chỉ bị trừ khi tác vụ thành công. Nếu tác vụ thất bại, quá thời gian chờ hoặc bị hủy, 100% credit được hoàn lại.',
-        'Hạng tài khoản FREE có giới hạn về độ dài video, số tác vụ chạy cùng lúc và thời gian chờ tối đa 15 phút (quá hạn sẽ tự hủy và hoàn credit). Các hạng trả phí có giới hạn cao hơn và được ưu tiên xử lý; hạng này được giữ khi số dư từ 100 credit trở lên.',
+        'Công cụ xử lý ảnh (Hoán đổi khuôn mặt, Đổi trang phục, Nâng ngực AI): 100 credit mỗi lượt.',
+        'Motion Control V1: 150 credit phí cố định + 20 credit mỗi giây video sau khi cắt (tối thiểu 5 giây; tối đa 5 giây với hạng FREE và 20 giây với các hạng trả phí).',
+        'Motion Control V2: 150 credit phí cố định + 65 credit mỗi giây video sau khi cắt (tối thiểu 5 giây; tối đa 5 giây với hạng FREE và 10 giây với các hạng trả phí; từ 475 credit mỗi lượt nên không đủ điều kiện dùng bằng 250 credit tặng ban đầu).',
+        'Hạng FREE: miễn phí (tặng 250 credit dùng thử cho tài khoản mới hợp lệ), chạy đồng thời 1 tác vụ, ưu tiên #10, video tối đa 5 giây và thời gian chờ hàng đợi tối đa 15 phút (quá hạn sẽ tự hủy và hoàn 100% credit).',
+        'Các gói nạp và hạng trả phí: Starter 49.000đ (5.000 credit, chạy đồng thời 2 tác vụ, ưu tiên #3); Pro 99.000đ (12.000 credit, chạy đồng thời 3 tác vụ, ưu tiên #2); Creator 199.000đ (28.000 credit, chạy đồng thời 5 tác vụ, ưu tiên #1). Cả ba hạng trả phí đều hỗ trợ tối đa 20 giây cho V1 và 10 giây cho V2.',
+        'Hạng trả phí được giữ khi tổng credit còn lại (gồm số dư khả dụng và credit đang tạm giữ) từ 100 credit trở lên; khi giảm xuống dưới 100 credit, tài khoản tự động trở về hạng FREE.',
+        'Credit được tạm giữ khi tạo tác vụ và chỉ bị trừ khi tác vụ thành công. Nếu tác vụ thất bại, quá thời gian chờ hoặc được hủy khi đang chờ trong hàng đợi, 100% credit được hoàn lại.',
         'Credit không có thời hạn sử dụng, không quy đổi thành tiền mặt và không chuyển nhượng giữa các tài khoản.',
       ],
     },
@@ -113,10 +116,10 @@ export const terms: LegalDocument = {
       id: 'thanh-toan-va-hoan-tien',
       heading: '8. Thanh toán và hoàn tiền',
       paragraphs: [
-        'Bạn nạp credit bằng chuyển khoản quét mã VietQR theo các gói tại trang Bảng giá.',
+        'Bạn nạp credit bằng chuyển khoản quét mã VietQR theo các gói (Starter, Pro, Creator) tại trang Bảng giá.',
       ],
       bullets: [
-        'Mã QR có hiệu lực 15 phút. Vui lòng chuyển đúng số tiền và đúng nội dung chuyển khoản hiển thị.',
+        'Mã QR có hiệu lực 15 phút và mỗi tài khoản chỉ được có tối đa 03 đơn nạp đang chờ xử lý cùng lúc. Vui lòng chuyển đúng số tiền và đúng nội dung chuyển khoản hiển thị.',
         'Đơn hợp lệ thường được duyệt trong vòng 15 phút trong khung giờ 08:00 – 23:00 (giờ Việt Nam); đơn ngoài khung giờ được duyệt từ 08:00 sáng hôm sau.',
         'Chuyển sai nội dung, sai số tiền hoặc quá hạn sẽ được xem xét thủ công. Hãy liên hệ hỗ trợ kèm biên lai.',
         'Sau khi credit đã được cộng, tiền đã thanh toán không được hoàn lại, trừ khi: (i) lỗi từ phía flowvis khiến dịch vụ không dùng được hoặc cộng thiếu credit; (ii) bạn chuyển nhầm, chuyển thừa hoặc chuyển trùng và được xác minh qua sao kê.',

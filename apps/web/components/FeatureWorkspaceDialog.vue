@@ -412,7 +412,6 @@ onBeforeUnmount(() => {
     :aria-labelledby="`workspace-dialog-title-${feature.id}`"
     data-testid="feature-workspace-dialog"
     class="fixed inset-0 !m-0 z-50 flex items-center justify-center bg-cyber-bg/80 p-3 backdrop-blur-sm sm:p-6"
-    @click.self="emit('close')"
   >
     <div
       class="relative max-h-[90dvh] w-full max-w-[980px] overflow-y-auto rounded-2xl border border-cyber-border bg-cyber-surface text-cyber-text shadow-2xl"
@@ -775,15 +774,23 @@ onBeforeUnmount(() => {
       <div
         class="sticky bottom-0 z-10 flex flex-col gap-3 border-t border-cyber-border bg-cyber-surface/95 px-4 py-3.5 backdrop-blur sm:flex-row sm:items-center sm:justify-between sm:px-6"
       >
-        <!-- Đơn giá công cụ -->
-        <div class="flex items-center gap-2">
-          <Icon name="lucide:zap" class="h-4 w-4 text-cyber-cyan" />
-          <div class="flex items-center gap-1.5 text-xs">
-            <span class="text-cyber-muted">Đơn giá công cụ:</span>
-            <span class="font-mono font-bold text-cyber-cyan">
-              {{ feature.priceBadgeVi }}
-            </span>
+        <!-- Đơn giá công cụ và cam kết sử dụng -->
+        <div class="space-y-1">
+          <div class="flex items-center gap-2">
+            <Icon name="lucide:zap" class="h-4 w-4 text-cyber-cyan" />
+            <div class="flex items-center gap-1.5 text-xs">
+              <span class="text-cyber-muted">Đơn giá công cụ:</span>
+              <span class="font-mono font-bold text-cyber-cyan">
+                {{ feature.priceBadgeVi }}
+              </span>
+            </div>
           </div>
+          <p class="text-[11px] text-cyber-muted" data-testid="workspace-tos-note">
+            Bằng việc tải lên, bạn xác nhận đủ 18 tuổi và đồng ý với
+            <NuxtLink to="/terms" target="_blank" rel="noopener" class="text-cyber-cyan underline">Điều khoản</NuxtLink>
+            và
+            <NuxtLink to="/privacy" target="_blank" rel="noopener" class="text-cyber-cyan underline">Chính sách quyền riêng tư</NuxtLink>.
+          </p>
         </div>
 
         <div class="flex shrink-0 flex-col items-stretch gap-2 sm:flex-row sm:items-center">

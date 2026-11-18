@@ -293,6 +293,7 @@ export const MOCK_WALLET_LEDGER_RESPONSE: WalletLedgerResponse = {
   items: MOCK_WALLET_LEDGER_ITEMS,
   pageSize: 20,
   hasMore: false,
+  total: MOCK_WALLET_LEDGER_ITEMS.length,
   nextCursor: null,
 };
 
@@ -416,6 +417,7 @@ export const MOCK_TASK_LIST_RESPONSE: TaskListResponse = {
   ],
   pageSize: 20,
   hasMore: false,
+  total: 6,
   nextCursor: null,
 };
 
@@ -665,6 +667,7 @@ export const MOCK_TOPUP_LIST_RESPONSE: TopupListResponse = {
   ],
   pageSize: 20,
   hasMore: false,
+  total: 3,
   nextCursor: null,
 };
 
@@ -689,6 +692,7 @@ export const MOCK_ADMIN_TOPUP_LIST_RESPONSE: AdminTopupListResponse = {
   ],
   pageSize: 20,
   hasMore: false,
+  total: 3,
   nextCursor: null,
 };
 
@@ -826,6 +830,7 @@ export const MOCK_ADMIN_USER_LEDGER_RESPONSE: AdminUserLedgerResponse = {
   ],
   pageSize: 20,
   hasMore: false,
+  total: 1,
   nextCursor: null,
 };
 
@@ -860,5 +865,6 @@ export const MOCK_ADMIN_AUDIT_RESPONSE: AdminAuditResponse = {
   ],
   pageSize: 20,
   hasMore: false,
+  total: 1,
   nextCursor: null,
 };

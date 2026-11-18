@@ -77,16 +77,75 @@ describe('buildPageTokens: số trang kèm dấu "…"', () => {
 });
 
 describe('useCursorPager.goTo', () => {
-  it('nhảy tới trang đã tải, kẹp trong [1, pageCount]', () => {
+  it('nhảy tới trang đã tải, kẹp trong [1, pageCount]', async () => {
     const items = ref(Array.from({ length: 35 }, (_, i) => i));
     const p = useCursorPager(items, ref(false), async () => {}, 10);
-    p.goTo(3);
+    await p.goTo(3);
     assert.equal(p.page.value, 3);
     assert.deepEqual(p.pageItems.value, [20, 21, 22, 23, 24, 25, 26, 27, 28, 29]);
-    p.goTo(99);
+    await p.goTo(99);
     assert.equal(p.page.value, 4);
-    p.goTo(0);
+    await p.goTo(0);
     assert.equal(p.page.value, 1);
+  });
+});
+
+describe('useCursorPager với total từ máy chủ', () => {
+  /** Máy chủ giả: tổng `all` dòng, mỗi lô `batch` dòng. */
+  function fakeServer(all, batch) {
+    const items = ref(Array.from({ length: batch }, (_, i) => i));
+    const hasMore = ref(all > batch);
+    const calls = { n: 0 };
+    const loadMore = async () => {
+      calls.n += 1;
+      const from = items.value.length;
+      const to = Math.min(all, from + batch);
+      items.value = [...items.value, ...Array.from({ length: to - from }, (_, i) => from + i)];
+      hasMore.value = to < all;
+    };
+    return { items, hasMore, loadMore, calls };
+  }
+
+  it('hiện đủ số trang theo total ngay từ lô đầu (40 dòng, lô 20, trang 10 dòng → 4 trang)', () => {
+    const s = fakeServer(40, 20);
+    const p = useCursorPager(s.items, s.hasMore, s.loadMore, 10, ref(40));
+    assert.equal(p.pageCount.value, 4);
+    assert.equal(p.canNext.value, true);
+  });
+
+  it('không có total thì số trang theo phần đã tải (giữ hành vi cũ)', () => {
+    const s = fakeServer(40, 20);
+    const p = useCursorPager(s.items, s.hasMore, s.loadMore, 10);
+    assert.equal(p.pageCount.value, 2);
+  });
+
+  it('goTo trang chưa tải sẽ tải thêm lô cho tới khi đủ rồi mới chuyển trang', async () => {
+    const s = fakeServer(40, 20);
+    const p = useCursorPager(s.items, s.hasMore, s.loadMore, 10, ref(40));
+    await p.goTo(4);
+    assert.equal(p.page.value, 4);
+    assert.equal(s.calls.n, 1);
+    assert.deepEqual(p.pageItems.value, Array.from({ length: 10 }, (_, i) => 30 + i));
+  });
+
+  it('next() ở trang cuối đã tải gọi loadMore rồi sang trang kế', async () => {
+    const s = fakeServer(40, 20);
+    const p = useCursorPager(s.items, s.hasMore, s.loadMore, 10, ref(40));
+    await p.goTo(2);
+    await p.next();
+    assert.equal(p.page.value, 3);
+    assert.equal(s.calls.n, 1);
+  });
+
+  it('lô tải về rỗng thì dừng, không lặp vô hạn và giữ nguyên trang', async () => {
+    const items = ref(Array.from({ length: 10 }, (_, i) => i));
+    const hasMore = ref(true);
+    let n = 0;
+    const p = useCursorPager(items, hasMore, async () => { n += 1; }, 10, ref(50));
+    await p.goTo(5);
+    assert.equal(n, 1);
+    assert.equal(p.page.value, 1);
+    assert.equal(p.isPaging.value, false);
   });
 });
 
@@ -152,6 +211,8 @@ describe('AdminPager + ui/pagination (SSR với reka-ui thật)', () => {
       );
       const AdminPager = await compileRealSfc('components/AdminPager.vue', {
         '@/components/ui/pagination': tmpPaginationIdx,
+        '@/components/ui/button': tmpBtn,
+        '@/lib/utils': cnPath,
         '~/utils/pagination': paginationPath,
       });
 

@@ -818,21 +818,5 @@ const isUploading = computed(
     >
       Hệ thống đang bảo trì: bạn vẫn tải ảnh được nhưng chưa thể tạo tác vụ mới.
     </p>
-    <p class="text-[11px] text-cyber-muted" data-testid="uploader-tos-note">
-      Khi tải lên, bạn cam kết người trong nội dung đủ 18 tuổi, có quyền sử dụng hợp pháp và tuân thủ
-      <NuxtLink
-        to="/terms"
-        target="_blank"
-        rel="noopener"
-        class="text-cyber-cyan underline"
-      >Điều khoản dịch vụ</NuxtLink>
-      cùng
-      <NuxtLink
-        to="/privacy"
-        target="_blank"
-        rel="noopener"
-        class="text-cyber-cyan underline"
-      >Chính sách quyền riêng tư</NuxtLink>.
-    </p>
   </div>
 </template>

@@ -40,6 +40,7 @@ const {
   errorVi,
   loadMoreErrorVi,
   hasMore,
+  total,
   fetchTopups,
   loadMore,
   setStatusFilter,
@@ -50,7 +51,7 @@ const {
   returnToPending,
 } = useAdminTopups();
 
-const pager = useCursorPager(topups, hasMore, loadMore);
+const pager = useCursorPager(topups, hasMore, loadMore, undefined, total);
 
 function onFilterChange(value: string | number): void {
   void changeFilter(String(value) as AdminTopupFilterStatus);

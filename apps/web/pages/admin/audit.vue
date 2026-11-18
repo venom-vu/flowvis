@@ -16,8 +16,8 @@ definePageMeta({ layout: 'admin' });
 
 const { isMePending, isAdmin } = useAdminAccess();
 const ops = useAdminOps();
-const { auditItems, auditAction, auditTarget, auditHasMore, isAuditLoading, isAuditLoadingMore, auditErrorVi } = ops;
-const pager = useCursorPager(auditItems, auditHasMore, () => ops.fetchAudit(false));
+const { auditItems, auditAction, auditTarget, auditHasMore, auditTotal, isAuditLoading, isAuditLoadingMore, auditErrorVi } = ops;
+const pager = useCursorPager(auditItems, auditHasMore, () => ops.fetchAudit(false), undefined, auditTotal);
 
 async function applyFilter(): Promise<void> {
   pager.reset();

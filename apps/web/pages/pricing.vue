@@ -50,6 +50,7 @@ const {
   isLoadingMore,
   listErrorVi,
   hasMore,
+  total: topupTotal,
   openModal,
   closeModal,
   createOrder,
@@ -71,7 +72,7 @@ const {
   prev: prevPage,
   goTo: goToPage,
   reset: resetPage,
-} = useCursorPager(topups, hasMore, loadMore, USER_TABLE_PAGE_SIZE);
+} = useCursorPager(topups, hasMore, loadMore, USER_TABLE_PAGE_SIZE, topupTotal);
 
 function handleRefreshTopups(): void {
   resetPage();
@@ -253,15 +254,6 @@ function dismissCreateError(): void {
                   Số lượng:
                   <strong class="font-mono text-cyber-text">
                     {{ formatNumberVi(tierItem.credits) }} credit
-                  </strong>
-                </span>
-              </li>
-              <li class="flex items-center gap-2">
-                <span aria-hidden="true">-</span>
-                <span>
-                  Motion Control:
-                  <strong class="font-mono text-cyber-text">
-                    {{ tierItem.maxVideoSeconds >= 20 ? 'v1 và Motion nền video tối đa 20 giây, v2 tối đa 10 giây' : `tối đa ${formatNumberVi(tierItem.maxVideoSeconds)} giây` }}
                   </strong>
                 </span>
               </li>

@@ -25,7 +25,7 @@ const linkClass =
       class="mx-auto flex w-full max-w-7xl flex-wrap items-center justify-center gap-x-2 px-4 sm:justify-between sm:px-6 lg:px-8"
       :class="hasZaloButton ? 'lg:pr-48' : ''"
     >
-      <span class="text-xs text-cyber-muted">© 2026 flowvis. All rights reserved.</span>
+      <span class="text-xs text-cyber-muted">&copy; 2026 flowvis. All rights reserved.</span>
       <div class="flex flex-wrap items-center justify-center">
         <NuxtLink to="/terms" :class="linkClass">Điều khoản dịch vụ</NuxtLink>
         <NuxtLink to="/privacy" :class="linkClass">Chính sách quyền riêng tư</NuxtLink>

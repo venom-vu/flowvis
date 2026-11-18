@@ -5,9 +5,9 @@ import {
   PaginationContent,
   PaginationEllipsis,
   PaginationItem,
-  PaginationNext,
-  PaginationPrevious,
 } from '@/components/ui/pagination';
+import { buttonVariants } from '@/components/ui/button';
+import { cn } from '@/lib/utils';
 
 const props = defineProps<{
   page: number;
@@ -50,16 +50,17 @@ const numBtnClass =
     >
       <PaginationContent v-slot="{ items }" class="flex flex-wrap items-center gap-1.5">
         <li>
-          <PaginationPrevious
+          <button
+            type="button"
             data-testid="user-pager-prev"
+            :class="cn(buttonVariants({ variant: 'ghost' }), 'gap-1 px-2.5', navBtnClass)"
             aria-label="Trang trước"
             :disabled="Boolean(!canPrev || loading)"
-            :class="navBtnClass"
             @click="!loading && canPrev && emit('prev')"
           >
             <Icon name="lucide:chevron-left" class="h-4 w-4" />
             <span class="hidden sm:inline">Trước</span>
-          </PaginationPrevious>
+          </button>
         </li>
 
         <template
@@ -94,11 +95,12 @@ const numBtnClass =
         </template>
 
         <li>
-          <PaginationNext
+          <button
+            type="button"
             data-testid="user-pager-next"
+            :class="cn(buttonVariants({ variant: 'ghost' }), 'gap-1 px-2.5', navBtnClass)"
             aria-label="Trang sau"
             :disabled="Boolean(!canNext || loading)"
-            :class="navBtnClass"
             @click="!loading && canNext && emit('next')"
           >
             <span class="hidden sm:inline">Sau</span>
@@ -107,7 +109,7 @@ const numBtnClass =
               class="h-4 w-4"
               :class="{ 'animate-spin': loading }"
             />
-          </PaginationNext>
+          </button>
         </li>
       </PaginationContent>
     </Pagination>

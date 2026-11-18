@@ -177,6 +177,7 @@ export function useAdminOps() {
   const ledger = ref<LedgerEntry[]>([]);
   const ledgerCursor = ref<string | null>(null);
   const ledgerHasMore = ref(false);
+  const ledgerTotal = ref<number | null>(null);
   const userErrorVi = ref<string | null>(null);
   const isUserLoading = ref(false);
   const isUserActionLoading = ref(false);
@@ -202,6 +203,7 @@ export function useAdminOps() {
     if (user.value?.id !== target.id) return;
     ledger.value = reset ? res.items : [...ledger.value, ...res.items];
     ledgerHasMore.value = res.hasMore;
+    ledgerTotal.value = res.total;
     ledgerCursor.value = res.nextCursor;
   }
 
@@ -368,6 +370,7 @@ export function useAdminOps() {
   const auditTarget = ref('');
   const auditCursor = ref<string | null>(null);
   const auditHasMore = ref(false);
+  const auditTotal = ref<number | null>(null);
   const isAuditLoading = ref(false);
   const isAuditLoadingMore = ref(false);
   const auditErrorVi = ref<string | null>(null);
@@ -404,6 +407,7 @@ export function useAdminOps() {
         auditItems.value = [...auditItems.value, ...res.items.filter((e) => !seen.has(e.id))];
       }
       auditHasMore.value = res.hasMore;
+      auditTotal.value = res.total;
       auditCursor.value = res.nextCursor;
     } catch (err: unknown) {
       if (seq === auditSeq) auditErrorVi.value = resolveAdminErrorMessageVi(err);
@@ -437,6 +441,7 @@ export function useAdminOps() {
     user,
     ledger,
     ledgerHasMore,
+    ledgerTotal,
     userErrorVi,
     isUserLoading,
     isUserActionLoading,
@@ -459,6 +464,7 @@ export function useAdminOps() {
     auditAction,
     auditTarget,
     auditHasMore,
+    auditTotal,
     isAuditLoading,
     isAuditLoadingMore,
     auditErrorVi,

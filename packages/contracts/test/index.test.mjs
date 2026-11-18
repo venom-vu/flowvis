@@ -1087,10 +1087,16 @@ describe('@flowvis/contracts', () => {
       assert.equal(AdminTopupListQuerySchema.safeParse({ status: 'pending' }).success, true);
       assert.equal(AdminTopupListQuerySchema.safeParse({ status: 'paid' }).success, false);
       const item = MOCK_TOPUPS_BY_STATUS.pending;
-      const page = { items: [item], pageSize: 20, hasMore: false, nextCursor: null };
+      const page = { items: [item], pageSize: 20, hasMore: false, total: 1, nextCursor: null };
       assert.equal(TopupListResponseSchema.safeParse(page).success, true);
       assert.equal(TopupListResponseSchema.safeParse({ ...page, hasMore: true }).success, false);
       assert.equal(TopupListResponseSchema.safeParse({ ...page, nextCursor: 'c' }).success, false);
+      // total bắt buộc và phải là số nguyên không âm (dùng dựng thanh số trang).
+      const { total: _omit, ...noTotal } = page;
+      assert.equal(TopupListResponseSchema.safeParse(noTotal).success, false);
+      assert.equal(TopupListResponseSchema.safeParse({ ...page, total: -1 }).success, false);
+      assert.equal(TopupListResponseSchema.safeParse({ ...page, total: 1.5 }).success, false);
+      assert.equal(TopupListResponseSchema.safeParse({ ...page, total: 45 }).success, true);
       assert.equal(TopupListResponseSchema.safeParse({ ...page, pageSize: 1, items: [item, item] }).success, false);
       assert.equal(TopupIdParamsSchema.safeParse({ id: 'abc' }).success, false);
     });

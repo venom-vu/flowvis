@@ -21,8 +21,8 @@ definePageMeta({ layout: 'admin' });
 
 const { isMePending, isAdmin } = useAdminAccess();
 const ops = useAdminOps();
-const { user, ledger, ledgerHasMore, userErrorVi, isUserLoading, isUserActionLoading, userActionErrorVi } = ops;
-const ledgerPager = useCursorPager(ledger, ledgerHasMore, () => ops.loadMoreLedger());
+const { user, ledger, ledgerHasMore, ledgerTotal, userErrorVi, isUserLoading, isUserActionLoading, userActionErrorVi } = ops;
+const ledgerPager = useCursorPager(ledger, ledgerHasMore, () => ops.loadMoreLedger(), undefined, ledgerTotal);
 const { userStats, isUserStatsLoading, userStatsErrorVi } = ops;
 
 /* Màu chart lấy từ biến --chart-1 của shadcn. */

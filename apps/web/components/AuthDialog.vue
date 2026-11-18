@@ -48,7 +48,6 @@ onBeforeUnmount(() => {
     aria-labelledby="auth-dialog-title"
     data-testid="auth-dialog"
     class="fixed inset-0 !m-0 z-50 flex items-center justify-center bg-cyber-bg/80 p-3 backdrop-blur-sm sm:p-6"
-    @click.self="close"
   >
     <div
       class="relative max-h-[90dvh] w-full max-w-md overflow-y-auto rounded-2xl border border-cyber-border bg-cyber-surface p-6 text-cyber-text shadow-2xl"
@@ -84,7 +83,7 @@ onBeforeUnmount(() => {
         <p v-if="pricing" class="mt-2.5 text-sm text-cyber-muted">
           Tài khoản đăng ký lần đầu được tặng
           <span class="font-mono font-semibold text-cyber-cyan">
-            {{ formatNumberVi(pricing.trialGrantCredits) }} credit
+            {{ formatNumberVi(pricing.trialGrantCredits) }} CR
           </span>
           dùng thử.
         </p>

@@ -5,9 +5,9 @@ import {
   PaginationContent,
   PaginationEllipsis,
   PaginationItem,
-  PaginationNext,
-  PaginationPrevious,
 } from '@/components/ui/pagination';
+import { buttonVariants } from '@/components/ui/button';
+import { cn } from '@/lib/utils';
 
 const props = defineProps<{
   page: number;
@@ -41,15 +41,17 @@ const safePage = computed(() => Math.min(Math.max(1, props.page), safePageCount.
     >
       <PaginationContent v-slot="{ items }" class="flex flex-wrap items-center gap-1">
         <li>
-          <PaginationPrevious
+          <button
+            type="button"
             data-testid="admin-pager-prev"
+            :class="cn(buttonVariants({ variant: 'ghost' }), 'gap-1 px-2.5')"
             aria-label="Trang trước"
             :disabled="Boolean(!canPrev || loading)"
             @click="!loading && canPrev && emit('prev')"
           >
             <Icon name="lucide:chevron-left" class="h-4 w-4" />
             <span class="hidden sm:inline">Trước</span>
-          </PaginationPrevious>
+          </button>
         </li>
 
         <template
@@ -76,8 +78,10 @@ const safePage = computed(() => Math.min(Math.max(1, props.page), safePageCount.
         </template>
 
         <li>
-          <PaginationNext
+          <button
+            type="button"
             data-testid="admin-pager-next"
+            :class="cn(buttonVariants({ variant: 'ghost' }), 'gap-1 px-2.5')"
             aria-label="Trang sau"
             :disabled="Boolean(!canNext || loading)"
             @click="!loading && canNext && emit('next')"
@@ -88,7 +92,7 @@ const safePage = computed(() => Math.min(Math.max(1, props.page), safePageCount.
               class="h-4 w-4"
               :class="{ 'animate-spin': loading }"
             />
-          </PaginationNext>
+          </button>
         </li>
       </PaginationContent>
     </Pagination>

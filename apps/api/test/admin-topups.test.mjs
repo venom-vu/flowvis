@@ -378,6 +378,7 @@ describe('Story 3.5: [BE] Duyệt và từ chối đơn, nhật ký Admin', () =
     const page = AdminTopupListResponseSchema.parse(await res.json());
     assert.equal(page.items.length, 1);
     assert.equal(page.hasMore, true);
+    assert.ok(page.total >= 2); // tổng khớp bộ lọc status, không chỉ trang hiện tại
     assert.ok(!JSON.stringify(page).includes('@flowvis.vn'));
     const all = [];
     let cursor;
@@ -386,9 +387,11 @@ describe('Story 3.5: [BE] Duyệt và từ chối đơn, nhật ký Admin', () =
         await (await adm('GET', `/admin/topups?status=pending&pageSize=2${cursor ? `&cursor=${cursor}` : ''}`)).json(),
       );
       all.push(...r.items);
+      assert.equal(r.total, page.total, 'total ổn định giữa các trang');
       cursor = r.nextCursor ?? undefined;
     } while (cursor);
     const byId = Object.fromEntries(all.map((t) => [t.id, t]));
+    assert.equal(all.length, page.total);
     assert.equal(byId[overdue].isOverdue, true);
     assert.equal(byId[fresh].isOverdue, false);
     assert.ok(all.every((t) => t.status === 'pending'));

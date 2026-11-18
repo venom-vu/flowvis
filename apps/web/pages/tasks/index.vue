@@ -34,6 +34,7 @@ const tasksAsync = useAsyncData<TaskListResponse>(
 const items = ref<Task[]>([]);
 const nextCursor = ref<string | null>(null);
 const hasMore = ref<boolean>(false);
+const total = ref<number | null>(null);
 const loadingMore = ref<boolean>(false);
 const loadMoreErrorVi = ref<string | null>(null);
 const cancellingTaskId = ref<string | null>(null);
@@ -47,6 +48,7 @@ watch(
     // Làm mới định kỳ chỉ tải lại trang đầu: giữ các trang sau đã tải nếu trang đầu vẫn nối liền với chúng.
     const lastId = newData.items[newData.items.length - 1]?.id;
     const boundary = lastId ? items.value.findIndex((t) => t.id === lastId) : -1;
+    total.value = newData.total;
     if (newData.hasMore && boundary !== -1 && boundary < items.value.length - 1) {
       items.value = [...newData.items, ...items.value.slice(boundary + 1)];
       return;
@@ -66,6 +68,7 @@ watch(accessToken, (newToken, oldToken) => {
       items.value = [];
       nextCursor.value = null;
       hasMore.value = false;
+      total.value = null;
     }
     void tasksAsync.refresh();
   }
@@ -108,6 +111,7 @@ async function loadMore(): Promise<void> {
     items.value = [...items.value, ...newItems];
     nextCursor.value = res.nextCursor ?? null;
     hasMore.value = Boolean(res.hasMore);
+    total.value = res.total;
   } catch (err) {
     loadMoreErrorVi.value = resolveApiErrorMessageVi(err);
   } finally {
@@ -150,7 +154,7 @@ const {
   prev: prevPage,
   goTo: goToPage,
   reset: resetPage,
-} = useCursorPager(items, hasMore, loadMore, USER_TABLE_PAGE_SIZE);
+} = useCursorPager(items, hasMore, loadMore, USER_TABLE_PAGE_SIZE, total);
 
 function handleRefresh(): void {
   resetPage();

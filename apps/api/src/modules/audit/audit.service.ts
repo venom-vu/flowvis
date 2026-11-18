@@ -42,12 +42,16 @@ export class AuditService {
         });
       }
     }
-    const rows = await this.prisma.adminAudit.findMany({
-      where: { ...(query.action ? { action: query.action } : {}), ...(query.target ? { target: query.target } : {}) },
-      orderBy: [{ at: 'desc' }, { id: 'desc' }],
-      take: pageSize + 1,
-      ...(cursor ? { cursor: { id: cursor }, skip: 1 } : {}),
-    });
+    const where = { ...(query.action ? { action: query.action } : {}), ...(query.target ? { target: query.target } : {}) };
+    const [rows, total] = await Promise.all([
+      this.prisma.adminAudit.findMany({
+        where,
+        orderBy: [{ at: 'desc' }, { id: 'desc' }],
+        take: pageSize + 1,
+        ...(cursor ? { cursor: { id: cursor }, skip: 1 } : {}),
+      }),
+      this.prisma.adminAudit.count({ where }),
+    ]);
     const hasMore = rows.length > pageSize;
     const items = hasMore ? rows.slice(0, pageSize) : rows;
     return {
@@ -66,6 +70,7 @@ export class AuditService {
       }),
       pageSize,
       hasMore,
+      total,
       nextCursor: hasMore && items.length > 0 ? items[items.length - 1].id : null,
     };
   }

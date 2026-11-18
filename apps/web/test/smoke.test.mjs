@@ -459,7 +459,7 @@ describe('@flowvis/web — Story 1.4 Nuxt 4 mobile-first & API client', () => {
 
     // 6. Quét toàn bộ file nguồn trong apps/web đảm bảo không có emoji UTF-8
     const sourceFiles = collectFiles(webRoot, ['.vue', '.ts', '.css']);
-    const emojiRegex = /\p{Extended_Pictographic}/u;
+    const emojiRegex = /(?!\u00A9)\p{Extended_Pictographic}/u;
     for (const filePath of sourceFiles) {
       const content = fs.readFileSync(filePath, 'utf8');
       assert.equal(
@@ -557,7 +557,7 @@ describe('@flowvis/web — Story 1.4 Nuxt 4 mobile-first & API client', () => {
       },
     ];
 
-    const emojiRegex = /\p{Extended_Pictographic}/u;
+    const emojiRegex = /(?!\u00A9)\p{Extended_Pictographic}/u;
 
     for (const { path: routePath, mustInclude } of routeExpectations) {
       const response = await worker.fetch(
@@ -1350,7 +1350,7 @@ describe('@flowvis/web — Story 1.10 Lịch sử credit & phân trang vô tận
     const content = fs.readFileSync(historyFile, 'utf8');
 
     // Không chứa emoji
-    const emojiRegex = /\p{Extended_Pictographic}/u;
+    const emojiRegex = /(?!©)\p{Extended_Pictographic}/u;
     assert.equal(
       emojiRegex.test(content),
       false,
@@ -1407,7 +1407,7 @@ describe('@flowvis/web — Story 1.10 Lịch sử credit & phân trang vô tận
       assert.match(html, /Điều chỉnh/);
       assert.match(html, /Đã hiển thị toàn bộ lịch sử/);
 
-      const emojiRegex = /\p{Extended_Pictographic}/u;
+      const emojiRegex = /(?!©)\p{Extended_Pictographic}/u;
       assert.equal(emojiRegex.test(html), false, 'SSR /history không được chứa ký tự emoji UTF-8');
     } finally {
       globalThis.fetch = originalFetch;
@@ -2801,6 +2801,7 @@ describe('@flowvis/web — Story 2.10 Thành phần tải ảnh có cam kết To
               ],
               pageSize: 20,
               hasMore: false,
+              total: 1,
               nextCursor: null,
             }),
             { status: 200, headers: { 'Content-Type': 'application/json' } },

@@ -33,6 +33,7 @@ export function useTopup() {
   const listErrorVi = ref<string | null>(null);
   const nextCursor = ref<string | null>(null);
   const hasMore = ref<boolean>(false);
+  const total = ref<number | null>(null);
 
   let countdownInterval: ReturnType<typeof setInterval> | null = null;
   let pollInterval: ReturnType<typeof setInterval> | null = null;
@@ -295,6 +296,7 @@ export function useTopup() {
       }
       nextCursor.value = res.nextCursor ?? null;
       hasMore.value = Boolean(res.hasMore && res.nextCursor);
+      total.value = res.total;
     } catch (err) {
       listErrorVi.value = resolveApiErrorMessageVi(err);
     } finally {
@@ -353,6 +355,7 @@ export function useTopup() {
     isLoadingMore,
     listErrorVi,
     hasMore,
+    total,
     nextCursor,
     openModal,
     closeModal,

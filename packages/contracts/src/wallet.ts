@@ -340,6 +340,8 @@ export const WalletLedgerResponseSchema = z
     items: z.array(LedgerEntrySchema),
     pageSize: z.number().int().min(1).max(100),
     hasMore: z.boolean(),
+    /** Tổng số bản ghi khớp bộ lọc (không phụ thuộc cursor) để dựng thanh số trang. */
+    total: z.number().int().min(0),
     nextCursor: z.string().min(1).nullable(),
   })
   .superRefine((res, ctx) => {

@@ -511,6 +511,7 @@ describe('Story 2.3: [BE] Tạo Task Face Swap và xếp vào hàng đợi', () 
       assert.equal(data1.items.length, 1);
       assert.equal(data1.items[0].id, t2.id); // mới nhất trước
       assert.equal(data1.hasMore, true);
+      assert.equal(data1.total, 2); // tổng của riêng u1, không phụ thuộc pageSize/cursor
       assert.ok(data1.nextCursor);
 
       // u1 lấy trang tiếp theo bằng cursor
@@ -522,6 +523,7 @@ describe('Story 2.3: [BE] Tạo Task Face Swap và xếp vào hàng đợi', () 
       assert.equal(data2.items.length, 1);
       assert.equal(data2.items[0].id, t1.id);
       assert.equal(data2.hasMore, false);
+      assert.equal(data2.total, 2);
       assert.equal(data2.nextCursor, null);
 
       // u2 chỉ thấy task của mình (t3), không thấy task của u1

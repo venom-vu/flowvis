@@ -86,6 +86,46 @@ async function handleGoogleLogin(): Promise<void> {
       @dismiss="errorVi = null"
     />
 
+    <label
+      :for="`${idPrefix}-tos-consent-checkbox`"
+      class="flex min-h-[48px] cursor-pointer items-start gap-3 rounded-xl border bg-cyber-bg/60 px-3.5 py-3 text-xs leading-relaxed text-cyber-muted transition hover:border-cyber-violet/60"
+      :class="acceptedTos ? 'border-cyber-violet/60' : tosErrorVi ? 'border-cyber-danger/60' : 'border-cyber-border'"
+    >
+      <span class="relative mt-0.5 flex h-5 w-5 shrink-0 items-center justify-center">
+        <input
+          :id="`${idPrefix}-tos-consent-checkbox`"
+          v-model="acceptedTos"
+          type="checkbox"
+          data-testid="tos-checkbox"
+          class="peer absolute inset-0 h-5 w-5 cursor-pointer appearance-none rounded-md border border-cyber-border bg-cyber-bg transition checked:border-cyber-violet checked:bg-cyber-violet focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-cyber-cyan"
+        />
+        <Icon
+          name="lucide:check"
+          class="pointer-events-none relative h-3.5 w-3.5 text-cyber-text opacity-0 transition peer-checked:opacity-100"
+        />
+      </span>
+      <span>
+        Tôi đủ 18 tuổi và đồng ý với
+        <NuxtLink
+          to="/terms"
+          target="_blank"
+          rel="noopener"
+          class="text-cyber-violet underline"
+          data-testid="tos-link"
+          @click.stop
+        >Điều khoản dịch vụ</NuxtLink>
+        và
+        <NuxtLink
+          to="/privacy"
+          target="_blank"
+          rel="noopener"
+          class="text-cyber-violet underline"
+          data-testid="privacy-link"
+          @click.stop
+        >Chính sách quyền riêng tư</NuxtLink>.
+      </span>
+    </label>
+
     <div class="space-y-1.5">
       <button
         type="button"
@@ -136,38 +176,5 @@ async function handleGoogleLogin(): Promise<void> {
         <span>{{ tosErrorVi }}</span>
       </p>
     </div>
-
-    <label
-      :for="`${idPrefix}-tos-consent-checkbox`"
-      class="flex cursor-pointer items-center gap-2.5 py-1 text-sm text-cyber-muted"
-    >
-      <input
-        :id="`${idPrefix}-tos-consent-checkbox`"
-        v-model="acceptedTos"
-        type="checkbox"
-        data-testid="tos-checkbox"
-        class="h-4 w-4 shrink-0 cursor-pointer accent-cyber-violet"
-      />
-      <span>
-        Tôi đủ 18 tuổi và đồng ý với
-        <NuxtLink
-          to="/terms"
-          target="_blank"
-          rel="noopener"
-          class="text-cyber-violet underline"
-          data-testid="tos-link"
-          @click.stop
-        >Điều khoản dịch vụ</NuxtLink>
-        và
-        <NuxtLink
-          to="/privacy"
-          target="_blank"
-          rel="noopener"
-          class="text-cyber-violet underline"
-          data-testid="privacy-link"
-          @click.stop
-        >Chính sách quyền riêng tư</NuxtLink>
-      </span>
-    </label>
   </div>
 </template>

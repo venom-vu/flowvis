@@ -3,7 +3,7 @@ import type { LegalDocument } from './terms';
 export const privacy: LegalDocument = {
   version: '2026-11-01',
   effectiveDate: '01/11/2026',
-  updatedAt: '17/11/2026',
+  updatedAt: '19/11/2026',
   status: 'final',
   title: 'Chính sách quyền riêng tư',
   subtitle:
@@ -26,7 +26,7 @@ export const privacy: LegalDocument = {
         'Tệp của bạn: ảnh, video, tùy chọn xử lý bạn chọn và kết quả AI tạo ra.',
         'Credit và thanh toán: số dư, lịch sử sử dụng credit, các đơn nạp tiền, và thời điểm bạn đồng ý Điều khoản.',
         'Dữ liệu chống lạm dụng: thông tin thiết bị và mạng được mã hóa một chiều, chỉ dùng để ngăn việc tạo nhiều tài khoản trục lợi.',
-        'Cookie: dùng để duy trì phiên đăng nhập và bảo mật tài khoản.',
+        'Cookie: dùng để duy trì phiên đăng nhập, chống lạm dụng và bảo mật tài khoản.',
       ],
       outroParagraphs: [
         'Công cụ Tải video TikTok chạy trên trình duyệt của bạn. flowvis không nhận và không lưu liên kết hay video TikTok.',
