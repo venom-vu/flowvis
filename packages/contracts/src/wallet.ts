@@ -34,7 +34,7 @@ const TIER_SPECS: Record<
   {
     packId: TopupPackId | null;
     priority: 10 | 3 | 2 | 1;
-    maxVideoSeconds: 3 | 20;
+    maxVideoSeconds: 5 | 20;
     maxActiveTasks: 1 | 2 | 3 | 5;
     priceVnd: number;
     credits: number;
@@ -43,7 +43,7 @@ const TIER_SPECS: Record<
   FREE: {
     packId: null,
     priority: 10,
-    maxVideoSeconds: 3,
+    maxVideoSeconds: 5,
     maxActiveTasks: 1,
     priceVnd: 0,
     credits: 250,
@@ -70,7 +70,7 @@ const TIER_SPECS: Record<
     maxVideoSeconds: 20,
     maxActiveTasks: 5,
     priceVnd: 199_000,
-    credits: 30_000,
+    credits: 28_000,
   },
 };
 
@@ -137,7 +137,7 @@ export const TierSnapshotSchema = z
       z.literal(2),
       z.literal(1),
     ]),
-    maxVideoSeconds: z.union([z.literal(3), z.literal(20)]),
+    maxVideoSeconds: z.union([z.literal(5), z.literal(20)]),
   })
   .superRefine((val, ctx) => {
     const spec = TIER_SPECS[val.tier];
@@ -340,6 +340,8 @@ export const WalletLedgerResponseSchema = z
     items: z.array(LedgerEntrySchema),
     pageSize: z.number().int().min(1).max(100),
     hasMore: z.boolean(),
+    /** Tổng số bản ghi khớp bộ lọc (không phụ thuộc cursor) để dựng thanh số trang. */
+    total: z.number().int().min(0),
     nextCursor: z.string().min(1).nullable(),
   })
   .superRefine((res, ctx) => {
@@ -385,9 +387,14 @@ export const PipelinePricingSchema = z.object({
   outfitChangeCredits: z.literal(100),
   personReplaceCredits: z.literal(100),
   bodyRetouchCredits: z.literal(100),
-  motionControlCreditsPerSecond: z.literal(50),
-  /** Số giây Trim tối thiểu của Motion Control (tùy chọn để BE Epic 2–4 chưa trả vẫn hợp lệ; BE 5.3 phải trả 3). */
-  motionControlMinSeconds: z.literal(3).optional(),
+  /** Motion Control v1: giá một Task = phí cố định + đơn giá mỗi giây × số giây (`motionPrice`). */
+  motionControlBaseCredits: z.literal(150),
+  motionControlCreditsPerSecond: z.literal(20),
+  /** Motion Control v2: cùng công thức, đơn giá riêng. */
+  motionControlV2BaseCredits: z.literal(150),
+  motionControlV2CreditsPerSecond: z.literal(65),
+  /** Số giây Trim tối thiểu của Motion Control (tùy chọn để BE Epic 2–4 chưa trả vẫn hợp lệ; BE 5.3 phải trả 5). */
+  motionControlMinSeconds: z.literal(5).optional(),
 });
 export type PipelinePricing = z.infer<typeof PipelinePricingSchema>;
 
@@ -397,7 +404,7 @@ export const TierConfigSchema = z
     packId: TopupPackIdSchema.nullable(),
     priceVnd: z.number().int().nonnegative(),
     credits: z.number().int().nonnegative(),
-    maxVideoSeconds: z.union([z.literal(3), z.literal(20)]),
+    maxVideoSeconds: z.union([z.literal(5), z.literal(20)]),
     /** Số Task active (queued + running) tối đa của một user thuộc Tier này. */
     maxActiveTasks: z.union([
       z.literal(1),

@@ -198,7 +198,6 @@ function handleRecreate(): void {
     v-if="open && topup"
     data-testid="vietqr-modal-backdrop"
     class="fixed inset-0 !m-0 z-50 flex items-center justify-center bg-cyber-bg/80 p-3 backdrop-blur-sm sm:p-6"
-    @click.self="emit('close')"
   >
     <!-- Centered Dialog Modal trên cả mobile và desktop (bố cục ngang rộng rãi, tránh cuộn dọc) -->
     <div

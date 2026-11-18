@@ -57,11 +57,9 @@ const filteredFeatures = computed<AiFeatureTool[]>(() => {
       return true;
     }
     const titleNorm = normalizeTextVi(tool.titleVi);
-    const subtitleNorm = normalizeTextVi(tool.subtitleVi);
     const descNorm = normalizeTextVi(tool.descriptionVi);
     return (
       titleNorm.includes(normalizedKeyword) ||
-      subtitleNorm.includes(normalizedKeyword) ||
       descNorm.includes(normalizedKeyword)
     );
   });

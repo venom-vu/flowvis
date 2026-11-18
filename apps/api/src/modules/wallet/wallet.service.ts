@@ -386,6 +386,7 @@ export class WalletService {
     const rows = before
       ? await prisma.$queryRaw<LedgerRow[]>`SELECT id, user_id, type, amount, task_id, topup_id, pack, date_trunc('milliseconds', created_at) AS created_at FROM ledger_entries WHERE user_id = ${userId}::uuid AND (date_trunc('milliseconds', created_at), id) < (${before.createdAt}, ${before.id}::uuid) ORDER BY date_trunc('milliseconds', created_at) DESC, id DESC LIMIT ${pageSize + 1}`
       : await prisma.$queryRaw<LedgerRow[]>`SELECT id, user_id, type, amount, task_id, topup_id, pack, date_trunc('milliseconds', created_at) AS created_at FROM ledger_entries WHERE user_id = ${userId}::uuid ORDER BY date_trunc('milliseconds', created_at) DESC, id DESC LIMIT ${pageSize + 1}`;
+    const [{ n: total }] = await prisma.$queryRaw<Array<{ n: number }>>`SELECT COUNT(*)::int AS n FROM ledger_entries WHERE user_id = ${userId}::uuid`;
     const hasMore = rows.length > pageSize;
     const page = rows.slice(0, pageSize);
     const items: LedgerEntry[] = page.map((r) => ({
@@ -404,6 +405,7 @@ export class WalletService {
       items,
       pageSize,
       hasMore,
+      total,
       nextCursor:
         hasMore && last ? this.encodeCursor(last.created_at, last.id) : null,
     };

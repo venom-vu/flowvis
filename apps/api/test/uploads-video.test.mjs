@@ -205,10 +205,10 @@ describe('Story 5.2: [BE] Tải video lên và kiểm tra bằng ffprobe', () =>
     assert.equal(res.status, 200);
     const j = await res.json();
     assert.match(j.key, new RegExp(`^in/${u.id}/`));
-    assert.deepEqual([j.video.durationSeconds, j.video.width, j.video.height], [4, 160, 96]);
+    assert.deepEqual([j.video.durationSeconds, j.video.width, j.video.height], [6, 160, 96]);
     const row = await prisma.upload.findUnique({ where: { key: c.key } });
     assert.equal(row.status, 'confirmed');
-    assert.deepEqual([row.durationSeconds, row.width, row.height], [4, 160, 96]);
+    assert.deepEqual([row.durationSeconds, row.width, row.height], [6, 160, 96]);
     assert.ok(fake.objects.has(j.key));
     const get = fake.calls.filter((x) => x[0] === 'presignGet').at(-1);
     assert.equal(get[1], c.key);

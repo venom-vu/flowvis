@@ -3,7 +3,7 @@ import type {
   PricingConfigResponse,
   TierConfig,
 } from "@flowvis/contracts";
-import { motionCapSeconds } from "@flowvis/contracts";
+import { MOTION_PRICING, motionCapSeconds } from "@flowvis/contracts";
 
 export type FeatureCategoryId = "all" | "image" | "video";
 
@@ -19,22 +19,33 @@ export const FEATURE_CATEGORIES: readonly FeatureCategoryOption[] = [
   { id: "video", labelVi: "Chuyển động video AI", icon: "lucide:video" },
 ] as const;
 
-export type FeaturePipelineId = "face-swap" | "outfit-change" | "person-replace" | "body-retouch" | "motion-control" | "motion-control-v2" | "motion-background";
+export type FeaturePipelineId =
+  | "face-swap"
+  | "outfit-change"
+  | "person-replace"
+  | "body-retouch"
+  | "motion-control"
+  | "motion-control-v2"
+  | "motion-background";
 
 /** Chức năng tạm ẩn khỏi kho công cụ, sitemap và trang riêng (backend giữ nguyên); xóa id khỏi đây để bật lại. */
-export const HIDDEN_FEATURE_IDS: readonly FeaturePipelineId[] = ["person-replace", "motion-background"];
+export const HIDDEN_FEATURE_IDS: readonly FeaturePipelineId[] = [
+  "person-replace",
+  "motion-background",
+];
 
 export interface AiFeatureTool {
   id: FeaturePipelineId;
   slug: string;
   titleVi: string;
-  subtitleVi: string;
   descriptionVi: string;
   category: Exclude<FeatureCategoryId, "all">;
   categoryLabelVi: string;
   badgeVi: string;
   icon: string;
   billingMode: "per_run" | "per_second";
+  /** Phí cố định mỗi lượt (credit), chỉ có ở tính năng tính theo giây. */
+  baseCredits?: number;
   unitCredits: number;
   priceBadgeVi: string;
   tierCapSeconds: number | null;
@@ -104,24 +115,31 @@ export function buildAiFeatureCatalog(
   const motionV1Cap = motionCapSeconds("motion_control", tierCapSeconds);
   const motionV2Cap = motionCapSeconds("motion_control_v2", tierCapSeconds);
   const motionBgCap = motionCapSeconds("motion_background", tierCapSeconds);
-  const { faceSwapCredits, outfitChangeCredits, personReplaceCredits, bodyRetouchCredits, motionControlCreditsPerSecond } =
-    pricing.pipelines;
+  const {
+    faceSwapCredits,
+    outfitChangeCredits,
+    personReplaceCredits,
+    bodyRetouchCredits,
+    motionControlBaseCredits,
+    motionControlCreditsPerSecond,
+    motionControlV2BaseCredits,
+    motionControlV2CreditsPerSecond,
+  } = pricing.pipelines;
 
   const all: AiFeatureTool[] = [
     {
       id: "face-swap",
       slug: "face-swap",
-      titleVi: "Hoán Đổi Khuôn Mặt Pro",
-      subtitleVi: "Đồng bộ ánh sáng, góc nghiêng và biểu cảm tự nhiên",
+      titleVi: "Hoán Đổi Khuôn Mặt",
       descriptionVi:
-        "Thay thế khuôn mặt trong ảnh chân dung hoặc lookbook thương mại với độ sắc nét cao và giữ nguyên kết cấu da.",
+        "Thay khuôn mặt trong ảnh bằng khuôn mặt bạn chọn. Giữ nguyên ánh sáng, góc nghiêng và kết cấu da nên ảnh trông tự nhiên, sắc nét.",
       category: "image",
       categoryLabelVi: "Xử lý ảnh AI",
-      badgeVi: "Phổ biến",
+      badgeVi: "",
       icon: "lucide:scan-face",
       billingMode: "per_run",
       unitCredits: faceSwapCredits,
-      priceBadgeVi: `${formatNumberVi(faceSwapCredits)} credit / lượt`,
+      priceBadgeVi: `${formatNumberVi(faceSwapCredits)} CR / lượt`,
       tierCapSeconds: null,
       tierCapLabelVi: null,
       beforeLabelVi: "Ảnh gốc tham chiếu",
@@ -136,17 +154,16 @@ export function buildAiFeatureCatalog(
     {
       id: "outfit-change",
       slug: "outfit-change",
-      titleVi: "Đổi Trang Phục AI",
-      subtitleVi: "Mặc thử trang phục bất kỳ lên người mẫu trong vài chục giây",
+      titleVi: "Đổi Trang Phục",
       descriptionVi:
-        "Tải ảnh người mẫu và ảnh trang phục, AI tự động thay quần áo giữ nguyên dáng người, khuôn mặt và bối cảnh.",
+        "Tải ảnh người mẫu và ảnh trang phục, AI mặc bộ đồ mới lên người mẫu. Giữ nguyên dáng người, khuôn mặt và bối cảnh.",
       category: "image",
       categoryLabelVi: "Xử lý ảnh AI",
-      badgeVi: "Mới",
+      badgeVi: "Phổ biến",
       icon: "lucide:shirt",
       billingMode: "per_run",
       unitCredits: outfitChangeCredits,
-      priceBadgeVi: `${formatNumberVi(outfitChangeCredits)} credit / lượt`,
+      priceBadgeVi: `${formatNumberVi(outfitChangeCredits)} CR / lượt`,
       tierCapSeconds: null,
       tierCapLabelVi: null,
       beforeLabelVi: "Ảnh người mẫu gốc",
@@ -161,17 +178,16 @@ export function buildAiFeatureCatalog(
     {
       id: "person-replace",
       slug: "person-replace",
-      titleVi: "Đổi Người Trong Ảnh AI",
-      subtitleVi: "Thay nhân vật trong ảnh bằng người khác, giữ nguyên bối cảnh",
+      titleVi: "Đổi Người Trong Ảnh",
       descriptionVi:
-        "Tải ảnh gốc và ảnh nhân vật mới, AI thay người trong ảnh gốc bằng nhân vật mới, giữ nguyên bối cảnh và bố cục.",
+        "Tải ảnh gốc và ảnh nhân vật mới, AI thay người trong ảnh bằng nhân vật đó. Giữ nguyên bối cảnh và bố cục.",
       category: "image",
       categoryLabelVi: "Xử lý ảnh AI",
       badgeVi: "Mới",
       icon: "lucide:user-round-cog",
       billingMode: "per_run",
       unitCredits: personReplaceCredits,
-      priceBadgeVi: `${formatNumberVi(personReplaceCredits)} credit / lượt`,
+      priceBadgeVi: `${formatNumberVi(personReplaceCredits)} CR / lượt`,
       tierCapSeconds: null,
       tierCapLabelVi: null,
       beforeLabelVi: "Ảnh gốc",
@@ -187,16 +203,15 @@ export function buildAiFeatureCatalog(
       id: "body-retouch",
       slug: "body-retouch",
       titleVi: "Nâng Ngực",
-      subtitleVi: "Tôn dáng và tăng kích cỡ vòng một đầy đặn tự nhiên",
       descriptionVi:
-        "Tự động nhận diện và tinh chỉnh vòng một đầy đặn, quyến rũ tự nhiên theo mức độ mong muốn, bảo toàn chi tiết trang phục và không làm biến dạng hậu cảnh.",
+        "AI tự nhận diện và nâng vòng một theo mức bạn chọn từ 1 đến 10. Giữ nguyên trang phục và hậu cảnh, không làm biến dạng ảnh.",
       category: "image",
       categoryLabelVi: "Xử lý ảnh AI",
-      badgeVi: "Studio",
+      badgeVi: "",
       icon: "lucide:sparkles",
       billingMode: "per_run",
       unitCredits: bodyRetouchCredits,
-      priceBadgeVi: `${formatNumberVi(bodyRetouchCredits)} credit / lượt`,
+      priceBadgeVi: `${formatNumberVi(bodyRetouchCredits)} CR / lượt`,
       tierCapSeconds: null,
       tierCapLabelVi: null,
       beforeLabelVi: "Tỷ lệ khung hình gốc",
@@ -212,79 +227,81 @@ export function buildAiFeatureCatalog(
       id: "motion-control",
       slug: "motion-control",
       titleVi: "Điều Khiển Chuyển Động Video",
-      subtitleVi: "Chuyển hóa ảnh tĩnh thành video chuyển động theo mẫu",
       descriptionVi:
-        "Ánh xạ chuyển động từ video mẫu sang ảnh nhân vật tĩnh với bộ cắt thời lượng theo giây và tính phí chính xác theo độ dài.",
+        "Cho nhân vật trong ảnh chuyển động y như video mẫu. Cắt đoạn cần dùng theo từng giây, dài tối đa 20 giây và tính phí đúng theo độ dài.",
       category: "video",
       categoryLabelVi: "Chuyển động video AI",
-      badgeVi: "Motion GPU",
+      badgeVi: "Phổ biến",
       icon: "lucide:clapperboard",
       billingMode: "per_second",
+      baseCredits: motionControlBaseCredits,
       unitCredits: motionControlCreditsPerSecond,
-      priceBadgeVi: `${formatNumberVi(motionControlCreditsPerSecond)} credit / giây`,
+      priceBadgeVi: `${formatNumberVi(motionControlBaseCredits)} + ${formatNumberVi(motionControlCreditsPerSecond)} CR / giây`,
       tierCapSeconds: motionV1Cap,
-      tierCapLabelVi: `Tối đa ${formatNumberVi(motionV1Cap)} giây`,
+      tierCapLabelVi: `${formatNumberVi(motionV1Cap)} giây`,
       beforeLabelVi: "Ảnh nhân vật + Video mẫu",
       afterLabelVi: "Video chuyển động đồng bộ",
       bannerUrl: "/banner/motion-control.mp4",
       bannerType: "video",
       accentGradient: "from-violet-600/35 via-indigo-950 to-cyan-500/30",
       inputRequirementVi: "1 ảnh nhân vật rõ dáng + 1 video chuyển động mẫu",
-      outputFormatVi: "Video MP4 H.264 lưu trữ trên Cloudflare R2",
+      outputFormatVi: "Video MP4 H.264",
     },
     {
       id: "motion-control-v2",
       slug: "motion-control-v2",
-      titleVi: "Điều Khiển Chuyển Động Video v2",
-      subtitleVi: "Chuyển hóa ảnh tĩnh thành video chuyển động theo mẫu",
+      titleVi: "Điều Khiển Chuyển Động Video V2",
       descriptionVi:
-        "Phiên bản v2: ánh xạ chuyển động từ video mẫu sang ảnh nhân vật tĩnh, cắt thời lượng theo giây và tính phí theo độ dài.",
+        "Chất lượng video cao hơn V1: độ phân giải lớn hơn, bitrate cao hơn, giữ chi tiết tốt hơn. Hình ảnh sắc nét, rõ ràng, ít suy giảm do nén.",
       category: "video",
       categoryLabelVi: "Chuyển động video AI",
-      badgeVi: "Motion v2",
+      badgeVi: "Mới",
       icon: "lucide:clapperboard",
       billingMode: "per_second",
-      unitCredits: motionControlCreditsPerSecond,
-      priceBadgeVi: `${formatNumberVi(motionControlCreditsPerSecond)} credit / giây`,
+      baseCredits: motionControlV2BaseCredits,
+      unitCredits: motionControlV2CreditsPerSecond,
+      priceBadgeVi: `${formatNumberVi(motionControlV2BaseCredits)} + ${formatNumberVi(motionControlV2CreditsPerSecond)} CR / giây`,
       tierCapSeconds: motionV2Cap,
-      tierCapLabelVi: `Tối đa ${formatNumberVi(motionV2Cap)} giây`,
+      tierCapLabelVi: `${formatNumberVi(motionV2Cap)} giây`,
       beforeLabelVi: "Ảnh nhân vật + Video mẫu",
       afterLabelVi: "Video chuyển động đồng bộ",
       bannerUrl: "/banner/motion-control-v2.mp4",
       bannerType: "video",
       accentGradient: "from-violet-600/35 via-indigo-950 to-cyan-500/30",
       inputRequirementVi: "1 ảnh nhân vật rõ dáng + 1 video chuyển động mẫu",
-      outputFormatVi: "Video MP4 H.264 lưu trữ trên Cloudflare R2",
+      outputFormatVi: "Video MP4 H.264",
     },
     {
       id: "motion-background",
       slug: "motion-background",
       titleVi: "Motion Control Nền Video",
-      subtitleVi: "Chuyển động theo video mẫu, giữ nền cho video",
       descriptionVi:
-        "Ánh xạ chuyển động từ video mẫu sang ảnh nhân vật kèm nền, cắt thời lượng theo giây và tính phí theo độ dài.",
+        "Cho nhân vật trong ảnh chuyển động theo video mẫu, tạo ra video mới có nền. Cắt đoạn cần dùng theo giây, tối đa 20 giây.",
       category: "video",
       categoryLabelVi: "Chuyển động video AI",
       badgeVi: "Motion nền",
       icon: "lucide:clapperboard",
       billingMode: "per_second",
-      unitCredits: motionControlCreditsPerSecond,
-      priceBadgeVi: `${formatNumberVi(motionControlCreditsPerSecond)} credit / giây`,
+      baseCredits: MOTION_PRICING.motion_background.baseCredits,
+      unitCredits: MOTION_PRICING.motion_background.creditsPerSecond,
+      priceBadgeVi: `${formatNumberVi(MOTION_PRICING.motion_background.creditsPerSecond)} CR / giây`,
       tierCapSeconds: motionBgCap,
-      tierCapLabelVi: `Tối đa ${formatNumberVi(motionBgCap)} giây`,
+      tierCapLabelVi: `${formatNumberVi(motionBgCap)} giây`,
       beforeLabelVi: "Ảnh nhân vật + Video mẫu",
       afterLabelVi: "Video chuyển động đồng bộ",
       bannerUrl: "/banner/motion-control-v2.mp4",
       bannerType: "video",
       accentGradient: "from-violet-600/35 via-indigo-950 to-cyan-500/30",
       inputRequirementVi: "1 ảnh nhân vật rõ dáng + 1 video chuyển động mẫu",
-      outputFormatVi: "Video MP4 H.264 lưu trữ trên Cloudflare R2",
+      outputFormatVi: "Video MP4 H.264",
     },
   ];
   // Chức năng video lên đầu; sort ổn định nên thứ tự trong từng nhóm giữ nguyên.
   return all
     .filter((f) => !HIDDEN_FEATURE_IDS.includes(f.id))
-    .sort((a, b) => Number(b.category === "video") - Number(a.category === "video"));
+    .sort(
+      (a, b) => Number(b.category === "video") - Number(a.category === "video"),
+    );
 }
 
 export function calculateFeatureEstimatedCredits(
@@ -297,7 +314,7 @@ export function calculateFeatureEstimatedCredits(
       Math.max(1, Math.round(durationSeconds)),
       maxSec,
     );
-    return clampedSeconds * feature.unitCredits;
+    return (feature.baseCredits ?? 0) + clampedSeconds * feature.unitCredits;
   }
   return feature.unitCredits;
 }

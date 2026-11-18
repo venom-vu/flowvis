@@ -22,6 +22,7 @@ export function useAdminTopups() {
   const actionErrorVi = ref<string | null>(null);
   const nextCursor = ref<string | null>(null);
   const hasMore = ref<boolean>(false);
+  const total = ref<number | null>(null);
 
   let currentQuerySeq = 0;
 
@@ -44,6 +45,7 @@ export function useAdminTopups() {
       loadMoreErrorVi.value = null;
       nextCursor.value = null;
       hasMore.value = false;
+      total.value = null;
     } else {
       isLoadingMore.value = true;
       loadMoreErrorVi.value = null;
@@ -71,6 +73,7 @@ export function useAdminTopups() {
       }
 
       hasMore.value = res.hasMore;
+      total.value = res.total;
       nextCursor.value = res.nextCursor;
     } catch (err: unknown) {
       if (querySeq !== currentQuerySeq) {
@@ -187,6 +190,7 @@ export function useAdminTopups() {
     loadMoreErrorVi,
     actionErrorVi,
     hasMore,
+    total,
     nextCursor,
     fetchTopups,
     loadMore,

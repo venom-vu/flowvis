@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import type { AiFeatureTool } from '~/utils/catalog';
+import type { AiFeatureTool } from "~/utils/catalog";
 
 const props = defineProps<{
   feature: AiFeatureTool;
@@ -10,7 +10,7 @@ const emit = defineEmits<{
 }>();
 
 function handleOpenWorkspace(): void {
-  emit('select', props.feature);
+  emit("select", props.feature);
 }
 </script>
 
@@ -60,12 +60,12 @@ function handleOpenWorkspace(): void {
           </span>
 
           <span
+            v-if="feature.badgeVi"
             class="rounded-full border border-cyber-violet/40 bg-cyber-violet/20 px-2.5 py-1 font-mono text-[11px] font-semibold text-cyber-text"
           >
             {{ feature.badgeVi }}
           </span>
         </div>
-
       </div>
 
       <!-- Nội dung mô tả tính năng & đơn giá động từ /config/pricing -->
@@ -74,9 +74,6 @@ function handleOpenWorkspace(): void {
           <h2 class="font-display text-lg font-bold text-cyber-text">
             {{ feature.titleVi }}
           </h2>
-          <p class="mt-0.5 text-xs font-medium text-cyber-violet">
-            {{ feature.subtitleVi }}
-          </p>
         </div>
 
         <p class="text-sm leading-relaxed text-cyber-muted">
@@ -97,7 +94,10 @@ function handleOpenWorkspace(): void {
             :data-testid="`feature-cap-${feature.id}`"
             class="inline-flex items-center gap-1.5 rounded-lg border border-cyber-border bg-cyber-bg/70 px-2.5 py-1 font-mono text-xs text-cyber-muted"
           >
-            <Icon name="lucide:timer" class="h-3.5 w-3.5 shrink-0 text-cyber-violet" />
+            <Icon
+              name="lucide:timer"
+              class="h-3.5 w-3.5 shrink-0 text-cyber-violet"
+            />
             <span>{{ feature.tierCapLabelVi }}</span>
           </span>
         </div>

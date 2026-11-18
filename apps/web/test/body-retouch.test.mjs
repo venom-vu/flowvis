@@ -843,7 +843,7 @@ describe('@flowvis/web — Story 4.4 Trang Body Retouch và thanh mức điều 
         assert.match(html, /Tự nhiên/);
         assert.match(html, /Uốn nhẹ dáng/);
         assert.match(html, /Đường cong tối đa/);
-        assert.match(html, /100 credit/);
+        assert.match(html, /100 CR/);
         assert.match(
           html,
           /<button[^>]*data-testid="submit-task-button"[^>]*\sdisabled(=|"|\s|>)/,

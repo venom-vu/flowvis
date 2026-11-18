@@ -82,7 +82,14 @@ export function useMotionControl() {
   /** Giá theo contracts (motionPrice); null khi chưa có đoạn Trim hợp lệ. */
   const price = computed<number | null>(() =>
     Number.isInteger(seconds.value) && seconds.value > 0
-      ? motionPrice(seconds.value)
+      ? motionPrice(
+          seconds.value,
+          variant.value === 'v2'
+            ? 'motion_control_v2'
+            : variant.value === 'bg'
+              ? 'motion_background'
+              : 'motion_control',
+        )
       : null,
   );
 

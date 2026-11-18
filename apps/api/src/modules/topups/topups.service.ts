@@ -287,18 +287,22 @@ export class TopupsService {
         : null;
       if (!owner) throw this.apiError(BadRequestException, ApiErrorCode.VALIDATION_FAILED);
     }
-    const rows = await this.prisma.topup.findMany({
-      where: { userId },
-      orderBy: [{ createdAt: 'desc' }, { id: 'desc' }],
-      take: pageSize + 1,
-      ...(cursor ? { cursor: { id: cursor }, skip: 1 } : {}),
-    });
+    const [rows, total] = await Promise.all([
+      this.prisma.topup.findMany({
+        where: { userId },
+        orderBy: [{ createdAt: 'desc' }, { id: 'desc' }],
+        take: pageSize + 1,
+        ...(cursor ? { cursor: { id: cursor }, skip: 1 } : {}),
+      }),
+      this.prisma.topup.count({ where: { userId } }),
+    ]);
     const hasMore = rows.length > pageSize;
     const items = hasMore ? rows.slice(0, pageSize) : rows;
     return {
       items: items.map((r) => this.toDto(r)),
       pageSize,
       hasMore,
+      total,
       nextCursor: hasMore && items.length > 0 ? items[items.length - 1].id : null,
     };
   }
@@ -322,18 +326,23 @@ export class TopupsService {
         : null;
       if (!found) throw this.apiError(BadRequestException, ApiErrorCode.VALIDATION_FAILED);
     }
-    const rows = await this.prisma.topup.findMany({
-      where: query.status ? { status: query.status } : {},
-      orderBy: [{ createdAt: 'desc' }, { id: 'desc' }],
-      take: pageSize + 1,
-      ...(cursor ? { cursor: { id: cursor }, skip: 1 } : {}),
-    });
+    const where = query.status ? { status: query.status } : {};
+    const [rows, total] = await Promise.all([
+      this.prisma.topup.findMany({
+        where,
+        orderBy: [{ createdAt: 'desc' }, { id: 'desc' }],
+        take: pageSize + 1,
+        ...(cursor ? { cursor: { id: cursor }, skip: 1 } : {}),
+      }),
+      this.prisma.topup.count({ where }),
+    ]);
     const hasMore = rows.length > pageSize;
     const items = hasMore ? rows.slice(0, pageSize) : rows;
     return {
       items: items.map((r) => this.toAdminDto(r)),
       pageSize,
       hasMore,
+      total,
       nextCursor: hasMore && items.length > 0 ? items[items.length - 1].id : null,
     };
   }

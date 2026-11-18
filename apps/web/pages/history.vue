@@ -51,6 +51,7 @@ const pagination = createWalletLedgerPagination({
 const {
   entries,
   hasMore,
+  total,
   loadingMore,
   loadMoreErrorVi,
   loadMore,
@@ -132,7 +133,7 @@ const {
   prev: prevPage,
   goTo: goToPage,
   reset: resetPage,
-} = useCursorPager(entries, hasMore, loadMore, USER_TABLE_PAGE_SIZE);
+} = useCursorPager(entries, hasMore, loadMore, USER_TABLE_PAGE_SIZE, total);
 
 async function handleRefresh(): Promise<void> {
   resetPage();

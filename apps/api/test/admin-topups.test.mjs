@@ -162,7 +162,7 @@ describe('Story 3.5: [BE] Duyệt và từ chối đơn, nhật ký Admin', () =
     const id = await mkTopup(u, { pack: 'creator' });
     assert.equal((await adm('POST', `/admin/topups/${id}/approve`, { bankRef: ref() })).status, 200);
     const me = await (await call(u, 'GET', '/me')).json();
-    assert.equal(me.balance, 30000);
+    assert.equal(me.balance, 28000);
     assert.equal(me.tier, 'Creator');
     const snap = await pool.query('SELECT tier_pack FROM users WHERE id=$1', [u.id]);
     assert.equal(snap.rows[0].tier_pack, 'creator');
@@ -378,6 +378,7 @@ describe('Story 3.5: [BE] Duyệt và từ chối đơn, nhật ký Admin', () =
     const page = AdminTopupListResponseSchema.parse(await res.json());
     assert.equal(page.items.length, 1);
     assert.equal(page.hasMore, true);
+    assert.ok(page.total >= 2); // tổng khớp bộ lọc status, không chỉ trang hiện tại
     assert.ok(!JSON.stringify(page).includes('@flowvis.vn'));
     const all = [];
     let cursor;
@@ -386,9 +387,11 @@ describe('Story 3.5: [BE] Duyệt và từ chối đơn, nhật ký Admin', () =
         await (await adm('GET', `/admin/topups?status=pending&pageSize=2${cursor ? `&cursor=${cursor}` : ''}`)).json(),
       );
       all.push(...r.items);
+      assert.equal(r.total, page.total, 'total ổn định giữa các trang');
       cursor = r.nextCursor ?? undefined;
     } while (cursor);
     const byId = Object.fromEntries(all.map((t) => [t.id, t]));
+    assert.equal(all.length, page.total);
     assert.equal(byId[overdue].isOverdue, true);
     assert.equal(byId[fresh].isOverdue, false);
     assert.ok(all.every((t) => t.status === 'pending'));

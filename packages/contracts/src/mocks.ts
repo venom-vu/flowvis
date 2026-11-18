@@ -67,8 +67,11 @@ export const DEFAULT_PRICING_CONFIG: PricingConfigResponse = {
   outfitChangeCredits: 100,
     personReplaceCredits: 100,
     bodyRetouchCredits: 100,
-    motionControlCreditsPerSecond: 50,
-    motionControlMinSeconds: 3,
+    motionControlBaseCredits: 150,
+    motionControlCreditsPerSecond: 20,
+    motionControlV2BaseCredits: 150,
+    motionControlV2CreditsPerSecond: 65,
+    motionControlMinSeconds: 5,
   },
   tiers: [
     {
@@ -76,7 +79,7 @@ export const DEFAULT_PRICING_CONFIG: PricingConfigResponse = {
       packId: null,
       priceVnd: 0,
       credits: 250,
-      maxVideoSeconds: 3,
+      maxVideoSeconds: 5,
       maxActiveTasks: 1,
       priority: 10,
     },
@@ -102,7 +105,7 @@ export const DEFAULT_PRICING_CONFIG: PricingConfigResponse = {
       tier: 'Creator',
       packId: 'creator',
       priceVnd: 199_000,
-      credits: 30_000,
+      credits: 28_000,
       maxVideoSeconds: 20,
       maxActiveTasks: 5,
       priority: 1,
@@ -132,7 +135,7 @@ export const DEFAULT_PRICING_CONFIG: PricingConfigResponse = {
       tier: 'Creator',
       name: 'Creator',
       priceVnd: 199_000,
-      credits: 30_000,
+      credits: 28_000,
       maxVideoSeconds: 20,
       priority: 1,
     },
@@ -290,6 +293,7 @@ export const MOCK_WALLET_LEDGER_RESPONSE: WalletLedgerResponse = {
   items: MOCK_WALLET_LEDGER_ITEMS,
   pageSize: 20,
   hasMore: false,
+  total: MOCK_WALLET_LEDGER_ITEMS.length,
   nextCursor: null,
 };
 
@@ -413,6 +417,7 @@ export const MOCK_TASK_LIST_RESPONSE: TaskListResponse = {
   ],
   pageSize: 20,
   hasMore: false,
+  total: 6,
   nextCursor: null,
 };
 
@@ -662,6 +667,7 @@ export const MOCK_TOPUP_LIST_RESPONSE: TopupListResponse = {
   ],
   pageSize: 20,
   hasMore: false,
+  total: 3,
   nextCursor: null,
 };
 
@@ -686,6 +692,7 @@ export const MOCK_ADMIN_TOPUP_LIST_RESPONSE: AdminTopupListResponse = {
   ],
   pageSize: 20,
   hasMore: false,
+  total: 3,
   nextCursor: null,
 };
 
@@ -823,6 +830,7 @@ export const MOCK_ADMIN_USER_LEDGER_RESPONSE: AdminUserLedgerResponse = {
   ],
   pageSize: 20,
   hasMore: false,
+  total: 1,
   nextCursor: null,
 };
 
@@ -857,5 +865,6 @@ export const MOCK_ADMIN_AUDIT_RESPONSE: AdminAuditResponse = {
   ],
   pageSize: 20,
   hasMore: false,
+  total: 1,
   nextCursor: null,
 };

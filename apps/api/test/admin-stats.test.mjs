@@ -214,8 +214,9 @@ describe('Story 6.6: [BE] Thống kê vận hành và nhật ký Admin', () => {
     const m80 = (await stats('&imagePrice=80')).margins.find((x) => x.pipeline === 'face_swap' && x.pack === 'starter');
     assert.ok(Math.abs(m80.revenueVnd - 784) < 1e-6);
     const mm = real.margins.find((x) => x.pipeline === 'motion_control' && x.pack === 'pro');
-    assert.ok(Math.abs(mm.revenueVnd - 825 * 0.5) < 1e-6);
-    assert.ok(Math.abs(mm.costVnd - (0.05 / 5) * 25000) < 1e-6, 'chi phí mỗi giây = ok_cost / ok_seconds');
+    // Task 5 giây: giá v1 = 150 + 20 × 5 = 250 credit, Pro 8,25đ/credit.
+    assert.ok(Math.abs(mm.revenueVnd - (99000 / 12000) * 250) < 1e-6);
+    assert.ok(Math.abs(mm.costVnd - 0.05 * 25000) < 1e-6, 'chi phí = ok_cost / số Task có chi phí');
     // approved trong khoảng: u, noTask, late(02-05 ngoài khoảng, loại) => 2; bench bị loại khỏi real
     assert.equal(real.successMetrics.approvedTopups, 2);
     // cohort real có Task: u (nạp 12/01 trong 30 ngày), noTopup, late (nạp sau 30 ngày); noTask không Task => 1/3

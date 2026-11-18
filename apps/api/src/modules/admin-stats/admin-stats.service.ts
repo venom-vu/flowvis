@@ -1,7 +1,9 @@
 import { Injectable } from "@nestjs/common";
 import {
+  MOTION_PRICING,
   TASK_PIPELINES,
   TASK_STATUSES,
+  type MotionPipeline,
   type AdminStatsMargin,
   type AdminStatsPipeline,
   type AdminStatsQuery,
@@ -119,10 +121,14 @@ export class AdminStatsService {
       if (isMotion) {
         const secs = r.ok_seconds_costed ?? 0;
         if (secs <= 0) continue;
-        unitUsd = okCost / secs;
+        // Giá có phí cố định nên so sánh theo Task: chi phí TB một Task với doanh thu của Task dài trung bình.
+        const avgSeconds = secs / r.ok_cost_n;
+        unitUsd = okCost / r.ok_cost_n;
+        const { baseCredits, creditsPerSecond } = MOTION_PRICING[pipeline as MotionPipeline];
         unitCredits =
-          q.motionPricePerSecond ??
-          PRICING_CONFIG.pipelines.motionControlCreditsPerSecond;
+          q.motionPricePerSecond !== undefined
+            ? q.motionPricePerSecond * avgSeconds
+            : baseCredits + creditsPerSecond * avgSeconds;
       } else {
         unitUsd = okCost / r.ok_cost_n;
         unitCredits =

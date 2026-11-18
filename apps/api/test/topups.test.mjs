@@ -307,10 +307,12 @@ describe('Story 3.2: [BE] Tạo đơn nạp và mã VietQR', () => {
     const p1 = TopupListResponseSchema.parse(await (await call(a, 'GET', '/topups?pageSize=2')).json());
     assert.equal(p1.items.length, 2);
     assert.equal(p1.hasMore, true);
+    assert.equal(p1.total, 3); // chỉ đếm đơn của user a, không tính đơn của b
     assert.deepEqual(p1.items.map((i) => i.id), [ids[2], ids[1]]);
     const p2 = TopupListResponseSchema.parse(await (await call(a, 'GET', `/topups?pageSize=2&cursor=${p1.nextCursor}`)).json());
     assert.deepEqual(p2.items.map((i) => i.id), [ids[0]]);
     assert.equal(p2.hasMore, false);
+    assert.equal(p2.total, 3);
     const bad = await call(a, 'GET', `/topups?cursor=${p1.items[0].id.replace(/./, 'x')}`);
     assert.equal(bad.status, 400);
     // Cursor hợp lệ về định dạng nhưng của người khác hoặc không tồn tại -> VALIDATION_FAILED.

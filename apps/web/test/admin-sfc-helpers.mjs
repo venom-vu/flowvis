@@ -52,6 +52,8 @@ export async function compileFullSfc(relFile) {
   const scriptCode = script.content
     .replaceAll("'~/utils/form-ui'", JSON.stringify(formUiUrl))
     .replaceAll("'~/utils/pagination'", JSON.stringify(paginationUrl))
+    .replace(/^import\s*\{\s*cn\s*\}\s*from\s*'@\/lib\/utils';?[ \t]*$/gm, 'const cn = (...a) => a.flat().filter(Boolean).join(" ");')
+    .replace(/^import\s*\{\s*buttonVariants\s*\}\s*from\s*'@\/components\/ui\/button';?[ \t]*$/gm, 'const buttonVariants = () => "";')
     // Component shadcn được thay bằng stub (bản thật cần reka-ui và alias '@/').
     .replace(/^import\s*\{([^}]*)\}\s*from\s*'@\/components\/ui\/[^'\n]*';?[ \t]*$/gm, (_m, names) => {
       const list = names.split(',').map((n) => n.trim()).filter(Boolean).map((n) => n.split(' as ').pop().trim());

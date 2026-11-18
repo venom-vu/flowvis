@@ -5,7 +5,7 @@ import { describe, it } from 'node:test';
 import { fileURLToPath, pathToFileURL } from 'node:url';
 import { compileTemplate, parse } from '@vue/compiler-sfc';
 import { createSSRApp } from 'vue';
-import { renderToString } from '@vue/server-renderer';
+import { renderToString, ssrRenderSlot } from '@vue/server-renderer';
 import {
   TIKTOK_MAX_DOWNLOAD_BYTES,
   TikTokDownloadError,
@@ -133,7 +133,7 @@ describe('tiktok downloader', () => {
     assert.equal(raw.includes('Lưu ý khi sử dụng'), false);
     assert.equal(/\p{Extended_Pictographic}/u.test(raw), false);
     assert.match(raw, /max-w-4xl/);
-    assert.match(raw, /Quay lại Kho Công Cụ AI/);
+    assert.match(raw, /Tải Video TikTok Không Logo/);
     assert.match(raw, /min-h-\[48px\]/);
 
     const { descriptor } = parse(raw, { filename: 'pages/tiktok-downloader.vue' });
@@ -187,9 +187,9 @@ describe('tiktok downloader', () => {
         });
         app.component('NuxtLink', {
           props: ['to'],
-          ssrRender(ctx, push, _p, _a, _s, slots) {
+          ssrRender(ctx, push, parent, _a, _s, slots) {
             push(`<a href="${ctx.to}">`);
-            slots.default?.();
+            ssrRenderSlot(slots, 'default', {}, null, push, parent);
             push('</a>');
           },
         });
@@ -204,7 +204,7 @@ describe('tiktok downloader', () => {
 
       const idleHtml = await render({});
       assert.match(idleHtml, /data-testid="page-tiktok-downloader"/);
-      assert.match(idleHtml, /Quay lại Kho Công Cụ AI/);
+      assert.match(idleHtml, /Dán liên kết video TikTok/);
       assert.match(idleHtml, /Tải Video TikTok Không Logo/);
       assert.equal(idleHtml.includes('Lưu ý khi sử dụng'), false);
 
@@ -219,7 +219,7 @@ describe('tiktok downloader', () => {
       assert.match(resultHtml, /data-testid="tiktok-result"/);
       assert.match(resultHtml, /@?user\.a/);
       assert.match(resultHtml, /data-testid="tiktok-done"/);
-      assert.match(resultHtml, /Dùng cho Motion Control/);
+      assert.match(resultHtml, /<a href="\/motion-control">/);
     } finally {
       fs.rmSync(tmpFile, { force: true });
     }

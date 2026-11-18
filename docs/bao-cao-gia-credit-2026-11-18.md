@@ -2,6 +2,41 @@
 
 Ngày: 2026-11-18. Căn cứ: mã nguồn tại commit `c9f5f10` (nhánh `main`) và file `Phân tích giá .xlsx`. Không dùng PRD/kiến trúc cũ.
 
+## 0. Quyết định đã chốt (cập nhật mới nhất, thay thế các đề xuất Motion v1 ở mục 6)
+
+**Motion Control v1:** giá = **150 credit + 20 credit/giây**. Thời lượng tối thiểu **5 giây** (trước đây 3 giây). Gói FREE được tạo clip **5 giây** (trước đây cap 3 giây).
+
+Giả định: Creator 28.000 credit (7,11đ/credit), tỷ giá 25.700đ/USD, máy tiêu chuẩn $0,88/giờ. Giá vốn suy từ 3 điểm đo thật (3 giây: 4:29 / $0,066; 9 giây: 5:08 / $0,076; 15 giây: 6:40 / $0,098), tức khoảng 1.440đ cố định + 69đ/giây. Các điểm 5, 7, 10 và 20 giây là suy ra, chưa đo.
+
+| Clip | Credit | Giá vốn | Starter | Pro | Creator | Biên S / P / C |
+|---|---|---|---|---|---|---|
+| 5 giây | 250 | 1.782đ | 2.450đ | 2.062đ | 1.777đ | 27% / 14% / **0%** |
+| 7 giây | 290 | 1.920đ | 2.842đ | 2.392đ | 2.061đ | 32% / 20% / 7% |
+| 10 giây | 350 | 2.125đ | 3.430đ | 2.888đ | 2.488đ | 38% / 26% / 15% |
+| 15 giây | 450 | 2.468đ | 4.410đ | 3.712đ | 3.198đ | 44% / 34% / 23% |
+| 20 giây | 550 | 2.812đ | 5.390đ | 4.538đ | 3.909đ | 48% / 38% / 28% |
+
+**Rủi ro đã biết của quyết định này:**
+- Gói Creator **hòa vốn** ở clip 5 giây (lãi −6đ/clip) và chỉ đạt biên 15% từ 10 giây. Tỷ lệ Task lỗi 10% đẩy Creator xuống −11% ở 5 giây và 5% ở 10 giây (Task lỗi vẫn tốn GPU nhưng hoàn 100% credit).
+- Gói FREE có 250 credit, đúng bằng một clip 5 giây (250 credit): mỗi tài khoản mới dùng hết credit cho một clip, tốn khoảng 1.780đ GPU không có doanh thu (giới hạn 3 tài khoản/IP/24 giờ, tối đa khoảng 5.300đ/IP/ngày).
+- Giá vốn chỉ dựa trên 3 điểm đo, sai số hồi quy khoảng 50 đến 100đ. Nên theo dõi biên thực trong thống kê admin 2 đến 4 tuần đầu và chỉnh phần cố định nếu cần (200 + 20 đưa biên Creator 5 giây lên 16%).
+
+**Chưa chốt:** Motion v2 (đề xuất tạm 300 + 60 credit/giây, chỉ 3 mẫu đo), `motion_background` (pipeline mới trong code, chưa có số đo chi phí), giá các tính năng ảnh và Đổi Người, gói Creator 28.000 credit.
+
+**Việc cần sửa trong code để áp dụng quyết định này:**
+
+| Nơi | Thay đổi |
+|---|---|
+| `packages/contracts/src/tasks.ts` | `MOTION_MIN_TRIM_SECONDS` 3 → 5; `motionPrice()` hardcode `50 * seconds` → nhận pipeline, v1 = 150 + 20 × giây |
+| `packages/contracts/src/wallet.ts` | `PipelinePricingSchema`: bỏ `z.literal(50)` và `motionControlMinSeconds: z.literal(3)`; `TierConfigSchema.maxVideoSeconds`: `z.union([z.literal(3), z.literal(20)])` → cho phép 5 |
+| `apps/api/src/modules/wallet/tier.ts` | FREE `maxVideoSeconds` 3 → 5; `motionControlMinSeconds` 3 → 5; thêm phí cố định và đơn giá/giây; Creator `credits` 30.000 → 28.000 (nếu chốt) |
+| `apps/api/src/modules/tasks/tasks.service.ts` | `createMotionTask` dùng giá theo pipeline |
+| `apps/api/src/modules/admin-stats/admin-stats.service.ts` | Biên Motion đang tính theo "đơn giá/giây × số giây"; phải tính theo doanh thu thực của Task vì giá có phần cố định |
+| FE | `useMotionControl.ts`, `VideoTrimmer.vue`, `utils/catalog.ts`, `pages/pricing.vue` (câu "tối đa 3 giây" của FREE) |
+| Test | `apps/api/test/motion-control.test.mjs` (lặp 3 đến 20 giây), `smoke-motion-control.test.mjs` (`motionPrice(10) === 500`), `tier.test.mjs`, `apps/web/test/*` (giá 3, 5 giây, `maxVideoSeconds` của FREE) |
+
+Lưu ý: `motionPrice()` và `MOTION_MIN_TRIM_SECONDS` dùng chung cho `motion_control`, `motion_control_v2` và `motion_background`. Đổi một chỗ là đổi cả ba. Nếu chỉ chốt v1 thì phải tách giá theo pipeline, nếu không v2 và `motion_background` sẽ bị tính giá của v1 (v2 tốn gấp 1,4 đến 1,8 lần v1).
+
 ## 1. Phạm vi và giả định
 
 - Đã đọc: `apps/api/src/modules/wallet/tier.ts`, `packages/contracts/src/{tasks,wallet}.ts`, `modules/tasks/*` (tạo Task, ghi chi phí), `modules/pipelines/pipeline-config.ts`, `modules/admin-stats/*`, `modules/auth/anti-abuse.ts`, `deploy/.env.example`.

@@ -535,13 +535,16 @@ describe('@flowvis/contracts', () => {
       );
       assert.equal(
         MOCK_PRICING_CONFIG_RESPONSE.pipelines.motionControlCreditsPerSecond,
-        50,
+        20,
       );
+      assert.equal(MOCK_PRICING_CONFIG_RESPONSE.pipelines.motionControlBaseCredits, 150);
+      assert.equal(MOCK_PRICING_CONFIG_RESPONSE.pipelines.motionControlV2CreditsPerSecond, 65);
+      assert.equal(MOCK_PRICING_CONFIG_RESPONSE.pipelines.motionControlMinSeconds, 5);
 
       const tiersByKey = Object.fromEntries(
         MOCK_PRICING_CONFIG_RESPONSE.tiers.map((t) => [t.tier, t]),
       );
-      assert.equal(tiersByKey.FREE.maxVideoSeconds, 3);
+      assert.equal(tiersByKey.FREE.maxVideoSeconds, 5);
       assert.equal(tiersByKey.FREE.priority, 10);
       assert.equal(tiersByKey.Starter.maxVideoSeconds, 20);
       assert.equal(tiersByKey.Starter.priority, 3);
@@ -554,7 +557,7 @@ describe('@flowvis/contracts', () => {
       assert.equal(tiersByKey.Creator.maxVideoSeconds, 20);
       assert.equal(tiersByKey.Creator.priority, 1);
       assert.equal(tiersByKey.Creator.priceVnd, 199_000);
-      assert.equal(tiersByKey.Creator.credits, 30_000);
+      assert.equal(tiersByKey.Creator.credits, 28_000);
 
       assert.equal(
         TierSnapshotSchema.safeParse({
@@ -723,11 +726,11 @@ describe('@flowvis/contracts', () => {
         withPack(0, { credits: 1 }),
         withPack(0, { id: 'pro' }),
         withPack(0, { priority: 1 }),
-        withPack(0, { maxVideoSeconds: 3 }),
+        withPack(0, { maxVideoSeconds: 5 }),
         withTier(1, { priceVnd: 1 }),
         withTier(1, { credits: 1 }),
         withTier(1, { packId: 'pro' }),
-        withTier(1, { maxVideoSeconds: 3 }),
+        withTier(1, { maxVideoSeconds: 5 }),
       ];
       bad.forEach((payload, i) => {
         assert.equal(
@@ -1084,10 +1087,16 @@ describe('@flowvis/contracts', () => {
       assert.equal(AdminTopupListQuerySchema.safeParse({ status: 'pending' }).success, true);
       assert.equal(AdminTopupListQuerySchema.safeParse({ status: 'paid' }).success, false);
       const item = MOCK_TOPUPS_BY_STATUS.pending;
-      const page = { items: [item], pageSize: 20, hasMore: false, nextCursor: null };
+      const page = { items: [item], pageSize: 20, hasMore: false, total: 1, nextCursor: null };
       assert.equal(TopupListResponseSchema.safeParse(page).success, true);
       assert.equal(TopupListResponseSchema.safeParse({ ...page, hasMore: true }).success, false);
       assert.equal(TopupListResponseSchema.safeParse({ ...page, nextCursor: 'c' }).success, false);
+      // total bắt buộc và phải là số nguyên không âm (dùng dựng thanh số trang).
+      const { total: _omit, ...noTotal } = page;
+      assert.equal(TopupListResponseSchema.safeParse(noTotal).success, false);
+      assert.equal(TopupListResponseSchema.safeParse({ ...page, total: -1 }).success, false);
+      assert.equal(TopupListResponseSchema.safeParse({ ...page, total: 1.5 }).success, false);
+      assert.equal(TopupListResponseSchema.safeParse({ ...page, total: 45 }).success, true);
       assert.equal(TopupListResponseSchema.safeParse({ ...page, pageSize: 1, items: [item, item] }).success, false);
       assert.equal(TopupIdParamsSchema.safeParse({ id: 'abc' }).success, false);
     });
@@ -1115,9 +1124,13 @@ describe('@flowvis/contracts', () => {
   describe('Epic 5 contracts', () => {
     const K = MOCK_MOTION_CREATE_REQUEST;
 
-    it('prices motion at 50 per whole second', () => {
-      assert.equal(motionPrice(1), 50);
-      assert.equal(motionPrice(20), 1000);
+    it('prices motion: v1 = 150 + 20/giây, v2 = 150 + 65/giây, background giữ 50/giây', () => {
+      assert.equal(motionPrice(5), 250);
+      assert.equal(motionPrice(10), 350);
+      assert.equal(motionPrice(20), 550);
+      assert.equal(motionPrice(5, 'motion_control_v2'), 475);
+      assert.equal(motionPrice(10, 'motion_control_v2'), 800);
+      assert.equal(motionPrice(10, 'motion_background'), 500);
       for (const bad of [0, -1, 1.5, NaN]) assert.throws(() => motionPrice(bad));
       assert.ok(TASK_PIPELINES.includes('motion_control'));
     });
@@ -1203,7 +1216,7 @@ describe('@flowvis/contracts', () => {
       }
       assert.equal(Object.keys(MOCK_MOTION_TASKS_BY_STATUS).length, 6);
       assert.equal(PricingConfigResponseSchema.safeParse(MOCK_PRICING_CONFIG_RESPONSE).success, true);
-      assert.equal(MOCK_PRICING_CONFIG_RESPONSE.pipelines.motionControlMinSeconds, 3);
+      assert.equal(MOCK_PRICING_CONFIG_RESPONSE.pipelines.motionControlMinSeconds, 5);
     });
   });
 

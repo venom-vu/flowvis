@@ -376,12 +376,12 @@ describe('Smoke vận hành trên stack Compose (Story 6.10)', {
     const prevVideo = rh.resultVideo;
     let t;
     try {
-      rh.resultVideo = makeVideo(path.join(tmp, 'tkd-r5.mp4'), 3);
+      rh.resultVideo = makeVideo(path.join(tmp, 'tkd-r5.mp4'), 5);
       rh.resultExt = 'mp4';
       rh.mode = 'success';
       const characterKey = await uploadFile(tkd, 'image/png', png);
       const videoKey = await uploadFile(tkd, 'video/mp4', sample);
-      const cr = await api(tkd, 'POST', '/tasks/motion', { characterKey, videoKey, trimStart: 0, trimEnd: 3 });
+      const cr = await api(tkd, 'POST', '/tasks/motion', { characterKey, videoKey, trimStart: 0, trimEnd: 5 });
       assert.equal(cr.status, 201, await cr.clone().text());
       const created = MotionCreateResponseSchema.parse(await cr.json());
       t = await waitFor(tkd, created.id, isDone, 'motion takedown', 120_000);
