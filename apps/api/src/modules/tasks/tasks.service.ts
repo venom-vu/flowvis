@@ -745,7 +745,7 @@ export class TasksService {
     if (trimStart < 0 || trimEnd > durationSeconds) throw this.trimError('TRIM_OUT_OF_VIDEO');
     const seconds = trimEnd - trimStart;
     if (seconds < MOTION_MIN_TRIM_SECONDS) throw this.trimError('TRIM_TOO_SHORT');
-    const price = motionPrice(seconds);
+    const price = motionPrice(seconds, pipeline);
     const task = await this.createPipelineTask(userId, {
       pipeline,
       amount: price,

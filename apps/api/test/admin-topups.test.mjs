@@ -162,7 +162,7 @@ describe('Story 3.5: [BE] Duyệt và từ chối đơn, nhật ký Admin', () =
     const id = await mkTopup(u, { pack: 'creator' });
     assert.equal((await adm('POST', `/admin/topups/${id}/approve`, { bankRef: ref() })).status, 200);
     const me = await (await call(u, 'GET', '/me')).json();
-    assert.equal(me.balance, 30000);
+    assert.equal(me.balance, 28000);
     assert.equal(me.tier, 'Creator');
     const snap = await pool.query('SELECT tier_pack FROM users WHERE id=$1', [u.id]);
     assert.equal(snap.rows[0].tier_pack, 'creator');

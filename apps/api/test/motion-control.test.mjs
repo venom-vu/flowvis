@@ -129,11 +129,11 @@ describe('Story 5.3: [BE] Tạo Task Motion Control', () => {
     await app?.close();
   });
 
-  it('giá mọi độ dài 3..20 giây (Creator): HOLD = motionPrice, params khớp, jobId = taskId', async () => {
+  it('giá mọi độ dài 5..20 giây (Creator): HOLD = motionPrice (150 + 20/giây), params khớp, jobId = taskId', async () => {
     const u = await newUser({ balance: 100000, tierPack: 'creator' });
     const v = await vid(u, 21);
     const c = await img(u);
-    for (let s = 3; s <= 20; s++) {
+    for (let s = 5; s <= 20; s++) {
       await pool.query(`UPDATE tasks SET status='failed', reason_code='RH_ERROR', finished_at=now() WHERE user_id=$1 AND status IN ('queued','running')`, [u.id]);
       queueCalls.length = 0;
       const res = await post(u, { characterKey: c, videoKey: v, trimStart: 1, trimEnd: 1 + s });
@@ -155,18 +155,18 @@ describe('Story 5.3: [BE] Tạo Task Motion Control', () => {
     await expectReason(res, 'TRIM_EXCEEDS_CAP', 20);
     const ok20 = await post(u, { characterKey: c, videoKey: v, trimStart: 0, trimEnd: 20 });
     assert.equal(ok20.status, 201);
-    assert.equal((await ok20.json()).price, 1000);
+    assert.equal((await ok20.json()).price, 550);
   });
 
-  it('Cap theo Tier: FREE 3 ok / 4 bị từ chối; Starter 20 ok / 21 bị từ chối; Creator 20 ok', async () => {
+  it('Cap theo Tier: FREE 5 ok / 6 bị từ chối; Starter 20 ok / 21 bị từ chối; Creator 20 ok', async () => {
     const free = await newUser({ balance: 1000 });
     const v = await vid(free, 20); const c = await img(free);
-    let res = await post(free, { characterKey: c, videoKey: v, trimStart: 0, trimEnd: 3 });
+    let res = await post(free, { characterKey: c, videoKey: v, trimStart: 0, trimEnd: 5 });
     assert.equal(res.status, 201);
-    assert.equal((await res.json()).price, 150);
+    assert.equal((await res.json()).price, 250);
     const free2 = await newUser({ balance: 1000 });
-    res = await post(free2, { characterKey: await img(free2), videoKey: await vid(free2, 20), trimStart: 0, trimEnd: 4 });
-    await expectReason(res, 'TRIM_EXCEEDS_CAP', 3);
+    res = await post(free2, { characterKey: await img(free2), videoKey: await vid(free2, 20), trimStart: 0, trimEnd: 6 });
+    await expectReason(res, 'TRIM_EXCEEDS_CAP', 5);
     assert.deepEqual(await countFor(free2), { tasks: 0, ledger: 1 }, 'chỉ còn bút toán cấp credit, không HOLD');
     assert.equal((await pool.query(`SELECT count(*)::int n FROM ledger_entries WHERE user_id=$1 AND type='HOLD'`, [free2.id])).rows[0].n, 0);
     assert.equal(Number((await pool.query(`SELECT balance, held FROM users WHERE id=$1`, [free2.id])).rows[0].balance), 1000);
@@ -181,24 +181,24 @@ describe('Story 5.3: [BE] Tạo Task Motion Control', () => {
     assert.equal(res.status, 201);
   });
 
-  it('Tier đổi sau khi tải video: Pro rơi về FREE, trim 8 s => cap 3', async () => {
+  it('Tier đổi sau khi tải video: Pro rơi về FREE, trim 8 s => cap 5', async () => {
     const u = await newUser({ tierPack: 'pro' });
     const v = await vid(u, 20); const c = await img(u);
     await pool.query(`UPDATE users SET tier_pack=NULL WHERE id=$1`, [u.id]);
-    await expectReason(await post(u, { characterKey: c, videoKey: v, trimStart: 0, trimEnd: 8 }), 'TRIM_EXCEEDS_CAP', 3);
+    await expectReason(await post(u, { characterKey: c, videoKey: v, trimStart: 0, trimEnd: 8 }), 'TRIM_EXCEEDS_CAP', 5);
   });
 
-  it('Motion v2: cap 10 giây theo chức năng (gói trả phí), FREE vẫn 3 giây', async () => {
+  it('Motion v2: cap 10 giây theo chức năng (gói trả phí, giá 150 + 65/giây), FREE cap 5 giây', async () => {
     const postV2 = (user, body) => fetch(`${baseUrl}/tasks/motion-v2`, { method: 'POST', headers: { Authorization: `Bearer ${user.token}`, 'Content-Type': 'application/json' }, body: JSON.stringify(body) });
     const cr = await newUser({ tierPack: 'creator' });
     let res = await postV2(cr, { characterKey: await img(cr), videoKey: await vid(cr, 20), trimStart: 0, trimEnd: 11 });
     await expectReason(res, 'TRIM_EXCEEDS_CAP', 10);
     res = await postV2(cr, { characterKey: await img(cr), videoKey: await vid(cr, 20), trimStart: 0, trimEnd: 10 });
     assert.equal(res.status, 201);
-    assert.equal((await res.json()).price, 500);
+    assert.equal((await res.json()).price, 800);
     const free = await newUser({ balance: 1000 });
-    res = await postV2(free, { characterKey: await img(free), videoKey: await vid(free, 20), trimStart: 0, trimEnd: 4 });
-    await expectReason(res, 'TRIM_EXCEEDS_CAP', 3);
+    res = await postV2(free, { characterKey: await img(free), videoKey: await vid(free, 20), trimStart: 0, trimEnd: 6 });
+    await expectReason(res, 'TRIM_EXCEEDS_CAP', 5);
   });
 
   it('Trim sai: không HOLD, không Task', async () => {
@@ -210,6 +210,7 @@ describe('Story 5.3: [BE] Tạo Task Motion Control', () => {
     await expectReason(await p(-1, 4), 'TRIM_OUT_OF_VIDEO');
     await expectReason(await p(2, 11), 'TRIM_OUT_OF_VIDEO');
     await expectReason(await p(0, 2), 'TRIM_TOO_SHORT');
+    await expectReason(await p(0, 4), 'TRIM_TOO_SHORT');
     await expectReason(await p(5, 5), 'TRIM_TOO_SHORT');
     await expectReason(await p(6, 4), 'TRIM_TOO_SHORT');
     assert.deepEqual(await countFor(u), { tasks: 0, ledger: 1 });
@@ -241,7 +242,7 @@ describe('Story 5.3: [BE] Tạo Task Motion Control', () => {
     const orig = wallet.hold;
     wallet.hold = async (...a) => ({ ...(await orig.apply(wallet, a)), maxVideoSeconds: Number.NaN });
     try {
-      const res = await post(u, { characterKey: c, videoKey: v, trimStart: 0, trimEnd: 4 });
+      const res = await post(u, { characterKey: c, videoKey: v, trimStart: 0, trimEnd: 6 });
       assert.equal(res.status, 500);
     } finally {
       wallet.hold = orig;
@@ -253,7 +254,7 @@ describe('Story 5.3: [BE] Tạo Task Motion Control', () => {
   it('khóa sai: người khác, ảnh làm video, video làm ảnh, chưa xác nhận, hết hạn, trùng khóa', async () => {
     const a = await newUser(); const b = await newUser();
     const c = await img(a); const v = await vid(a, 10);
-    const ok = { trimStart: 0, trimEnd: 4 };
+    const ok = { trimStart: 0, trimEnd: 5 };
     const bad = async (body) => {
       const res = await post(a, { ...ok, ...body });
       assert.equal(res.status, 400);
@@ -273,16 +274,16 @@ describe('Story 5.3: [BE] Tạo Task Motion Control', () => {
 
   it('lỗi nghiệp vụ: bị khóa / thiếu credit / TASK_LIMIT', async () => {
     const locked = await newUser({ locked: true });
-    let res = await post(locked, { characterKey: await img(locked), videoKey: await vid(locked), trimStart: 0, trimEnd: 4 });
+    let res = await post(locked, { characterKey: await img(locked), videoKey: await vid(locked), trimStart: 0, trimEnd: 5 });
     assert.equal((await res.json()).code, ApiErrorCode.ACCOUNT_LOCKED);
-    const poor = await newUser({ balance: 199 });
-    res = await post(poor, { characterKey: await img(poor), videoKey: await vid(poor), trimStart: 0, trimEnd: 4 });
+    const poor = await newUser({ balance: 249 });
+    res = await post(poor, { characterKey: await img(poor), videoKey: await vid(poor), trimStart: 0, trimEnd: 5 });
     assert.equal((await res.json()).code, ApiErrorCode.INSUFFICIENT_CREDIT);
     assert.equal((await pool.query(`SELECT count(*)::int n FROM tasks WHERE user_id=$1`, [poor.id])).rows[0].n, 0);
     const busy = await newUser({ balance: 5000, tierPack: 'pro' });
     const c = await img(busy); const v = await vid(busy);
-    for (let i = 0; i < 3; i++) assert.equal((await post(busy, { characterKey: c, videoKey: v, trimStart: 0, trimEnd: 3 })).status, 201);
-    res = await post(busy, { characterKey: c, videoKey: v, trimStart: 0, trimEnd: 3 });
+    for (let i = 0; i < 3; i++) assert.equal((await post(busy, { characterKey: c, videoKey: v, trimStart: 0, trimEnd: 5 })).status, 201);
+    res = await post(busy, { characterKey: c, videoKey: v, trimStart: 0, trimEnd: 5 });
     assert.equal((await res.json()).code, ApiErrorCode.TASK_LIMIT);
   });
 
@@ -393,7 +394,7 @@ describe('Story 5.3: [BE] Tạo Task Motion Control', () => {
         assert.equal(Number(r.gpu_coins), 4);
         const rel = await ledger(id, 'RELEASED');
         assert.equal(rel.length, 1);
-        assert.equal(Number(rel[0].amount), 350);
+        assert.equal(Number(rel[0].amount), 290); // v1 7 giây = 150 + 20 × 7
         assert.equal((await ledger(id, 'CAPTURED')).length, 0);
       });
     }

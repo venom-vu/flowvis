@@ -51,10 +51,10 @@ describe('@flowvis/web — Story 5.7 VideoTrimmer', () => {
       assert.equal(r.valid, false);
       assert.match(r.errorVi, /100 MB/);
     });
-    it('quá ngắn 2 s', async () => {
-      const r = await validateVideoFile(fakeVideo({ durationSeconds: 2 }));
+    it('quá ngắn 4 s', async () => {
+      const r = await validateVideoFile(fakeVideo({ durationSeconds: 4 }));
       assert.equal(r.valid, false);
-      assert.match(r.errorVi, /ít nhất 3 giây/);
+      assert.match(r.errorVi, /ít nhất 5 giây/);
     });
     it('không đọc được metadata', async () => {
       const r = await validateVideoFile(fakeVideo({ durationSeconds: Number.NaN }));
@@ -85,22 +85,22 @@ describe('@flowvis/web — Story 5.7 VideoTrimmer', () => {
       assert.deepEqual(moveEnd({ start: 0, end: 5 }, 12, l), { start: 0, end: 5 });
       assert.deepEqual(moveStart({ start: 0, end: 5 }, -4, l), { start: 0, end: 5 });
     });
-    it('Cap < 3 hoặc độ dài server floor < 3 là không dùng được', () => {
-      assert.equal(computeTrimLimits(12, 2).usable, false);
-      assert.equal(computeTrimLimits(12, 3).usable, true);
-      assert.equal(computeTrimLimits(2.9, 10).usable, false);
-      assert.deepEqual(defaultTrim(computeTrimLimits(12, 2)), { start: 0, end: 2 });
-      assert.deepEqual(normalizeTrim({ start: 0, end: 9 }, computeTrimLimits(12, 2)), { start: 0, end: 2 });
+    it('Cap < 5 hoặc độ dài server floor < 5 là không dùng được', () => {
+      assert.equal(computeTrimLimits(12, 4).usable, false);
+      assert.equal(computeTrimLimits(12, 5).usable, true);
+      assert.equal(computeTrimLimits(4.9, 10).usable, false);
+      assert.deepEqual(defaultTrim(computeTrimLimits(12, 4)), { start: 0, end: 4 });
+      assert.deepEqual(normalizeTrim({ start: 0, end: 9 }, computeTrimLimits(12, 4)), { start: 0, end: 4 });
     });
-    it('kéo/bàn phím kẹp về [3, min(Cap, dài)] và là số nguyên', () => {
+    it('kéo/bàn phím kẹp về [5, min(Cap, dài)] và là số nguyên', () => {
       const l = computeTrimLimits(12.6, 10);
-      assert.deepEqual(moveEnd({ start: 0, end: 10 }, 1, l), { start: 0, end: 3 });
-      assert.deepEqual(moveStart({ start: 0, end: 10 }, 9, l), { start: 7, end: 10 });
-      assert.deepEqual(moveEnd({ start: 5, end: 8 }, 99, l), { start: 5, end: 12 });
+      assert.deepEqual(moveEnd({ start: 0, end: 10 }, 1, l), { start: 0, end: 5 });
+      assert.deepEqual(moveStart({ start: 0, end: 10 }, 9, l), { start: 5, end: 10 });
+      assert.deepEqual(moveEnd({ start: 5, end: 10 }, 99, l), { start: 5, end: 12 });
       const r = moveEnd({ start: 0, end: 5 }, 6.4, l);
       assert.equal(Number.isInteger(r.end), true);
       assert.deepEqual(moveEnd({ start: 0, end: 5 }, 5 + 1, l), { start: 0, end: 6 });
-      assert.deepEqual(moveEnd({ start: 0, end: 5 }, 5 - 1, l), { start: 0, end: 4 });
+      assert.deepEqual(moveEnd({ start: 0, end: 6 }, 5 - 1, l), { start: 0, end: 5 });
     });
   });
 
@@ -221,7 +221,7 @@ describe('@flowvis/web — Story 5.7 VideoTrimmer', () => {
       assert.doesNotMatch(raw, /\/topup/);
       assert.match(raw, /h-12 w-12/);
       assert.doesNotMatch(raw, /[\u{1F300}-\u{1FAFF}]/u);
-      assert.equal(MOCK_PRICING_CONFIG_RESPONSE.tiers[0].maxVideoSeconds, 3);
+      assert.equal(MOCK_PRICING_CONFIG_RESPONSE.tiers[0].maxVideoSeconds, 5);
       assert.ok(typeof createSSRApp === 'function' && typeof renderToString === 'function');
     });
   });

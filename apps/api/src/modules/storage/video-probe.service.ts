@@ -1,10 +1,11 @@
 import { execFile } from 'node:child_process';
 import { Injectable } from '@nestjs/common';
-import type { ValidationReason } from '@flowvis/contracts';
+import { MOTION_MIN_TRIM_SECONDS, type ValidationReason } from '@flowvis/contracts';
 
 export const FFPROBE_TIMEOUT_MS = 10_000;
 export const FFPROBE_MAX_CONCURRENCY = 2;
-export const MIN_VIDEO_SECONDS = 3;
+/** Video tải lên phải đủ dài để cắt được đoạn Trim tối thiểu. */
+export const MIN_VIDEO_SECONDS = MOTION_MIN_TRIM_SECONDS;
 const MAX_OUTPUT_BYTES = 4 * 1024 * 1024;
 
 export interface VideoProbeMeta {

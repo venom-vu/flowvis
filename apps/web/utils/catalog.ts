@@ -3,7 +3,7 @@ import type {
   PricingConfigResponse,
   TierConfig,
 } from "@flowvis/contracts";
-import { motionCapSeconds } from "@flowvis/contracts";
+import { MOTION_PRICING, motionCapSeconds } from "@flowvis/contracts";
 
 export type FeatureCategoryId = "all" | "image" | "video";
 
@@ -19,10 +19,20 @@ export const FEATURE_CATEGORIES: readonly FeatureCategoryOption[] = [
   { id: "video", labelVi: "Chuyển động video AI", icon: "lucide:video" },
 ] as const;
 
-export type FeaturePipelineId = "face-swap" | "outfit-change" | "person-replace" | "body-retouch" | "motion-control" | "motion-control-v2" | "motion-background";
+export type FeaturePipelineId =
+  | "face-swap"
+  | "outfit-change"
+  | "person-replace"
+  | "body-retouch"
+  | "motion-control"
+  | "motion-control-v2"
+  | "motion-background";
 
 /** Chức năng tạm ẩn khỏi kho công cụ, sitemap và trang riêng (backend giữ nguyên); xóa id khỏi đây để bật lại. */
-export const HIDDEN_FEATURE_IDS: readonly FeaturePipelineId[] = ["person-replace", "motion-background"];
+export const HIDDEN_FEATURE_IDS: readonly FeaturePipelineId[] = [
+  "person-replace",
+  "motion-background",
+];
 
 export interface AiFeatureTool {
   id: FeaturePipelineId;
@@ -35,6 +45,8 @@ export interface AiFeatureTool {
   badgeVi: string;
   icon: string;
   billingMode: "per_run" | "per_second";
+  /** Phí cố định mỗi lượt (credit), chỉ có ở tính năng tính theo giây. */
+  baseCredits?: number;
   unitCredits: number;
   priceBadgeVi: string;
   tierCapSeconds: number | null;
@@ -104,8 +116,16 @@ export function buildAiFeatureCatalog(
   const motionV1Cap = motionCapSeconds("motion_control", tierCapSeconds);
   const motionV2Cap = motionCapSeconds("motion_control_v2", tierCapSeconds);
   const motionBgCap = motionCapSeconds("motion_background", tierCapSeconds);
-  const { faceSwapCredits, outfitChangeCredits, personReplaceCredits, bodyRetouchCredits, motionControlCreditsPerSecond } =
-    pricing.pipelines;
+  const {
+    faceSwapCredits,
+    outfitChangeCredits,
+    personReplaceCredits,
+    bodyRetouchCredits,
+    motionControlBaseCredits,
+    motionControlCreditsPerSecond,
+    motionControlV2BaseCredits,
+    motionControlV2CreditsPerSecond,
+  } = pricing.pipelines;
 
   const all: AiFeatureTool[] = [
     {
@@ -162,7 +182,8 @@ export function buildAiFeatureCatalog(
       id: "person-replace",
       slug: "person-replace",
       titleVi: "Đổi Người Trong Ảnh AI",
-      subtitleVi: "Thay nhân vật trong ảnh bằng người khác, giữ nguyên bối cảnh",
+      subtitleVi:
+        "Thay nhân vật trong ảnh bằng người khác, giữ nguyên bối cảnh",
       descriptionVi:
         "Tải ảnh gốc và ảnh nhân vật mới, AI thay người trong ảnh gốc bằng nhân vật mới, giữ nguyên bối cảnh và bố cục.",
       category: "image",
@@ -192,7 +213,7 @@ export function buildAiFeatureCatalog(
         "Tự động nhận diện và tinh chỉnh vòng một đầy đặn, quyến rũ tự nhiên theo mức độ mong muốn, bảo toàn chi tiết trang phục và không làm biến dạng hậu cảnh.",
       category: "image",
       categoryLabelVi: "Xử lý ảnh AI",
-      badgeVi: "Studio",
+      badgeVi: "",
       icon: "lucide:sparkles",
       billingMode: "per_run",
       unitCredits: bodyRetouchCredits,
@@ -217,11 +238,12 @@ export function buildAiFeatureCatalog(
         "Ánh xạ chuyển động từ video mẫu sang ảnh nhân vật tĩnh với bộ cắt thời lượng theo giây và tính phí chính xác theo độ dài.",
       category: "video",
       categoryLabelVi: "Chuyển động video AI",
-      badgeVi: "Motion GPU",
+      badgeVi: "Hot",
       icon: "lucide:clapperboard",
       billingMode: "per_second",
+      baseCredits: motionControlBaseCredits,
       unitCredits: motionControlCreditsPerSecond,
-      priceBadgeVi: `${formatNumberVi(motionControlCreditsPerSecond)} credit / giây`,
+      priceBadgeVi: `${formatNumberVi(motionControlBaseCredits)} + ${formatNumberVi(motionControlCreditsPerSecond)} credit / giây`,
       tierCapSeconds: motionV1Cap,
       tierCapLabelVi: `Tối đa ${formatNumberVi(motionV1Cap)} giây`,
       beforeLabelVi: "Ảnh nhân vật + Video mẫu",
@@ -244,8 +266,9 @@ export function buildAiFeatureCatalog(
       badgeVi: "Motion v2",
       icon: "lucide:clapperboard",
       billingMode: "per_second",
-      unitCredits: motionControlCreditsPerSecond,
-      priceBadgeVi: `${formatNumberVi(motionControlCreditsPerSecond)} credit / giây`,
+      baseCredits: motionControlV2BaseCredits,
+      unitCredits: motionControlV2CreditsPerSecond,
+      priceBadgeVi: `${formatNumberVi(motionControlV2BaseCredits)} + ${formatNumberVi(motionControlV2CreditsPerSecond)} credit / giây`,
       tierCapSeconds: motionV2Cap,
       tierCapLabelVi: `Tối đa ${formatNumberVi(motionV2Cap)} giây`,
       beforeLabelVi: "Ảnh nhân vật + Video mẫu",
@@ -268,8 +291,9 @@ export function buildAiFeatureCatalog(
       badgeVi: "Motion nền",
       icon: "lucide:clapperboard",
       billingMode: "per_second",
-      unitCredits: motionControlCreditsPerSecond,
-      priceBadgeVi: `${formatNumberVi(motionControlCreditsPerSecond)} credit / giây`,
+      baseCredits: MOTION_PRICING.motion_background.baseCredits,
+      unitCredits: MOTION_PRICING.motion_background.creditsPerSecond,
+      priceBadgeVi: `${formatNumberVi(MOTION_PRICING.motion_background.creditsPerSecond)} credit / giây`,
       tierCapSeconds: motionBgCap,
       tierCapLabelVi: `Tối đa ${formatNumberVi(motionBgCap)} giây`,
       beforeLabelVi: "Ảnh nhân vật + Video mẫu",
@@ -284,7 +308,9 @@ export function buildAiFeatureCatalog(
   // Chức năng video lên đầu; sort ổn định nên thứ tự trong từng nhóm giữ nguyên.
   return all
     .filter((f) => !HIDDEN_FEATURE_IDS.includes(f.id))
-    .sort((a, b) => Number(b.category === "video") - Number(a.category === "video"));
+    .sort(
+      (a, b) => Number(b.category === "video") - Number(a.category === "video"),
+    );
 }
 
 export function calculateFeatureEstimatedCredits(
@@ -297,7 +323,7 @@ export function calculateFeatureEstimatedCredits(
       Math.max(1, Math.round(durationSeconds)),
       maxSec,
     );
-    return clampedSeconds * feature.unitCredits;
+    return (feature.baseCredits ?? 0) + clampedSeconds * feature.unitCredits;
   }
   return feature.unitCredits;
 }

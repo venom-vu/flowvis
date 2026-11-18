@@ -108,7 +108,7 @@ describe('Story 5.6: [BE] Nhập kết quả video, ảnh bìa và chia sẻ', (
     };
     const characterKey = await mk('image', {});
     const videoKey = await mk('video', { durationSeconds: 8, confirmedAt: new Date() });
-    const res = await fetch(`${baseUrl}/tasks/motion`, { method: 'POST', headers: { Authorization: `Bearer ${user.token}`, 'Content-Type': 'application/json' }, body: JSON.stringify({ characterKey, videoKey, trimStart: 0, trimEnd: 3 }) });
+    const res = await fetch(`${baseUrl}/tasks/motion`, { method: 'POST', headers: { Authorization: `Bearer ${user.token}`, 'Content-Type': 'application/json' }, body: JSON.stringify({ characterKey, videoKey, trimStart: 0, trimEnd: 5 }) });
     assert.equal(res.status, 201);
     return { id: (await res.json()).id, userId: user.id };
   }
@@ -207,7 +207,7 @@ describe('Story 5.6: [BE] Nhập kết quả video, ảnh bìa và chia sẻ', (
     assert.equal(cap.length, 1);
     assert.equal((await ledger(t.id, 'RELEASED')).length, 0);
     const hold = await ledger(t.id, 'HOLD');
-    assert.equal(Number(hold[0].amount), -150);
+    assert.equal(Number(hold[0].amount), -250);
     assert.equal(store.get(r.result_key).contentType, 'video/mp4');
     const poster = store.get(r.result_key.replace(/\.mp4$/, '.jpg'));
     assert.equal(poster.contentType, 'image/jpeg');
@@ -371,7 +371,7 @@ describe('Story 5.6: [BE] Nhập kết quả video, ảnh bìa và chia sẻ', (
       const j = await res.json();
       const key = (await row(t.id)).result_key;
       assert.equal(j.mediaType, 'video');
-      assert.equal(j.durationSeconds, 3);
+      assert.equal(j.durationSeconds, 5);
       assert.equal(j.sourceUrl, null);
       assert.ok(j.resultUrl.includes(key));
       assert.ok(j.posterUrl.includes(key.replace(/\.mp4$/, '.jpg')));
@@ -388,7 +388,7 @@ describe('Story 5.6: [BE] Nhập kết quả video, ảnh bìa và chia sẻ', (
       assert.ok(r1.headers.get('location').includes(key));
       const info = await get(`/s/${token}/info`);
       assert.equal(info.status, 200);
-      assert.deepEqual(await info.json(), { mediaType: 'video', durationSeconds: 3 });
+      assert.deepEqual(await info.json(), { mediaType: 'video', durationSeconds: 5 });
       const p = await get(`/s/${token}/poster`);
       assert.equal(p.status, 302);
       assert.ok(p.headers.get('location').includes(key.replace(/\.mp4$/, '.jpg')));

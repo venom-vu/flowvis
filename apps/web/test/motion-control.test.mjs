@@ -172,7 +172,7 @@ describe('@flowvis/web — Story 5.8 Motion Control', () => {
   });
 
   describe('useMotionControl — giá trực tiếp và điều kiện nút Tạo', () => {
-    it('kéo 3 -> 8 giây: giá = motionPrice(5) = 250 và số dư còn lại cập nhật', () => {
+    it('kéo 3 -> 8 giây: giá = motionPrice(5) = 150 + 20 × 5 = 250 và số dư còn lại cập nhật', () => {
       setup();
       const mc = mod.useMotionControl();
       fillValid(mc, { start: 3, end: 8 });
@@ -182,11 +182,12 @@ describe('@flowvis/web — Story 5.8 Motion Control', () => {
       mc.onTrimChange({
         videoKey: MOCK_MOTION_CREATE_REQUEST.videoKey,
         trimStart: 3,
-        trimEnd: 6,
-        durationSeconds: 12,
+        trimEnd: 13,
+        durationSeconds: 15,
       });
-      assert.equal(mc.price.value, motionPrice(3));
-      assert.equal(mc.remainingBalance.value, MOCK_ME_RESPONSE.balance - 150);
+      assert.equal(mc.price.value, motionPrice(10));
+      assert.equal(mc.price.value, 350);
+      assert.equal(mc.remainingBalance.value, MOCK_ME_RESPONSE.balance - 350);
     });
 
     it('đủ điều kiện: nút bật; bấm 2 lần chỉ gửi 1 POST', async () => {
@@ -229,10 +230,10 @@ describe('@flowvis/web — Story 5.8 Motion Control', () => {
       fillValid(mc, { start: 0, end: 6 });
       assert.equal(mc.canSubmit.value, false, 'vượt Cap');
 
-      setup({ cap: 2 });
+      setup({ cap: 4 });
       mc = mod.useMotionControl();
-      fillValid(mc, { start: 0, end: 3 });
-      assert.equal(mc.canSubmit.value, false, 'Cap < 3 không dùng được');
+      fillValid(mc, { start: 0, end: 5 });
+      assert.equal(mc.canSubmit.value, false, 'Cap < 5 không dùng được');
     });
 
     it('thiếu số dư: thông báo ngữ cảnh, không gửi, giữ nguyên form', async () => {

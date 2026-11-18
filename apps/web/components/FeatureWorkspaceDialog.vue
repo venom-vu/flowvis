@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import { computed, onBeforeUnmount, onMounted, ref, watch } from 'vue';
-import type { AccountTier, Task } from '@flowvis/contracts';
+import { MOTION_MIN_TRIM_SECONDS, type AccountTier, type Task } from '@flowvis/contracts';
 import ImageUploader from '~/components/ImageUploader.vue';
 import TaskResultViewer from '~/components/TaskResultViewer.vue';
 import { useApiClient } from '~/composables/useApiClient';
@@ -113,7 +113,7 @@ watch(
     submitErrorVi.value = null;
     resetMotionState();
     if (nextFeature?.tierCapSeconds) {
-      selectedSeconds.value = Math.min(3, nextFeature.tierCapSeconds);
+      selectedSeconds.value = Math.min(MOTION_MIN_TRIM_SECONDS, nextFeature.tierCapSeconds);
     } else {
       selectedSeconds.value = 1;
     }

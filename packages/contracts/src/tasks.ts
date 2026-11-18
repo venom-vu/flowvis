@@ -1,24 +1,35 @@
 import { z } from 'zod';
 import { ConfirmedUploadKeySchema } from './uploads.js';
 
-/** Giá Motion Control: 50 credit mỗi giây (nơi duy nhất giữ hằng 50 phía mã nguồn). */
-export function motionPrice(seconds: number): number {
-  if (!Number.isInteger(seconds) || seconds <= 0) {
-    throw new RangeError('Số giây phải là số nguyên dương.');
-  }
-  return 50 * seconds;
-}
-
 /** Số giây Trim tối thiểu của Motion Control. */
-export const MOTION_MIN_TRIM_SECONDS = 3;
+export const MOTION_MIN_TRIM_SECONDS = 5;
 
-/** Số giây Trim tối đa theo chức năng Motion; gói FREE bị giới hạn thêm bởi `maxVideoSeconds` của Tier (3 giây). */
+/** Số giây Trim tối đa theo chức năng Motion; gói FREE bị giới hạn thêm bởi `maxVideoSeconds` của Tier (5 giây). */
 export const MOTION_MAX_SECONDS = {
   motion_control: 20,
   motion_control_v2: 10,
   motion_background: 20,
 } as const;
 export type MotionPipeline = keyof typeof MOTION_MAX_SECONDS;
+
+/**
+ * Giá Motion theo chức năng: phí cố định + đơn giá mỗi giây (credit); nơi duy nhất giữ các hằng này phía mã nguồn.
+ * `motion_background` đang ẩn và chưa có giá chốt nên giữ nguyên giá cũ (50 credit/giây, không phí cố định).
+ */
+export const MOTION_PRICING = {
+  motion_control: { baseCredits: 150, creditsPerSecond: 20 },
+  motion_control_v2: { baseCredits: 150, creditsPerSecond: 65 },
+  motion_background: { baseCredits: 0, creditsPerSecond: 50 },
+} as const;
+
+/** Giá một Task Motion = phí cố định + đơn giá mỗi giây × số giây (mặc định tính theo `motion_control`). */
+export function motionPrice(seconds: number, pipeline: MotionPipeline = 'motion_control'): number {
+  if (!Number.isInteger(seconds) || seconds <= 0) {
+    throw new RangeError('Số giây phải là số nguyên dương.');
+  }
+  const { baseCredits, creditsPerSecond } = MOTION_PRICING[pipeline];
+  return baseCredits + creditsPerSecond * seconds;
+}
 
 /** Cap thực tế = nhỏ hơn giữa giới hạn của chức năng và Cap của Tier. */
 export function motionCapSeconds(pipeline: MotionPipeline, tierCapSeconds: number): number {
@@ -315,9 +326,9 @@ export const MotionCreateRequestSchema = z
   })
   .strict();
 export type MotionCreateRequest = z.input<typeof MotionCreateRequestSchema>;
-/** Task Motion kèm `price` (bằng `creditCost`, = `motionPrice(số giây)`). */
+/** Task Motion kèm `price` (bằng `creditCost`, = `motionPrice(số giây, pipeline)`). */
 function refineMotionTask(
-  t: { price: number; creditCost: number } & Parameters<typeof refineTask>[0],
+  t: { price: number; creditCost: number; pipeline: MotionPipeline } & Parameters<typeof refineTask>[0],
   ctx: z.RefinementCtx,
 ): void {
   refineTask(t, ctx);
@@ -328,11 +339,14 @@ function refineMotionTask(
       message: 'price phải bằng creditCost',
     });
   }
-  if (t.price % motionPrice(1) !== 0) {
+  // Giá = phí cố định + đơn giá × số giây nguyên (>= 1): phần dư sau phí cố định phải chia hết cho đơn giá.
+  const { baseCredits, creditsPerSecond } = MOTION_PRICING[t.pipeline];
+  const rest = t.price - baseCredits;
+  if (rest < creditsPerSecond || rest % creditsPerSecond !== 0) {
     ctx.addIssue({
       code: z.ZodIssueCode.custom,
       path: ['price'],
-      message: 'price Motion phải là bội của giá mỗi giây',
+      message: 'price Motion phải bằng phí cố định cộng bội của giá mỗi giây',
     });
   }
 }
@@ -342,7 +356,7 @@ export const MotionCreateResponseSchema = TaskBaseSchema.extend({
 }).superRefine(refineMotionTask);
 export type MotionCreateResponse = z.infer<typeof MotionCreateResponseSchema>;
 
-/** POST /tasks/motion-v2 — Motion Control v2: chỉ ảnh nhân vật + đoạn video đã cắt (không khung hình/prompt); giá theo giây như v1. */
+/** POST /tasks/motion-v2 — Motion Control v2: chỉ ảnh nhân vật + đoạn video đã cắt (không khung hình/prompt); giá riêng (`MOTION_PRICING`). */
 export const MotionV2CreateRequestSchema = z
   .object({
     characterKey: ConfirmedUploadKeySchema,

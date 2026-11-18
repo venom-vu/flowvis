@@ -267,7 +267,7 @@ describe('Smoke Motion Control FE-BE trên stack Compose (Story 5.9)', () => {
       const sample5 = makeVideo(path.join(tmp, 'sample5.mp4'), 6);
       const results = {
         10: makeVideo(path.join(tmp, 'r10.mp4'), 10),
-        3: makeVideo(path.join(tmp, 'r3.mp4'), 3),
+        5: makeVideo(path.join(tmp, 'r5.mp4'), 5),
         10.4: makeVideo(path.join(tmp, 'r104.mp4'), 10.4),
         10.6: makeVideo(path.join(tmp, 'r106.mp4'), 10.6),
       };
@@ -381,17 +381,17 @@ describe('Smoke Motion Control FE-BE trên stack Compose (Story 5.9)', () => {
         const alice = await login('alice');
         await becomeTier(alice, admin, 'creator', 'MT-REF-1');
         const aliceStart = await balance(alice);
-        assert.equal(aliceStart, 30000, "Creator 30.000 credit từ nạp tiền (IP đã hết lượt thưởng đăng ký)");
+        assert.equal(aliceStart, 28000, "Creator 28.000 credit từ nạp tiền (IP đã hết lượt thưởng đăng ký)");
         rh.mode = 'running';
         rh.resultVideo = results[10];
         const t1 = await createMotion(alice, 2, 12);
         assert.equal(t1.price, motionPrice(10));
-        assert.equal(t1.price, 500);
-        assert.equal(await balance(alice), aliceStart - 500, 'HOLD 500 credit');
+        assert.equal(t1.price, 350);
+        assert.equal(await balance(alice), aliceStart - 350, 'HOLD 350 credit');
         await waitFor(alice, t1.id, (t) => t.status === 'running', 'running');
         rh.mode = 'success';
         const done = await waitFor(alice, t1.id, (t) => t.status === 'succeeded', 'succeeded');
-        assert.equal(await balance(alice), aliceStart - 500);
+        assert.equal(await balance(alice), aliceStart - 350);
         const types1 = await ledgerTypes(alice, t1.id);
         assert.ok(types1.includes('HOLD') && types1.includes('CAPTURED') && !types1.includes('RELEASED'), `ledger ${types1}`);
         const resRes = await api(alice, 'GET', `/tasks/${t1.id}/result`);
@@ -436,7 +436,7 @@ describe('Smoke Motion Control FE-BE trên stack Compose (Story 5.9)', () => {
         // 2. NO_POSE
         assert.equal(await balance(bob), 250);
         rh.mode = 'no_pose';
-        const t2 = await createMotion(bob, 0, 3, sample5);
+        const t2 = await createMotion(bob, 0, 5, sample5);
         const failed = await waitFor(bob, t2.id, (t) => t.status === 'failed', 'failed NO_POSE');
         assert.equal(failed.reasonCode, 'NO_POSE');
         assert.equal(
@@ -459,17 +459,17 @@ describe('Smoke Motion Control FE-BE trên stack Compose (Story 5.9)', () => {
         const carolLedger = WalletLedgerResponseSchema.parse(await (await api(carol, 'GET', '/wallet/ledger?pageSize=50')).json());
         assert.ok(!carolLedger.items.some((i) => ['HOLD', 'RELEASED', 'CAPTURED'].includes(i.type)), 'không bút toán HOLD');
 
-        // 4. Ví FREE: 250 credit, một video 3 s rồi video thứ hai bị chặn vì hết credit
-        rh.resultVideo = results[3];
+        // 4. Ví FREE: 250 credit, một video 5 s (đúng 250 credit) rồi video thứ hai bị chặn vì hết credit
+        rh.resultVideo = results[5];
         rh.mode = 'success';
-        const free1 = await createMotion(dave, 0, 3, sample5);
-        assert.equal(free1.price, 150);
+        const free1 = await createMotion(dave, 0, 5, sample5);
+        assert.equal(free1.price, 250);
         await waitFor(dave, free1.id, (x) => x.status === 'succeeded', 'FREE thành công');
-        assert.equal(await balance(dave), 100);
-        const second = await createMotionRaw(dave, 0, 3, sample5);
+        assert.equal(await balance(dave), 0);
+        const second = await createMotionRaw(dave, 0, 5, sample5);
         assert.equal(second.status, 402);
         assert.equal((await second.json()).code, 'INSUFFICIENT_CREDIT');
-        assert.equal(await balance(dave), 100, 'không HOLD lần hai');
+        assert.equal(await balance(dave), 0, 'không HOLD lần hai');
 
         // 5. Hai Task song song
         const erin = await login('erin');
@@ -512,7 +512,7 @@ describe('Smoke Motion Control FE-BE trên stack Compose (Story 5.9)', () => {
         await waitFor(gina, t7a.id, (t) => t.status === 'succeeded', '10,4 s succeeded');
         const ta = await ledgerTypes(gina, t7a.id);
         assert.ok(ta.includes('CAPTURED') && !ta.includes('RELEASED'));
-        assert.equal(await balance(gina), ginaBal - 500, 'không hoàn phần lẻ');
+        assert.equal(await balance(gina), ginaBal - 350, 'không hoàn phần lẻ');
         rh.resultVideo = results[10.6];
         const t7b = await createMotion(gina, 0, 10);
         const lenient = await waitFor(gina, t7b.id, (t) => t.status === 'succeeded', '10,6 s vẫn succeeded');
@@ -567,7 +567,7 @@ describe('Smoke Motion Control FE-BE trên stack Compose (Story 5.9)', () => {
     assert.equal(MOCK_MOTION_RESULT_RESPONSE.mediaType, 'video');
     assert.equal(MOCK_MOTION_RESULT_RESPONSE.sourceUrl, null);
     ShareInfoResponseSchema.parse(MOCK_SHARE_INFO_VIDEO_RESPONSE);
-    assert.equal(motionPrice(10), 500);
+    assert.equal(motionPrice(10), 350);
     assert.equal(
       getReasonCodeMessageVi('NO_POSE', 'motion_control'),
       'Không nhận diện được chuyển động cơ thể trong video mẫu',
