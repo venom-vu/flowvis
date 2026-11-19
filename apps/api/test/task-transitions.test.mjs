@@ -199,8 +199,8 @@ describe('Story 2.4: [BE] Máy trạng thái Task bằng compare-and-set', () =>
     const finishedAt = async (id) => (await prisma.task.findUnique({ where: { id } })).finishedAt;
     const paths = [
       ['running', 'succeeded', null, { resultKey: resultKey(u) }],
-      ['running', 'failed', 'RH_ERROR', undefined],
-      ['running', 'timed_out', 'RH_TIMEOUT', undefined],
+      ['running', 'failed', 'GPU_ERROR', undefined],
+      ['running', 'timed_out', 'GPU_TIMEOUT', undefined],
       ['queued', 'cancelled', 'USER_CANCEL', undefined],
       ['queued', 'failed', 'INTERNAL_ERROR', undefined],
       ['queued', 'timed_out', 'FREE_WAIT_EXPIRED', undefined],
@@ -217,7 +217,7 @@ describe('Story 2.4: [BE] Máy trạng thái Task bằng compare-and-set', () =>
   it('kết quả đến muộn: applied=false, sổ cái không đổi', async () => {
     const u = await newUser();
     const id = await runningTask(u);
-    await svc.transition(id, 'running', 'timed_out', 'RH_TIMEOUT');
+    await svc.transition(id, 'running', 'timed_out', 'GPU_TIMEOUT');
     const r = await svc.transition(id, 'running', 'succeeded', null, { resultKey: resultKey(u) });
     assert.deepEqual(r, { applied: false });
     assert.equal((await entries(id, 'CAPTURED')).length, 0);
@@ -231,7 +231,7 @@ describe('Story 2.4: [BE] Máy trạng thái Task bằng compare-and-set', () =>
       const id = await runningTask(u);
       const rs = await Promise.all([
         svc.transition(id, 'running', 'succeeded', null, { resultKey: resultKey(u) }),
-        svc.transition(id, 'running', 'timed_out', 'RH_TIMEOUT'),
+        svc.transition(id, 'running', 'timed_out', 'GPU_TIMEOUT'),
       ]);
       assert.equal(rs.filter((r) => r.applied).length, 1);
       const c = (await entries(id, 'CAPTURED')).length;
@@ -285,12 +285,12 @@ describe('Story 2.4: [BE] Máy trạng thái Task bằng compare-and-set', () =>
     await redis.client.del(`task:terminal:${id}`);
     await assert.rejects(svc.transition(id, 'running', 'succeeded', null, { resultKey: resultKey(await newUser(0)) }));
     assert.equal(await redis.client.exists(`task:terminal:${id}`), 0);
-    await svc.transition(id, 'running', 'failed', 'RH_ERROR');
+    await svc.transition(id, 'running', 'failed', 'GPU_ERROR');
     await redis.client.del(`task:terminal:${id}`);
-    assert.equal((await svc.transition(id, 'running', 'timed_out', 'RH_TIMEOUT')).applied, false);
+    assert.equal((await svc.transition(id, 'running', 'timed_out', 'GPU_TIMEOUT')).applied, false);
     assert.equal(await redis.client.exists(`task:terminal:${id}`), 0);
     const id2 = await runningTask(u);
-    await svc.transition(id2, 'running', 'failed', 'RH_ERROR');
+    await svc.transition(id2, 'running', 'failed', 'GPU_ERROR');
     // Khóa được ghi nền (không chờ) nên đợi tới khi xuất hiện.
     for (let i = 0; i < 50 && (await redis.client.exists(`task:terminal:${id2}`)) === 0; i++) {
       await new Promise((r) => setTimeout(r, 20));
@@ -306,7 +306,7 @@ describe('Story 2.4: [BE] Máy trạng thái Task bằng compare-and-set', () =>
     redis.client.set = () => new Promise(() => {});
     try {
       const t0 = Date.now();
-      assert.equal((await svc.transition(id, 'running', 'failed', 'RH_ERROR')).applied, true);
+      assert.equal((await svc.transition(id, 'running', 'failed', 'GPU_ERROR')).applied, true);
       assert.ok(Date.now() - t0 < 1000, `mất ${Date.now() - t0}ms`);
     } finally {
       redis.client.set = orig;
@@ -318,7 +318,7 @@ describe('Story 2.4: [BE] Máy trạng thái Task bằng compare-and-set', () =>
     const u = await newUser();
     const id = await runningTask(u);
     await assert.rejects(
-      svc.transition(id, 'running', 'failed', 'RH_ERROR', { resultKey: resultKey(u) }),
+      svc.transition(id, 'running', 'failed', 'GPU_ERROR', { resultKey: resultKey(u) }),
       /resultKey chỉ dùng khi chuyển sang succeeded/,
     );
     const row = await prisma.task.findUnique({ where: { id } });
@@ -367,14 +367,14 @@ describe('Story 2.4: [BE] Máy trạng thái Task bằng compare-and-set', () =>
     const a = await runningTask(u);
     const redis = app.get(RedisService);
     await redis.client.set(`task:terminal:${a}`, '1', 'EX', 30);
-    assert.equal((await svc.transition(a, 'running', 'failed', 'RH_ERROR')).applied, true);
+    assert.equal((await svc.transition(a, 'running', 'failed', 'GPU_ERROR')).applied, true);
     assert.equal((await entries(a, 'RELEASED')).length, 1);
 
     const b = await runningTask(u);
     const orig = redis.client.set;
     redis.client.set = async () => { throw new Error('redis down'); };
     try {
-      assert.equal((await svc.transition(b, 'running', 'failed', 'RH_ERROR')).applied, true);
+      assert.equal((await svc.transition(b, 'running', 'failed', 'GPU_ERROR')).applied, true);
     } finally {
       redis.client.set = orig;
     }
@@ -389,7 +389,7 @@ describe('Story 2.4: [BE] Máy trạng thái Task bằng compare-and-set', () =>
       `INSERT INTO ledger_entries (user_id, type, amount, task_id) VALUES ($1, 'RELEASED', 100, $2)`,
       [u.id, id],
     );
-    await assert.rejects(svc.transition(id, 'running', 'failed', 'RH_ERROR'));
+    await assert.rejects(svc.transition(id, 'running', 'failed', 'GPU_ERROR'));
     const row = await prisma.task.findUnique({ where: { id } });
     assert.equal(row.status, 'running');
     assert.equal(row.reasonCode, null);

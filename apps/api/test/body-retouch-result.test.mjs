@@ -117,7 +117,7 @@ describe('Story 4.3: [BE] Kết quả Body Retouch', () => {
   const row = (id) => pool.query('SELECT * FROM tasks WHERE id=$1', [id]).then((r) => r.rows[0]);
   const ledger = (id, type) => prisma.ledgerEntry.findMany({ where: { taskId: id, type } });
   async function runningTask(user, image) {
-    await pool.query(`UPDATE tasks SET status='failed', reason_code='RH_ERROR', finished_at=now(), rh_orphan_until=NULL WHERE user_id = ANY($1::uuid[]) AND status IN ('queued','running')`, [users]);
+    await pool.query(`UPDATE tasks SET status='failed', reason_code='GPU_ERROR', finished_at=now(), rh_orphan_until=NULL WHERE user_id = ANY($1::uuid[]) AND status IN ('queued','running')`, [users]);
     process.env.RH_MAX_CONCURRENT = String((await svc.countGateOccupied()) + 2);
     const t = await createTask(user, image);
     await svc.transition(t.id, 'queued', 'running');
@@ -290,11 +290,11 @@ describe('Story 4.3: [BE] Kết quả Body Retouch', () => {
     for (const status of ['queued', 'running', 'failed']) {
       it(`Task ${status}: 409 CONFLICT`, async () => {
         const u = await newUser();
-        await pool.query(`UPDATE tasks SET status='failed', reason_code='RH_ERROR', finished_at=now(), rh_orphan_until=NULL WHERE user_id = ANY($1::uuid[]) AND status IN ('queued','running')`, [users]);
+        await pool.query(`UPDATE tasks SET status='failed', reason_code='GPU_ERROR', finished_at=now(), rh_orphan_until=NULL WHERE user_id = ANY($1::uuid[]) AND status IN ('queued','running')`, [users]);
         process.env.RH_MAX_CONCURRENT = String((await svc.countGateOccupied()) + 2);
         const t = await createTask(u);
         if (status !== 'queued') await svc.transition(t.id, 'queued', 'running');
-        if (status === 'failed') await svc.transition(t.id, 'running', 'failed', 'RH_ERROR');
+        if (status === 'failed') await svc.transition(t.id, 'running', 'failed', 'GPU_ERROR');
         const res = await get(t.id, u.token);
         assert.equal(res.status, 409);
         const body = await res.json();

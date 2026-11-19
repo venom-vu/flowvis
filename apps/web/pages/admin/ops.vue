@@ -84,7 +84,7 @@ onBeforeUnmount(() => {
       <header class="flex flex-wrap items-end justify-between gap-4 border-b border-border pb-6">
         <div>
           <h1 class="text-3xl font-semibold tracking-tight">Trạng thái hệ thống</h1>
-          <p class="mt-2 text-base leading-relaxed text-muted-foreground">Nhận Task, ngân sách RunningHub và sao lưu. Tự làm mới mỗi 30 giây.</p>
+          <p class="mt-2 text-base leading-relaxed text-muted-foreground">Nhận Task, ngân sách GPU và sao lưu. Tự làm mới mỗi 30 giây.</p>
         </div>
         <Button variant="outline" type="button" data-testid="ops-status-refresh" :disabled="isStatusLoading" @click="() => ops.refreshStatus()">
           <Icon name="lucide:refresh-cw" class="h-4 w-4" :class="{ 'animate-spin': isStatusLoading }" />
@@ -121,7 +121,7 @@ onBeforeUnmount(() => {
                 </TableCell>
               </TableRow>
               <TableRow data-testid="ops-card-budget">
-                <TableCell class="font-medium">Ngân sách RunningHub</TableCell>
+                <TableCell class="font-medium">Ngân sách GPU</TableCell>
                 <TableCell>
                   <Badge :variant="status.rhBudgetExhausted ? 'destructive' : 'success'">{{ status.rhBudgetExhausted ? 'Đã hết ngân sách' : 'Còn ngân sách' }}</Badge>
                 </TableCell>
@@ -178,10 +178,10 @@ onBeforeUnmount(() => {
         @confirm="runConfirm"
       >
         <p class="text-muted-foreground">
-          Nếu nguyên nhân chưa được xử lý (ví dụ hết ngân sách RunningHub), Task mới có thể thất bại nhanh.
+          Nếu nguyên nhân chưa được xử lý (ví dụ hết ngân sách GPU), Task mới có thể thất bại nhanh.
         </p>
         <p data-testid="ops-confirm-balance">
-          Số dư RunningHub lần đọc cuối:
+          Số dư GPU lần đọc cuối:
           {{ status?.rhBalance ? `${status.rhBalance.usd.toFixed(2)} USD (${formatTopupTimestampVi(status.rhBalance.readAt)})` : 'chưa đọc được' }}
         </p>
       </AdminConfirmDialog>

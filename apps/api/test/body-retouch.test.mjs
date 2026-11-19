@@ -91,7 +91,7 @@ describe('Story 4.2: [BE] Tạo Task Body Retouch', () => {
     ledger: (await pool.query('SELECT count(*)::int n FROM ledger_entries WHERE user_id=$1 AND type=\'HOLD\'', [u.id])).rows[0].n,
   });
   async function clearActive() {
-    await pool.query(`UPDATE tasks SET status='failed', reason_code='RH_ERROR', finished_at=now(), rh_orphan_until=NULL WHERE user_id = ANY($1::uuid[]) AND status IN ('queued','running')`, [users]);
+    await pool.query(`UPDATE tasks SET status='failed', reason_code='GPU_ERROR', finished_at=now(), rh_orphan_until=NULL WHERE user_id = ANY($1::uuid[]) AND status IN ('queued','running')`, [users]);
     process.env.RH_MAX_CONCURRENT = String((await svc.countGateOccupied()) + 2);
   }
 

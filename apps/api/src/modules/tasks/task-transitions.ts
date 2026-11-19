@@ -12,8 +12,8 @@ export const ALLOWED_TRANSITIONS: Readonly<Record<TaskStatus, readonly TaskStatu
 export const TIMED_OUT_REASONS: readonly ReasonCode[] = [
   'PREP_TIMEOUT',
   'FREE_WAIT_EXPIRED',
-  'RH_TIMEOUT',
-  'RH_GATE_TIMEOUT',
+  'GPU_TIMEOUT',
+  'GPU_GATE_TIMEOUT',
 ];
 
 export function isTerminal(status: TaskStatus): boolean {

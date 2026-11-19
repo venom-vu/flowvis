@@ -99,12 +99,12 @@ describe('Story 6.3: [BE] Hết ngân sách RunningHub và cảnh báo số dư'
     await app?.close();
   });
 
-  it('hết tiền ở upload: failed RH_BUDGET, RELEASED, hai cờ, một cảnh báo', async () => {
+  it('hết tiền ở upload: failed GPU_BUDGET, RELEASED, hai cờ, một cảnh báo', async () => {
     await reset();
     uploadImpl = async () => { throw new RunningHubError('Insufficient balance'); };
     const id = await mkTask();
     await worker.processTask(id);
-    assert.deepEqual(await status(id), { status: 'failed', reason_code: 'RH_BUDGET' });
+    assert.deepEqual(await status(id), { status: 'failed', reason_code: 'GPU_BUDGET' });
     assert.equal((await released(id)).length, 1);
     assert.equal(await flag('rh_budget_exhausted'), true);
     assert.equal(await flag('intake_paused'), true);
@@ -118,7 +118,7 @@ describe('Story 6.3: [BE] Hết ngân sách RunningHub và cảnh báo số dư'
     try {
       const id = await mkTask();
       await worker.processTask(id);
-      assert.equal((await status(id)).reason_code, 'RH_BUDGET');
+      assert.equal((await status(id)).reason_code, 'GPU_BUDGET');
       assert.equal(sent.length, 1);
     } finally {
       worker.rh.submit = async () => { calls.submit++; return 'rh-1'; };
@@ -130,14 +130,14 @@ describe('Story 6.3: [BE] Hết ngân sách RunningHub và cảnh báo số dư'
     outputsImpl = async () => ({ status: 'FAILED', errorMessage: 'Insufficient balance' });
     const id = await mkTask();
     await worker.processTask(id);
-    assert.equal((await status(id)).reason_code, 'RH_BUDGET');
+    assert.equal((await status(id)).reason_code, 'GPU_BUDGET');
     assert.equal(await flag('rh_budget_exhausted'), true);
     assert.equal(sent.length, 1);
     await reset();
     outputsImpl = async () => ({ status: 'FAILED', errorMessage: 'boom' });
     const id2 = await mkTask();
     await worker.processTask(id2);
-    assert.equal((await status(id2)).reason_code, 'RH_ERROR');
+    assert.equal((await status(id2)).reason_code, 'GPU_ERROR');
     assert.equal(await flag('rh_budget_exhausted'), false);
     assert.equal(sent.length, 0);
   });
@@ -152,7 +152,7 @@ describe('Story 6.3: [BE] Hết ngân sách RunningHub và cảnh báo số dư'
     try {
       const id = await mkTask();
       await worker.processTask(id);
-      assert.deepEqual(await status(id), { status: 'failed', reason_code: 'RH_BUDGET' });
+      assert.deepEqual(await status(id), { status: 'failed', reason_code: 'GPU_BUDGET' });
       assert.equal(prepared, 0);
       assert.equal(calls.upload + calls.submit + calls.outputs, 0);
       assert.equal((await released(id)).length, 1);
@@ -162,7 +162,7 @@ describe('Story 6.3: [BE] Hết ngân sách RunningHub và cảnh báo số dư'
       const live = await mkTask('running', "runninghub_task_id='rh-9'");
       await worker.processTask(live);
       assert.ok(calls.outputs >= 1);
-      assert.equal((await status(live)).reason_code, 'RH_ERROR');
+      assert.equal((await status(live)).reason_code, 'GPU_ERROR');
     } finally {
       delete PIPELINE_CONFIGS.face_swap.prepare;
       void videoTrim;
@@ -243,15 +243,15 @@ describe('Story 6.3: [BE] Hết ngân sách RunningHub và cảnh báo số dư'
     await pool.query(`UPDATE settings SET value='true'::jsonb WHERE key='rh_budget_exhausted'`);
     const id = await mkTask('running', 'submit_started_at=now()');
     await worker.processTask(id);
-    assert.deepEqual(await status(id), { status: 'failed', reason_code: 'RH_SUBMIT_UNKNOWN' });
+    assert.deepEqual(await status(id), { status: 'failed', reason_code: 'GPU_SUBMIT_UNKNOWN' });
     assert.equal(sent.length, 0);
   });
 
-  it('CAS thua: RH_BUDGET không đặt cờ và không cảnh báo', async () => {
+  it('CAS thua: GPU_BUDGET không đặt cờ và không cảnh báo', async () => {
     await reset();
     const id = await mkTask('running');
-    await pool.query(`UPDATE tasks SET status='timed_out', reason_code='RH_TIMEOUT', finished_at=now() WHERE id=$1`, [id]);
-    const res = await worker.finish(id, 'failed', 'RH_BUDGET');
+    await pool.query(`UPDATE tasks SET status='timed_out', reason_code='GPU_TIMEOUT', finished_at=now() WHERE id=$1`, [id]);
+    const res = await worker.finish(id, 'failed', 'GPU_BUDGET');
     assert.equal(res.applied, false);
     assert.equal(await flag('rh_budget_exhausted'), false);
     assert.equal(await flag('intake_paused'), false);

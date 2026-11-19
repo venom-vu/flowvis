@@ -1,7 +1,7 @@
 import { Injectable } from '@nestjs/common';
 import { RunningHubError, type RunningHubPort } from '../../ports/index.js';
 
-/** Adapter mặc định khi chưa có adapter HTTP thật: mọi lời gọi ném RH_ERROR. */
+/** Adapter mặc định khi chưa có adapter HTTP thật: mọi lời gọi ném GPU_ERROR. */
 @Injectable()
 export class UnconfiguredRunningHubAdapter implements RunningHubPort {
   readonly portName = 'RunningHubPort' as const;

@@ -15,7 +15,7 @@ export class RunningHubNetworkError extends Error {
   }
 }
 
-/** RunningHub từ chối rõ ràng (hoặc adapter chưa cấu hình): luôn là RH_ERROR. */
+/** RunningHub từ chối rõ ràng (hoặc adapter chưa cấu hình): luôn là GPU_ERROR. */
 export class RunningHubError extends Error {
   constructor(message: string) {
     super(message);

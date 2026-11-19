@@ -90,7 +90,7 @@ describe('Story 6.5: [BE] Gỡ bỏ nội dung khẩn cấp', () => {
     await pool.query(
       `INSERT INTO tasks (id, user_id, pipeline, status, reason_code, result_key, tier_snapshot, consent, tos_version, input_keys, hold_amount, params)
        VALUES ($1,$2,'face_swap',$3,$4,$5,'{"tier":"FREE","priority":10,"maxVideoSeconds":5}',true,'tos-v7',$6,100,$7)`,
-      [id, user.id, status, status === 'failed' ? 'RH_ERROR' : null, resultKey, JSON.stringify({ sourceKey: inKey, targetKey: inKey2 }), JSON.stringify(video ? { seconds: 3 } : {})],
+      [id, user.id, status, status === 'failed' ? 'GPU_ERROR' : null, resultKey, JSON.stringify({ sourceKey: inKey, targetKey: inKey2 }), JSON.stringify(video ? { seconds: 3 } : {})],
     );
     return { id, resultKey, inKey, inKey2, poster };
   }

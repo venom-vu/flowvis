@@ -134,7 +134,7 @@ describe('Story 5.3: [BE] Tạo Task Motion Control', () => {
     const v = await vid(u, 21);
     const c = await img(u);
     for (let s = 5; s <= 20; s++) {
-      await pool.query(`UPDATE tasks SET status='failed', reason_code='RH_ERROR', finished_at=now() WHERE user_id=$1 AND status IN ('queued','running')`, [u.id]);
+      await pool.query(`UPDATE tasks SET status='failed', reason_code='GPU_ERROR', finished_at=now() WHERE user_id=$1 AND status IN ('queued','running')`, [u.id]);
       queueCalls.length = 0;
       const res = await post(u, { characterKey: c, videoKey: v, trimStart: 1, trimEnd: 1 + s });
       assert.equal(res.status, 201, String(s));
@@ -150,7 +150,7 @@ describe('Story 5.3: [BE] Tạo Task Motion Control', () => {
       assert.equal(Number(holds[0].amount), -motionPrice(s));
       assert.equal(queueCalls[0].opts.jobId, t.id);
     }
-    await pool.query(`UPDATE tasks SET status='failed', reason_code='RH_ERROR', finished_at=now() WHERE user_id=$1 AND status IN ('queued','running')`, [u.id]);
+    await pool.query(`UPDATE tasks SET status='failed', reason_code='GPU_ERROR', finished_at=now() WHERE user_id=$1 AND status IN ('queued','running')`, [u.id]);
     const res = await post(u, { characterKey: c, videoKey: v, trimStart: 0, trimEnd: 21 });
     await expectReason(res, 'TRIM_EXCEEDS_CAP', 20);
     const ok20 = await post(u, { characterKey: c, videoKey: v, trimStart: 0, trimEnd: 20 });
@@ -301,7 +301,7 @@ describe('Story 5.3: [BE] Tạo Task Motion Control', () => {
       return (await res.json()).id;
     }
     async function clearGate() {
-      await pool.query(`UPDATE tasks SET status='failed', reason_code='RH_ERROR', finished_at=now(), rh_orphan_until=NULL WHERE user_id = ANY($1::uuid[]) AND status IN ('queued','running')`, [users]);
+      await pool.query(`UPDATE tasks SET status='failed', reason_code='GPU_ERROR', finished_at=now(), rh_orphan_until=NULL WHERE user_id = ANY($1::uuid[]) AND status IN ('queued','running')`, [users]);
       const foreign = await tasksSvc.countGateOccupied();
       process.env.RH_MAX_CONCURRENT = String(foreign + 2);
     }
@@ -406,7 +406,7 @@ describe('Story 5.3: [BE] Tạo Task Motion Control', () => {
       await tasksSvc.transition(id, 'queued', 'running');
       await upd(id, `deadline_at=now()-interval '1 hour', submit_started_at=now(), runninghub_task_id='rh-late'`);
       await worker.processTask(id);
-      assert.notEqual((await row(id)).reason_code, 'RH_TIMEOUT');
+      assert.notEqual((await row(id)).reason_code, 'GPU_TIMEOUT');
       assert.equal(ingestCalls.length, 1);
     });
 

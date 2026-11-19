@@ -87,13 +87,13 @@ export const AdminStatsPipelineSchema = z.object({
   successRate: z.number().min(0).max(1).nullable(),
   avgProcessingSeconds: nonNeg.nullable(),
   p95ProcessingSeconds: nonNeg.nullable(),
-  /** Chi phí GPU thật trung bình mỗi Task thành công (USD, RunningHub Enterprise-Shared); null khi chưa có dữ liệu. */
+  /** Chi phí GPU thật trung bình mỗi Task thành công (USD, nhà cung cấp GPU); null khi chưa có dữ liệu. */
   avgCostUsd: nonNeg.nullable(),
   /** Chi phí GPU lãng phí của Task failed/timed_out/cancelled (USD). */
   wastedCostUsd: nonNeg,
   /** avgCostUsd quy VNĐ theo USD_VND. */
   avgCostVnd: nonNeg.nullable(),
-  /** Chi phí và số Task theo loại máy RunningHub (default/plus/ultra). */
+  /** Chi phí và số Task theo loại máy GPU (default/plus/ultra). */
   costByInstanceType: z.array(z.object({ instanceType: z.string(), tasks: nonNegInt, costUsd: nonNeg })),
 });
 export type AdminStatsPipeline = z.infer<typeof AdminStatsPipelineSchema>;

@@ -856,7 +856,7 @@ describe('@flowvis/contracts', () => {
         TaskSchema.safeParse({ ...MOCK_TASKS_BY_STATUS.timed_out, reasonCode: 'PREP_TIMEOUT' }).success,
         true,
       );
-      for (const code of ['RH_TIMEOUT', 'RH_GATE_TIMEOUT']) {
+      for (const code of ['GPU_TIMEOUT', 'GPU_GATE_TIMEOUT']) {
         assert.equal(TaskSchema.safeParse({ ...f, reasonCode: code }).success, false, code);
         assert.equal(
           TaskSchema.safeParse({ ...MOCK_TASKS_BY_STATUS.timed_out, reasonCode: code }).success,

@@ -108,18 +108,18 @@ describe('RunningHubOpenApiAdapter', () => {
     await assert.rejects(adapter().submit('app', [], signal()), RunningHubError);
   });
 
-  it('upload/submit: msg và errorMessage có từ khóa hết tiền được đưa vào RunningHubError (RH_BUDGET)', async () => {
+  it('upload/submit: msg và errorMessage có từ khóa hết tiền được đưa vào RunningHubError (GPU_BUDGET)', async () => {
     const { mapRunningHubFailure } = await import('../dist/modules/pipelines/pipeline-config.js');
     next = { body: { code: 1001, msg: 'Insufficient balance', data: null } };
     await assert.rejects(adapter().uploadFile(PNG, 'x', signal()), (e) => {
       assert.ok(e instanceof RunningHubError);
-      assert.equal(mapRunningHubFailure(e.message), 'RH_BUDGET');
+      assert.equal(mapRunningHubFailure(e.message), 'GPU_BUDGET');
       return true;
     });
     next = { body: { taskId: '', status: '', errorCode: '821', errorMessage: 'Not enough coins', results: null } };
     await assert.rejects(adapter().submit('app', [], signal()), (e) => {
       assert.ok(e instanceof RunningHubError);
-      assert.equal(mapRunningHubFailure(e.message), 'RH_BUDGET');
+      assert.equal(mapRunningHubFailure(e.message), 'GPU_BUDGET');
       return true;
     });
   });

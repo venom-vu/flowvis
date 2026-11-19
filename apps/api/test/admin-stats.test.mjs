@@ -171,10 +171,10 @@ describe('Story 6.6: [BE] Thống kê vận hành và nhật ký Admin', () => {
     await mkTask(u.id, 'face_swap', 'succeeded', { cost: 0.02, inst: 'default', proc: 10 });
     await mkTask(u.id, 'face_swap', 'succeeded', { cost: 0.04, inst: 'plus', proc: 30 });
     await mkTask(u.id, 'face_swap', 'succeeded', {}); // chưa có chi phí: AVG phải bỏ qua
-    await mkTask(u.id, 'face_swap', 'failed', { reason: 'RH_ERROR', cost: 0.01, inst: 'default' });
+    await mkTask(u.id, 'face_swap', 'failed', { reason: 'GPU_ERROR', cost: 0.01, inst: 'default' });
     await mkTask(u.id, 'face_swap', 'failed', { reason: 'NO_FACE', cost: 0.002, inst: 'default' });
     await mkTask(u.id, 'face_swap', 'cancelled');
-    await mkTask(u.id, 'face_swap', 'timed_out', { reason: 'RH_TIMEOUT', cost: 0.004, inst: 'default' });
+    await mkTask(u.id, 'face_swap', 'timed_out', { reason: 'GPU_TIMEOUT', cost: 0.004, inst: 'default' });
     await mkTask(u.id, 'face_swap', 'timed_out', { reason: 'FREE_WAIT_EXPIRED', cost: 0.001, inst: 'default' });
     await mkTask(u.id, 'motion_control', 'succeeded', { cost: 0.05, inst: 'ultra', secs: 5, proc: 60 });
     await mkTask(bench.id, 'face_swap', 'succeeded', { cost: 0.08, inst: 'default', proc: 5 });

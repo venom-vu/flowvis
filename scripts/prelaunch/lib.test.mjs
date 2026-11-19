@@ -172,9 +172,9 @@ describe('lỗi kỹ thuật', () => {
     assert.equal(isTechnicalFailure('succeeded', null), false);
     assert.equal(isTechnicalFailure('failed', 'NO_FACE'), false);
     assert.equal(isTechnicalFailure('failed', 'CONTENT_BLOCKED'), false);
-    assert.equal(isTechnicalFailure('failed', 'RH_ERROR'), true);
-    assert.equal(isTechnicalFailure('timed_out', 'RH_TIMEOUT'), true);
-    assert.equal(isTechnicalFailure('failed', 'RH_BUDGET'), true);
+    assert.equal(isTechnicalFailure('failed', 'GPU_ERROR'), true);
+    assert.equal(isTechnicalFailure('timed_out', 'GPU_TIMEOUT'), true);
+    assert.equal(isTechnicalFailure('failed', 'GPU_BUDGET'), true);
   });
 });
 

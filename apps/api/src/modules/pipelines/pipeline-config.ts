@@ -61,7 +61,7 @@ export const PIPELINE_CONFIGS: Readonly<Record<string, PipelineConfig>> = {
     workflowEnvVar: 'RUNNINGHUB_WORKFLOW_OUTFIT_CHANGE',
     instanceEnvVar: 'RUNNINGHUB_INSTANCE_OUTFIT_CHANGE',
     runMode: 'ai-app',
-    // Không requiredAtStartup: môi trường chưa cấu hình vẫn khởi động; adapter unconfigured ném RH_ERROR.
+    // Không requiredAtStartup: môi trường chưa cấu hình vẫn khởi động; adapter unconfigured ném GPU_ERROR.
     // AI App Đổi trang phục (2012848202482978818): 107 = ảnh người mẫu, 285 = ảnh trang phục, 223 = prompt cố định.
     inputs: [
       { inputKey: 'modelKey', nodeId: '107', fieldName: 'image' },
@@ -76,7 +76,7 @@ export const PIPELINE_CONFIGS: Readonly<Record<string, PipelineConfig>> = {
     workflowEnvVar: 'RUNNINGHUB_WORKFLOW_PERSON_REPLACE',
     instanceEnvVar: 'RUNNINGHUB_INSTANCE_PERSON_REPLACE',
     runMode: 'ai-app',
-    // Không requiredAtStartup: môi trường chưa cấu hình vẫn khởi động; adapter unconfigured ném RH_ERROR.
+    // Không requiredAtStartup: môi trường chưa cấu hình vẫn khởi động; adapter unconfigured ném GPU_ERROR.
     // AI App Đổi người trong ảnh (1977229030422388737): 22 = ảnh gốc, 35 = nhân vật mới thay vào ảnh gốc, 49 = độ phân giải tối đa.
     // Không đặt referenceInputKey: workflow giới hạn cạnh dài 1280 nên kích thước kết quả có thể khác ảnh gốc.
     inputs: [
@@ -115,7 +115,7 @@ export const PIPELINE_CONFIGS: Readonly<Record<string, PipelineConfig>> = {
     workflowEnvVar: 'RUNNINGHUB_WORKFLOW_MOTION_V2',
     instanceEnvVar: 'RUNNINGHUB_INSTANCE_MOTION_CONTROL_V2',
     runMode: 'ai-app',
-    // Không requiredAtStartup: môi trường chưa cấu hình vẫn khởi động; adapter unconfigured ném RH_ERROR.
+    // Không requiredAtStartup: môi trường chưa cấu hình vẫn khởi động; adapter unconfigured ném GPU_ERROR.
     // AI App Motion Control v2 (2083697864529678338): 299 = ảnh nhân vật, 275 = video chuyển động (đã cắt).
     inputs: [
       { inputKey: 'characterKey', nodeId: '299', fieldName: 'image' },
@@ -153,7 +153,7 @@ export const PIPELINE_CONFIGS: Readonly<Record<string, PipelineConfig>> = {
     workflowEnvVar: 'RUNNINGHUB_WORKFLOW_MOTION_BACKGROUND',
     instanceEnvVar: 'RUNNINGHUB_INSTANCE_MOTION_BACKGROUND',
     runMode: 'ai-app',
-    // Không requiredAtStartup: môi trường chưa cấu hình vẫn khởi động; adapter unconfigured ném RH_ERROR.
+    // Không requiredAtStartup: môi trường chưa cấu hình vẫn khởi động; adapter unconfigured ném GPU_ERROR.
     // AI App Motion control nền video (2097276664149921793): 286 = ảnh, 274 = video (đã cắt). Không có tham số/node cố định.
     inputs: [
       { inputKey: 'characterKey', nodeId: '286', fieldName: 'image' },
@@ -171,7 +171,7 @@ export const RH_FAILURE_PREFIX_MAP: ReadonlyArray<{ prefix: string; reason: Reas
 ];
 
 /** Từ khóa (chữ thường) cho lỗi hết tiền RunningHub. */
-export const RH_BUDGET_KEYWORDS: readonly string[] = [
+export const GPU_BUDGET_KEYWORDS: readonly string[] = [
   'insufficient',
   'not enough',
   'out of coins',
@@ -193,7 +193,7 @@ export function mapRunningHubFailure(errorMessage: string | undefined): ReasonCo
   }
   const lower = msg.toLowerCase();
   // Hết VRAM GPU ("insufficient VRAM") là lỗi workflow, không phải hết tiền tài khoản RunningHub.
-  if (lower.includes('vram')) return 'RH_ERROR';
-  if (RH_BUDGET_KEYWORDS.some((k) => lower.includes(k))) return 'RH_BUDGET';
-  return 'RH_ERROR';
+  if (lower.includes('vram')) return 'GPU_ERROR';
+  if (GPU_BUDGET_KEYWORDS.some((k) => lower.includes(k))) return 'GPU_BUDGET';
+  return 'GPU_ERROR';
 }

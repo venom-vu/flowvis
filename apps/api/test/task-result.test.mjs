@@ -142,7 +142,7 @@ describe('Story 2.6: [BE] Nhập kết quả về R2 và chốt tiền', () => {
   const row = (id) => pool.query('SELECT * FROM tasks WHERE id=$1', [id]).then((r) => r.rows[0]);
   const ledger = (id, type) => prisma.ledgerEntry.findMany({ where: { taskId: id, type } });
   async function clearGate() {
-    await pool.query(`UPDATE tasks SET status='failed', reason_code='RH_ERROR', finished_at=now(), rh_orphan_until=NULL WHERE user_id = ANY($1::uuid[]) AND status IN ('queued','running')`, [users]);
+    await pool.query(`UPDATE tasks SET status='failed', reason_code='GPU_ERROR', finished_at=now(), rh_orphan_until=NULL WHERE user_id = ANY($1::uuid[]) AND status IN ('queued','running')`, [users]);
     await pool.query(`UPDATE tasks SET rh_orphan_until=NULL WHERE user_id = ANY($1::uuid[]) AND rh_orphan_until IS NOT NULL`, [users]);
     process.env.RH_MAX_CONCURRENT = String((await svc.countGateOccupied()) + 2);
   }
@@ -509,7 +509,7 @@ describe('Story 2.6: [BE] Nhập kết quả về R2 và chốt tiền', () => {
       reset(); await clearGate();
       const u = await newUser();
       const t = await runningTask(u);
-      putImpl = async () => { await svc.transition(t.id, 'running', 'timed_out', 'RH_TIMEOUT'); };
+      putImpl = async () => { await svc.transition(t.id, 'running', 'timed_out', 'GPU_TIMEOUT'); };
       await ingest(t);
       const r = await row(t.id);
       assert.equal(r.status, 'timed_out');
@@ -550,10 +550,10 @@ describe('Story 2.6: [BE] Nhập kết quả về R2 và chốt tiền', () => {
       reset(); await clearGate();
       const u = await newUser();
       const t = await runningTask(u);
-      await svc.transition(t.id, 'running', 'failed', 'RH_ERROR');
+      await svc.transition(t.id, 'running', 'failed', 'GPU_ERROR');
       await ingest(t);
       assert.equal(fetchCalls, 0);
-      assert.equal((await row(t.id)).reason_code, 'RH_ERROR');
+      assert.equal((await row(t.id)).reason_code, 'GPU_ERROR');
     });
   });
 
@@ -628,7 +628,7 @@ describe('Story 2.6: [BE] Nhập kết quả về R2 và chốt tiền', () => {
         const u = await newUser();
         const t = await createTask(u);
         if (status !== 'queued') await svc.transition(t.id, 'queued', 'running');
-        if (status === 'failed') await svc.transition(t.id, 'running', 'failed', 'RH_ERROR');
+        if (status === 'failed') await svc.transition(t.id, 'running', 'failed', 'GPU_ERROR');
         const res = await get(t.id, u.token);
         assert.equal(res.status, 409);
         const body = await res.json();

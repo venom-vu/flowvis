@@ -105,7 +105,7 @@ describe('Story 2.5: [BE] Worker xử lý Task qua RunningHub', () => {
   // Chỉ dọn Task của user test; slot do dữ liệu ngoài chiếm được tính để cổng luôn còn đúng 2 slot cho test.
   async function clearGate() {
     await pool.query(`UPDATE settings SET value='false'::jsonb WHERE key IN ('intake_paused','rh_budget_exhausted')`);
-    await pool.query(`UPDATE tasks SET status='failed', reason_code='RH_ERROR', finished_at=now(), rh_orphan_until=NULL WHERE user_id = ANY($1::uuid[]) AND status IN ('queued','running')`, [users]);
+    await pool.query(`UPDATE tasks SET status='failed', reason_code='GPU_ERROR', finished_at=now(), rh_orphan_until=NULL WHERE user_id = ANY($1::uuid[]) AND status IN ('queued','running')`, [users]);
     await pool.query(`UPDATE tasks SET rh_orphan_until=NULL WHERE user_id = ANY($1::uuid[]) AND rh_orphan_until IS NOT NULL`, [users]);
     const foreign = await svc.countGateOccupied();
     process.env.RH_MAX_CONCURRENT = String(foreign + 2);
@@ -161,7 +161,7 @@ describe('Story 2.5: [BE] Worker xử lý Task qua RunningHub', () => {
     assert.equal(r.finished_at, null);
     const d = (r.prep_deadline_at - r.running_at) / 1000;
     assert.ok(d > 119 && d < 121);
-    await svc.transition(id, 'running', 'failed', 'RH_ERROR', { gpuCoins: 7, orphanForMs: 60000 });
+    await svc.transition(id, 'running', 'failed', 'GPU_ERROR', { gpuCoins: 7, orphanForMs: 60000 });
     const f = await row(id);
     assert.ok(f.finished_at);
     assert.equal(f.gpu_coins, 7);
@@ -227,7 +227,7 @@ describe('Story 2.5: [BE] Worker xử lý Task qua RunningHub', () => {
     assert.equal(ingestCalls.length, 1);
   });
 
-  it('submit không có id => RH_SUBMIT_UNKNOWN + orphan', async () => {
+  it('submit không có id => GPU_SUBMIT_UNKNOWN + orphan', async () => {
     reset(); await clearGate();
     const u = await newUser();
     const id = await createTask(u);
@@ -236,7 +236,7 @@ describe('Story 2.5: [BE] Worker xử lý Task qua RunningHub', () => {
     await worker.processTask(id);
     const r = await row(id);
     assert.equal(r.status, 'failed');
-    assert.equal(r.reason_code, 'RH_SUBMIT_UNKNOWN');
+    assert.equal(r.reason_code, 'GPU_SUBMIT_UNKNOWN');
     const m = (r.rh_orphan_until - Date.now()) / 60000;
     assert.ok(m > 9 && m < 10.1);
     assert.equal((await ledger(id, 'RELEASED')).length, 1);
@@ -263,7 +263,7 @@ describe('Story 2.5: [BE] Worker xử lý Task qua RunningHub', () => {
     await upd(a, `deadline_at=now()-interval '1 second', runninghub_task_id='rh-late'`);
     outputsQueue = [{ status: 'SUCCESS', fileUrl: 'http://x/y.png', consumeMoney: 1 }];
     await worker.processTask(a);
-    assert.notEqual((await row(a)).reason_code, 'RH_TIMEOUT', 'deadline_at đã qua không làm timed_out');
+    assert.notEqual((await row(a)).reason_code, 'GPU_TIMEOUT', 'deadline_at đã qua không làm timed_out');
     assert.equal(ingestCalls.length, 1, 'vẫn nhận kết quả RunningHub trả muộn');
     const b = await createTask(u);
     await svc.transition(b, 'queued', 'running');
@@ -298,7 +298,7 @@ describe('Story 2.5: [BE] Worker xử lý Task qua RunningHub', () => {
     assert.equal(calls.upload, 0);
     assert.equal((await row(c)).deadline_at, null);
     // a kết thúc nhưng còn orphan: vẫn chiếm slot
-    await svc.transition(a, 'running', 'failed', 'RH_ERROR', { orphanForMs: 60000 });
+    await svc.transition(a, 'running', 'failed', 'GPU_ERROR', { orphanForMs: 60000 });
     await new Promise((r) => setTimeout(r, 200));
     assert.equal(calls.upload, 0);
     await upd(a, `rh_orphan_until=NULL`);
@@ -308,7 +308,7 @@ describe('Story 2.5: [BE] Worker xử lý Task qua RunningHub', () => {
     await clearGate();
   });
 
-  it('quá gate_deadline => RH_GATE_TIMEOUT', async () => {
+  it('quá gate_deadline => GPU_GATE_TIMEOUT', async () => {
     reset(); await clearGate();
     const u = await newUser(5000, 'pro');
     const a = await createTask(u), b = await createTask(u), c = await createTask(u);
@@ -321,13 +321,13 @@ describe('Story 2.5: [BE] Worker xử lý Task qua RunningHub', () => {
     await worker.processTask(c);
     const r = await row(c);
     assert.equal(r.status, 'timed_out');
-    assert.equal(r.reason_code, 'RH_GATE_TIMEOUT');
+    assert.equal(r.reason_code, 'GPU_GATE_TIMEOUT');
     assert.equal(calls.upload, 0);
     await clearGate();
   });
 
   it('RH FAILED: ánh xạ lý do + gpu_coins', async () => {
-    const cases = [['NO_FACE detected', 'NO_FACE'], ['NO_POSE x', 'NO_POSE'], ['Insufficient balance', 'RH_BUDGET'], ['boom', 'RH_ERROR']];
+    const cases = [['NO_FACE detected', 'NO_FACE'], ['NO_POSE x', 'NO_POSE'], ['Insufficient balance', 'GPU_BUDGET'], ['boom', 'GPU_ERROR']];
     for (const [msg, reason] of cases) {
       reset(); await clearGate();
       outputsQueue = [{ status: 'FAILED', errorMessage: msg, consumeMoney: 2 }];
@@ -356,14 +356,14 @@ describe('Story 2.5: [BE] Worker xử lý Task qua RunningHub', () => {
     assert.equal(r.runninghub_task_id, 'rh-ok');
     r = await run(async () => { throw new RunningHubNetworkError('x', false); });
     assert.equal(calls.submit, 2);
-    assert.equal(r.reason_code, 'RH_ERROR');
+    assert.equal(r.reason_code, 'GPU_ERROR');
     r = await run(async () => { throw new RunningHubNetworkError('x', true); });
     assert.equal(calls.submit, 1);
-    assert.equal(r.reason_code, 'RH_SUBMIT_UNKNOWN');
+    assert.equal(r.reason_code, 'GPU_SUBMIT_UNKNOWN');
     assert.ok(r.rh_orphan_until);
   });
 
-  it('poll gặp RunningHubError => RH_ERROR + RELEASED + orphan giữ slot cổng', async () => {
+  it('poll gặp RunningHubError => GPU_ERROR + RELEASED + orphan giữ slot cổng', async () => {
     reset(); await clearGate();
     outputsQueue = [new RunningHubError('api lỗi')];
     const u = await newUser();
@@ -371,13 +371,13 @@ describe('Story 2.5: [BE] Worker xử lý Task qua RunningHub', () => {
     await worker.processTask(id);
     const r = await row(id);
     assert.equal(r.status, 'failed');
-    assert.equal(r.reason_code, 'RH_ERROR');
+    assert.equal(r.reason_code, 'GPU_ERROR');
     const m = (r.rh_orphan_until - Date.now()) / 60000;
     assert.ok(m > 9 && m < 10.1);
     assert.equal((await ledger(id, 'RELEASED')).length, 1);
   });
 
-  it('upload RunningHub lỗi => failed/RH_ERROR + RELEASED, không submit', async () => {
+  it('upload RunningHub lỗi => failed/GPU_ERROR + RELEASED, không submit', async () => {
     reset(); await clearGate();
     const orig = worker.rh.uploadFile;
     worker.rh.uploadFile = async () => { throw new RunningHubError('upload hỏng'); };
@@ -387,7 +387,7 @@ describe('Story 2.5: [BE] Worker xử lý Task qua RunningHub', () => {
       await worker.processTask(id);
       const r = await row(id);
       assert.equal(r.status, 'failed');
-      assert.equal(r.reason_code, 'RH_ERROR');
+      assert.equal(r.reason_code, 'GPU_ERROR');
       assert.equal(calls.submit, 0);
       assert.equal((await ledger(id, 'RELEASED')).length, 1);
     } finally {
@@ -395,14 +395,14 @@ describe('Story 2.5: [BE] Worker xử lý Task qua RunningHub', () => {
     }
   });
 
-  it('submit: RunningHubError => RH_ERROR; Error lạ => RH_SUBMIT_UNKNOWN + orphan', async () => {
+  it('submit: RunningHubError => GPU_ERROR; Error lạ => GPU_SUBMIT_UNKNOWN + orphan', async () => {
     reset(); await clearGate();
     const u = await newUser();
     submitImpl = async () => { throw new RunningHubError('từ chối'); };
     let id = await createTask(u);
     await worker.processTask(id);
     let r = await row(id);
-    assert.equal(r.reason_code, 'RH_ERROR');
+    assert.equal(r.reason_code, 'GPU_ERROR');
     assert.equal(r.rh_orphan_until, null);
     assert.equal((await ledger(id, 'RELEASED')).length, 1);
 
@@ -410,7 +410,7 @@ describe('Story 2.5: [BE] Worker xử lý Task qua RunningHub', () => {
     id = await createTask(u);
     await worker.processTask(id);
     r = await row(id);
-    assert.equal(r.reason_code, 'RH_SUBMIT_UNKNOWN');
+    assert.equal(r.reason_code, 'GPU_SUBMIT_UNKNOWN');
     assert.ok(r.rh_orphan_until);
     assert.equal((await ledger(id, 'RELEASED')).length, 1);
   });
@@ -517,10 +517,10 @@ describe('Story 2.5: [BE] Worker xử lý Task qua RunningHub', () => {
     const id = await createTask(u);
     const p = worker.processTask(id);
     await new Promise((r) => setTimeout(r, 200));
-    await svc.transition(id, 'running', 'timed_out', 'RH_TIMEOUT');
+    await svc.transition(id, 'running', 'timed_out', 'GPU_TIMEOUT');
     await p;
     const r = await row(id);
-    assert.equal(r.reason_code, 'RH_TIMEOUT');
+    assert.equal(r.reason_code, 'GPU_TIMEOUT');
     assert.equal(ingestCalls.length, 0);
     assert.equal((await ledger(id, 'RELEASED')).length, 1);
   });
@@ -571,7 +571,7 @@ describe('Story 2.5: [BE] Worker xử lý Task qua RunningHub', () => {
     await svc.transition(a, 'queued', 'cancelled', 'USER_CANCEL');
     const b = await createTask(u);
     await svc.transition(b, 'queued', 'running');
-    await svc.transition(b, 'running', 'timed_out', 'RH_TIMEOUT');
+    await svc.transition(b, 'running', 'timed_out', 'GPU_TIMEOUT');
     const c = await createTask(u);
     await svc.transition(c, 'queued', 'running');
     assert.equal((await svc.transition(c, 'running', 'succeeded', null, { resultKey: `out/${u.id}/${crypto.randomUUID()}` })).applied, true);
@@ -617,7 +617,7 @@ describe('Story 2.5: [BE] Worker xử lý Task qua RunningHub', () => {
     assert.equal((await ledger(id, 'RELEASED')).length, 1);
   });
 
-  it('thiếu biến môi trường workflow => failed/RH_ERROR, không upload', async () => {
+  it('thiếu biến môi trường workflow => failed/GPU_ERROR, không upload', async () => {
     reset(); await clearGate();
     const saved = process.env.RUNNINGHUB_WORKFLOW_FACESWAP;
     delete process.env.RUNNINGHUB_WORKFLOW_FACESWAP;
@@ -627,7 +627,7 @@ describe('Story 2.5: [BE] Worker xử lý Task qua RunningHub', () => {
       await worker.processTask(id);
       const r = await row(id);
       assert.equal(r.status, 'failed');
-      assert.equal(r.reason_code, 'RH_ERROR');
+      assert.equal(r.reason_code, 'GPU_ERROR');
       assert.equal(calls.upload, 0);
     } finally { process.env.RUNNINGHUB_WORKFLOW_FACESWAP = saved; }
   });
@@ -752,7 +752,7 @@ describe('Story 2.5: [BE] Worker xử lý Task qua RunningHub', () => {
     r = await row(d);
     assert.equal(r.cost_seconds, 40); assert.equal(r.cost_usd, null); assert.equal(r.cost_source, null);
 
-    await upd(c, "status='failed', reason_code='RH_ERROR', finished_at=now()");
+    await upd(c, "status='failed', reason_code='GPU_ERROR', finished_at=now()");
     assert.equal(await svc.recordCost(c, { costUsd: 1 }), false);
     assert.equal((await row(c)).cost_usd, null);
   });

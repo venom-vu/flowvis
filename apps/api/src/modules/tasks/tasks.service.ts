@@ -58,9 +58,9 @@ import { WalletService } from '../wallet/wallet.service.js';
 
 /** Lỗi hệ thống tính vào ngắt mạch (Story 6.2). */
 export const SYSTEM_FAILURE_REASONS: readonly ReasonCode[] = [
-  'RH_ERROR',
-  'RH_TIMEOUT',
-  'RH_SUBMIT_UNKNOWN',
+  'GPU_ERROR',
+  'GPU_TIMEOUT',
+  'GPU_SUBMIT_UNKNOWN',
   'PREP_TIMEOUT',
   'FFMPEG_ERROR',
   'INPUT_FETCH_ERROR',

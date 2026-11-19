@@ -218,7 +218,7 @@ export class TaskWorkerService implements OnModuleInit, OnModuleDestroy {
       this.logger.warn(
         `Task ${taskId}: RunningHub hết ngân sách, từ chối trước khi chuẩn bị`,
       );
-      await this.finish(taskId, "failed", "RH_BUDGET");
+      await this.finish(taskId, "failed", "GPU_BUDGET");
       return;
     }
     this.logger.log(`Task ${taskId}: bắt đầu xử lý pipeline ${row.pipeline}`);
@@ -226,7 +226,7 @@ export class TaskWorkerService implements OnModuleInit, OnModuleDestroy {
     const now = Date.now();
     if (row.runninghubTaskId) return this.poll(row, signal);
     if (row.submitStartedAt) {
-      await this.finish(taskId, "failed", "RH_SUBMIT_UNKNOWN", {
+      await this.finish(taskId, "failed", "GPU_SUBMIT_UNKNOWN", {
         orphanForMs: ORPHAN_MS,
       });
       return;
@@ -253,7 +253,7 @@ export class TaskWorkerService implements OnModuleInit, OnModuleDestroy {
       reason,
       opts,
     );
-    if (reason === "RH_BUDGET" && result.applied)
+    if (reason === "GPU_BUDGET" && result.applied)
       await this.onBudgetExhausted(taskId);
     return result;
   }
@@ -277,7 +277,7 @@ export class TaskWorkerService implements OnModuleInit, OnModuleDestroy {
   }
 
   private isBudgetError(message: string): boolean {
-    return mapRunningHubFailure(message) === "RH_BUDGET";
+    return mapRunningHubFailure(message) === "GPU_BUDGET";
   }
 
   private timeoutSignal(
@@ -297,7 +297,7 @@ export class TaskWorkerService implements OnModuleInit, OnModuleDestroy {
     const config = this.pipelines.getConfig(row.pipeline);
     const workflowId = config ? this.pipelines.getWorkflowId(config) : null;
     if (!config || !workflowId) {
-      await this.finish(taskId, "failed", "RH_ERROR");
+      await this.finish(taskId, "failed", "GPU_ERROR");
       return;
     }
 
@@ -400,7 +400,7 @@ export class TaskWorkerService implements OnModuleInit, OnModuleDestroy {
       );
       const budget =
         err instanceof RunningHubError && this.isBudgetError(err.message);
-      await this.finish(taskId, "failed", budget ? "RH_BUDGET" : "RH_ERROR");
+      await this.finish(taskId, "failed", budget ? "GPU_BUDGET" : "GPU_ERROR");
       return;
     }
 
@@ -431,7 +431,7 @@ export class TaskWorkerService implements OnModuleInit, OnModuleDestroy {
           taskId,
           "failed",
           err.reason,
-          err.reason === "RH_SUBMIT_UNKNOWN" ? { orphanForMs: ORPHAN_MS } : {},
+          err.reason === "GPU_SUBMIT_UNKNOWN" ? { orphanForMs: ORPHAN_MS } : {},
         );
         return;
       }
@@ -487,7 +487,7 @@ export class TaskWorkerService implements OnModuleInit, OnModuleDestroy {
       const cur = await this.tasks.getWorkerRow(taskId);
       if (!cur || cur.status !== "running") return false;
       if (cur.gateDeadline && cur.gateDeadline.getTime() <= Date.now()) {
-        await this.finish(taskId, "timed_out", "RH_GATE_TIMEOUT");
+        await this.finish(taskId, "timed_out", "GPU_GATE_TIMEOUT");
         return false;
       }
       await sleep(retryMs, signal);
@@ -516,22 +516,22 @@ export class TaskWorkerService implements OnModuleInit, OnModuleDestroy {
             `submit lần ${attempt}/2 lỗi mạng (requestSent=${err.requestSent}): ${err.message}`,
           );
           if (err.requestSent)
-            throw new SubmitFailure("RH_SUBMIT_UNKNOWN", err.message);
-          if (attempt === 2) throw new SubmitFailure("RH_ERROR", err.message);
+            throw new SubmitFailure("GPU_SUBMIT_UNKNOWN", err.message);
+          if (attempt === 2) throw new SubmitFailure("GPU_ERROR", err.message);
           continue;
         }
         if (err instanceof RunningHubError) {
           throw new SubmitFailure(
-            this.isBudgetError(err.message) ? "RH_BUDGET" : "RH_ERROR",
+            this.isBudgetError(err.message) ? "GPU_BUDGET" : "GPU_ERROR",
             err.message,
           );
         }
         if (signal.aborted) throw err;
         // Timeout hoặc lỗi lạ: request có thể đã gửi.
-        throw new SubmitFailure("RH_SUBMIT_UNKNOWN", String(err));
+        throw new SubmitFailure("GPU_SUBMIT_UNKNOWN", String(err));
       }
     }
-    throw new SubmitFailure("RH_ERROR");
+    throw new SubmitFailure("GPU_ERROR");
   }
 
   /** Ghi chi phí thật; lỗi chỉ log cảnh báo, không làm hỏng Task. */
@@ -628,14 +628,14 @@ export class TaskWorkerService implements OnModuleInit, OnModuleDestroy {
           this.logger.warn(
             `Task ${taskId}: RunningHub ${rhId} lỗi khi truy vấn: ${err.message}`,
           );
-          // Không biết job còn chạy hay không: giữ slot cổng như RH_TIMEOUT / RH_SUBMIT_UNKNOWN.
+          // Không biết job còn chạy hay không: giữ slot cổng như GPU_TIMEOUT / GPU_SUBMIT_UNKNOWN.
           if (this.isBudgetError(err.message)) {
-            await this.finish(taskId, "failed", "RH_BUDGET", {
+            await this.finish(taskId, "failed", "GPU_BUDGET", {
               orphanForMs: ORPHAN_MS,
             });
             return;
           }
-          await this.finish(taskId, "failed", "RH_ERROR", {
+          await this.finish(taskId, "failed", "GPU_ERROR", {
             orphanForMs: ORPHAN_MS,
           });
           return;
@@ -650,7 +650,7 @@ export class TaskWorkerService implements OnModuleInit, OnModuleDestroy {
 
 class SubmitFailure extends Error {
   constructor(
-    readonly reason: "RH_ERROR" | "RH_SUBMIT_UNKNOWN" | "RH_BUDGET",
+    readonly reason: "GPU_ERROR" | "GPU_SUBMIT_UNKNOWN" | "GPU_BUDGET",
     readonly detail: string = "",
   ) {
     super(reason);

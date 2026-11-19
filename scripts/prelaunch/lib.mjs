@@ -9,7 +9,7 @@ export const EXIT_ERROR = 2;
 
 /**
  * Lý do do người dùng/nội dung: không tính là lỗi kỹ thuật của benchmark. Cổng benchmark cố ý chặt hơn ngắt mạch
- * (SYSTEM_FAILURE_REASONS trong tasks.service.ts): RH_BUDGET và RH_GATE_TIMEOUT ở đây TÍNH là lỗi kỹ thuật.
+ * (SYSTEM_FAILURE_REASONS trong tasks.service.ts): GPU_BUDGET và GPU_GATE_TIMEOUT ở đây TÍNH là lỗi kỹ thuật.
  */
 export const NON_TECHNICAL_REASONS = Object.freeze([
   'NO_POSE',

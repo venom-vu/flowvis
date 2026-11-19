@@ -94,7 +94,7 @@ export class RunningHubHttpAdapter implements RunningHubPort {
  * Chọn adapter RunningHub:
  * 1. NODE_ENV === 'test' và có RUNNINGHUB_BASE_URL: máy chủ giả của smoke test.
  * 2. Có RUNNINGHUB_API_KEY: adapter OpenAPI thật (host mặc định https://www.runninghub.ai, ghi đè bằng RUNNINGHUB_API_HOST).
- * 3. Còn lại: adapter chưa cấu hình (mọi lời gọi ném RH_ERROR).
+ * 3. Còn lại: adapter chưa cấu hình (mọi lời gọi ném GPU_ERROR).
  */
 export function createRunningHubPort(): RunningHubPort {
   if (process.env.NODE_ENV === 'test' && process.env.RUNNINGHUB_BASE_URL) {

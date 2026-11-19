@@ -284,7 +284,7 @@ onBeforeUnmount(() => {
               Đang xử lý {{ pipelineLabelVi }}...
             </h3>
             <p class="text-xs text-cyber-muted">
-              Đang thực thi mô hình AI trên RunningHub
+              Đang thực thi mô hình AI
             </p>
           </div>
         </div>

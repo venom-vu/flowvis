@@ -123,7 +123,7 @@ export class TaskSweeperService {
       try {
         // Task đã qua cổng (deadline_at) không bao giờ hết hạn ở đây: chờ RunningHub trả kết quả.
         if (row.gate_deadline && row.gate_deadline.getTime() <= now) {
-          await this.expire(row.id, 'RH_GATE_TIMEOUT');
+          await this.expire(row.id, 'GPU_GATE_TIMEOUT');
         } else {
           const live = await this.liveJob(row.id);
           // Job còn trong hàng (waiting/delayed/active) là đang chờ slot worker, không phải chết;

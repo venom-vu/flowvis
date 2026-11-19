@@ -98,7 +98,7 @@ describe('Story 6.2: [BE] Ngắt mạch và chặn tạo Task khi tạm dừng',
   }
   /** 19 Task đủ điều kiện (16 succeeded, 3 lỗi cũ hơn): dưới ngưỡng 20 và không có chuỗi lỗi cuối. */
   async function seedBelowThreshold() {
-    for (let i = 0; i < 3; i++) await addTask('failed', 'RH_ERROR', 10_000 + i);
+    for (let i = 0; i < 3; i++) await addTask('failed', 'GPU_ERROR', 10_000 + i);
     for (let i = 0; i < 16; i++) await addTask('succeeded', null, 1000 + i);
   }
   const flag = async (k) => (await pool.query('SELECT value FROM settings WHERE key=$1', [k])).rows[0]?.value;
@@ -164,11 +164,11 @@ describe('Story 6.2: [BE] Ngắt mạch và chặn tạo Task khi tạm dừng',
   it('đúng 15% (3/20) không kích hoạt; 4/20 kích hoạt, một cảnh báo, last_breaker_trigger đầy đủ', async () => {
     await reset(); await isolate();
     for (let i = 0; i < 17; i++) await addTask('succeeded', null);
-    for (let i = 0; i < 3; i++) await addTask('failed', 'RH_ERROR');
+    for (let i = 0; i < 3; i++) await addTask('failed', 'GPU_ERROR');
     // xen kẽ để chuỗi liên tiếp < 5
     assert.equal(await breaker.evaluate(), false);
     assert.equal(await flag('intake_paused'), false);
-    await pool.query(`UPDATE tasks SET status='failed', reason_code='RH_ERROR', result_key=NULL WHERE id = (SELECT id FROM tasks WHERE user_id=$1 AND status='succeeded' LIMIT 1)`, [user.id]);
+    await pool.query(`UPDATE tasks SET status='failed', reason_code='GPU_ERROR', result_key=NULL WHERE id = (SELECT id FROM tasks WHERE user_id=$1 AND status='succeeded' LIMIT 1)`, [user.id]);
     assert.equal(await breaker.evaluate(), true);
     assert.equal(await flag('intake_paused'), true);
     assert.equal(alerts.length, 1);
@@ -186,13 +186,13 @@ describe('Story 6.2: [BE] Ngắt mạch và chặn tạo Task khi tạm dừng',
     await reset(); await isolate();
     for (let i = 0; i < 4; i++) await addTask('failed', 'INTERNAL_ERROR', 5000 + i);
     await addTask('succeeded', null, 4000);
-    await addTask('timed_out', 'RH_TIMEOUT', 3000);
-    await addTask('failed', 'RH_ERROR', 2500);
+    await addTask('timed_out', 'GPU_TIMEOUT', 3000);
+    await addTask('failed', 'GPU_ERROR', 2500);
     await addTask('failed', 'NO_POSE', 2200); // không cắt chuỗi
     await addTask('failed', 'FFMPEG_ERROR', 2000);
     await addTask('timed_out', 'PREP_TIMEOUT', 1500);
     assert.equal(await breaker.evaluate(), false); // chuỗi 4
-    await addTask('failed', 'RH_SUBMIT_UNKNOWN', 1000);
+    await addTask('failed', 'GPU_SUBMIT_UNKNOWN', 1000);
     assert.equal(await breaker.evaluate(), true);
     assert.equal((await flag('last_breaker_trigger')).rule, 'CONSECUTIVE_5_SYSTEM_FAILURES');
     assert.equal(alerts.length, 1);
@@ -202,7 +202,7 @@ describe('Story 6.2: [BE] Ngắt mạch và chặn tạo Task khi tạm dừng',
     await reset(); await isolate();
     for (let i = 0; i < 15; i++) await addTask('failed', 'NO_POSE');
     for (let i = 0; i < 15; i++) await addTask('failed', 'CONTENT_BLOCKED');
-    for (const r of ['NO_FACE', 'USER_CANCEL', 'FREE_WAIT_EXPIRED', 'RH_BUDGET', 'RH_GATE_TIMEOUT']) await addTask('failed', r);
+    for (const r of ['NO_FACE', 'USER_CANCEL', 'FREE_WAIT_EXPIRED', 'GPU_BUDGET', 'GPU_GATE_TIMEOUT']) await addTask('failed', r);
     assert.equal(await breaker.evaluate(), false);
     assert.equal(alerts.length, 0);
   });
@@ -210,7 +210,7 @@ describe('Story 6.2: [BE] Ngắt mạch và chặn tạo Task khi tạm dừng',
   it('gửi cảnh báo lỗi không làm hỏng đánh giá; tín hiệu sau transition không làm hỏng transition', async () => {
     await reset(); await isolate();
     alertSvc.notifier = { notify: async () => { throw new Error('discord down'); } };
-    for (let i = 0; i < 5; i++) await addTask('failed', 'RH_ERROR');
+    for (let i = 0; i < 5; i++) await addTask('failed', 'GPU_ERROR');
     assert.equal(await breaker.evaluate(), true);
     assert.equal(await flag('intake_paused'), true);
     alertSvc.notifier = { notify: async (e) => { alerts.push(e); } };
@@ -219,7 +219,7 @@ describe('Story 6.2: [BE] Ngắt mạch và chặn tạo Task khi tạm dừng',
     tasks.onTerminal(throwing);
     try {
       const id = await liveTask();
-      const res = await tasks.transition(id, 'running', 'failed', 'RH_ERROR');
+      const res = await tasks.transition(id, 'running', 'failed', 'GPU_ERROR');
       assert.equal(res.applied, true);
       assert.equal((await pool.query('SELECT status FROM tasks WHERE id=$1', [id])).rows[0].status, 'failed');
       await tasks.emitTerminal();
@@ -233,7 +233,7 @@ describe('Story 6.2: [BE] Ngắt mạch và chặn tạo Task khi tạm dừng',
     await seedBelowThreshold();
     assert.equal(await flag('intake_paused'), false);
     const id = await liveTask();
-    assert.equal((await tasks.transition(id, 'running', 'failed', 'RH_ERROR')).applied, true);
+    assert.equal((await tasks.transition(id, 'running', 'failed', 'GPU_ERROR')).applied, true);
     // Tín hiệu do transition tự phát (không gọi emitTerminal ở đây); chờ đánh giá bất đồng bộ xong.
     for (let i = 0; i < 100 && (await flag('intake_paused')) !== true; i++) await new Promise((r) => setTimeout(r, 50));
     assert.equal(await flag('intake_paused'), true);
@@ -243,7 +243,7 @@ describe('Story 6.2: [BE] Ngắt mạch và chặn tạo Task khi tạm dừng',
   it('chuỗi thật qua bộ quét worker: scheduledSweep kích hoạt đúng một cảnh báo', async () => {
     await reset(); await isolate();
     await seedBelowThreshold();
-    await addTask('failed', 'RH_ERROR', 500); // Task thứ 20 đã kết thúc; chỉ bộ quét đánh giá
+    await addTask('failed', 'GPU_ERROR', 500); // Task thứ 20 đã kết thúc; chỉ bộ quét đánh giá
     assert.equal(await flag('intake_paused'), false);
     const prev = process.env.MOTION_PROCESS_ROLE;
     process.env.MOTION_PROCESS_ROLE = 'worker';
@@ -261,7 +261,7 @@ describe('Story 6.2: [BE] Ngắt mạch và chặn tạo Task khi tạm dừng',
     await reset();
     await pool.query(`UPDATE settings SET value=to_jsonb(to_char((now() - interval '2 hours') AT TIME ZONE 'UTC','YYYY-MM-DD"T"HH24:MI:SS.MS"Z"')) WHERE key='breaker_reset_at'`);
     const old = 31 * 60_000;
-    for (let i = 0; i < 6; i++) await addTask('failed', 'RH_ERROR', old + i, true);
+    for (let i = 0; i < 6; i++) await addTask('failed', 'GPU_ERROR', old + i, true);
     for (let i = 0; i < 14; i++) await addTask('succeeded', null, old + 100 + i, true);
     const s = await tasks.breakerWindowStats(30 * 60_000, await breaker.settings.getBreakerResetAt());
     assert.equal(s.eligible, 0);
@@ -293,7 +293,7 @@ describe('Story 6.2: [BE] Ngắt mạch và chặn tạo Task khi tạm dừng',
 
   it('resume: 401/403/200, tắt hai cờ, đặt breaker_reset_at, ghi admin_audit, không kích hoạt lại ngay', async () => {
     await reset(); await pool.query(`UPDATE settings SET value='true'::jsonb WHERE key IN ('intake_paused','rh_budget_exhausted')`);
-    for (let i = 0; i < 6; i++) await addTask('failed', 'RH_ERROR');
+    for (let i = 0; i < 6; i++) await addTask('failed', 'GPU_ERROR');
     assert.equal((await call(null, 'POST', '/admin/ops/resume')).status, 401);
     assert.equal((await call(user, 'POST', '/admin/ops/resume')).status, 403);
     assert.equal((await call(user, 'GET', '/admin/ops/status')).status, 403);

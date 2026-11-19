@@ -367,7 +367,7 @@ describe('Smoke Face Swap FE-BE trên stack Compose (Story 2.14)', () => {
         rh.mode = 'running';
         const t3 = await createTask(carol);
         const timedOut = await waitFor(carol, t3.id, (t) => t.status === 'timed_out', 'timed_out', 120_000);
-        assert.equal(timedOut.reasonCode, 'RH_TIMEOUT');
+        assert.equal(timedOut.reasonCode, 'GPU_TIMEOUT');
         assert.equal(await balance(carol), 250);
         assert.ok((await ledgerTypes(carol, t3.id)).includes('RELEASED'));
         // Kết quả đến muộn: chuyển RH sang SUCCESS rồi chờ qua hơn một chu kỳ poll; không được tải ảnh hay đổi trạng thái.

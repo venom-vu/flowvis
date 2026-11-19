@@ -211,7 +211,7 @@ describe('Smoke vận hành trên stack Compose (Story 6.10)', {
     assert.equal((await systemStatus()).intakePaused, false);
 
     const f1 = await runBatch(ops, opsKeys, 3, 'error');
-    assert.ok(f1.every((t) => t.status === 'failed' && t.reasonCode === 'RH_ERROR'));
+    assert.ok(f1.every((t) => t.status === 'failed' && t.reasonCode === 'GPU_ERROR'));
     assert.equal((await systemStatus()).intakePaused, false, 'mới 3 lỗi liên tiếp');
     await runBatch(ops, opsKeys, 2, 'error');
     await poll(async () => (await systemStatus()).intakePaused, 'intakePaused true');

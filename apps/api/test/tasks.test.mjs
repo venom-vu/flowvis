@@ -324,7 +324,7 @@ describe('Story 2.3: [BE] Tạo Task Face Swap và xếp vào hàng đợi', () 
     await pool.query(
       `INSERT INTO tasks (id,user_id,pipeline,status,reason_code,tier_snapshot,consent,tos_version,input_keys,params,hold_amount,queued_at,updated_at)
        VALUES ($1,$2,'face_swap',$3,$4,$5::jsonb,true,'t','{}','{}',100,${queuedAtSql},now())`,
-      [id, u.id, status, ['failed', 'timed_out'].includes(status) ? 'RH_ERROR' : null, JSON.stringify({ tier: 'x', priority, maxVideoSeconds: 5 })],
+      [id, u.id, status, ['failed', 'timed_out'].includes(status) ? 'GPU_ERROR' : null, JSON.stringify({ tier: 'x', priority, maxVideoSeconds: 5 })],
     );
     return id;
   };
@@ -394,7 +394,7 @@ describe('Story 2.3: [BE] Tạo Task Face Swap và xếp vào hàng đợi', () 
     assert.equal((await res.json()).code, ApiErrorCode.TASK_LIMIT);
     assert.equal((await wal(u)).held, 0n);
     await pool.query(`UPDATE tasks SET status='succeeded', result_key='out/'||user_id::text||'/'||id::text WHERE id=$1`, [r1]);
-    await pool.query(`UPDATE tasks SET status='failed', reason_code='RH_ERROR' WHERE id=$1`, [r2]);
+    await pool.query(`UPDATE tasks SET status='failed', reason_code='GPU_ERROR' WHERE id=$1`, [r2]);
     res = await post(u, await validBody(u));
     assert.equal(res.status, 201);
     assert.equal((await wal(u)).held, 100n);

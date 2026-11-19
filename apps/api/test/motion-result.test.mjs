@@ -115,7 +115,7 @@ describe('Story 5.6: [BE] Nhập kết quả video, ảnh bìa và chia sẻ', (
   const row = (id) => pool.query('SELECT * FROM tasks WHERE id=$1', [id]).then((r) => r.rows[0]);
   const ledger = (id, type) => prisma.ledgerEntry.findMany({ where: { taskId: id, type } });
   async function runningTask(user) {
-    await pool.query(`UPDATE tasks SET status='failed', reason_code='RH_ERROR', finished_at=now(), rh_orphan_until=NULL WHERE user_id = ANY($1::uuid[]) AND status IN ('queued','running')`, [users]);
+    await pool.query(`UPDATE tasks SET status='failed', reason_code='GPU_ERROR', finished_at=now(), rh_orphan_until=NULL WHERE user_id = ANY($1::uuid[]) AND status IN ('queued','running')`, [users]);
     process.env.RH_MAX_CONCURRENT = String((await svc.countGateOccupied()) + 2);
     const t = await createTask(user);
     await svc.transition(t.id, 'queued', 'running');
@@ -330,7 +330,7 @@ describe('Story 5.6: [BE] Nhập kết quả video, ảnh bìa và chia sẻ', (
     fakeStorage.putObject = async function (key, ...rest) {
       const etag = await origPut.call(this, key, ...rest);
       if (key.endsWith('.jpg')) {
-        await pool.query(`UPDATE tasks SET status='timed_out', reason_code='RH_TIMEOUT', finished_at=now() WHERE id=$1`, [t.id]);
+        await pool.query(`UPDATE tasks SET status='timed_out', reason_code='GPU_TIMEOUT', finished_at=now() WHERE id=$1`, [t.id]);
       }
       return etag;
     };

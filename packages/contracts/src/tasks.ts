@@ -57,12 +57,12 @@ export type TaskStatus = (typeof TASK_STATUSES)[number];
 export const TaskStatusSchema = z.enum(TASK_STATUSES);
 
 export const REASON_CODES = [
-  'RH_ERROR',
-  'RH_TIMEOUT',
-  'RH_SUBMIT_UNKNOWN',
-  'RH_BUDGET',
+  'GPU_ERROR',
+  'GPU_TIMEOUT',
+  'GPU_SUBMIT_UNKNOWN',
+  'GPU_BUDGET',
   'PREP_TIMEOUT',
-  'RH_GATE_TIMEOUT',
+  'GPU_GATE_TIMEOUT',
   'FFMPEG_ERROR',
   'INPUT_FETCH_ERROR',
   'OUTPUT_UPLOAD_ERROR',
@@ -77,8 +77,8 @@ export const REASON_CODES = [
 export type ReasonCode = (typeof REASON_CODES)[number];
 /** Mã lý do hợp lệ cho Task `timed_out` (các mã còn lại thuộc `failed`). */
 const TIMED_OUT_REASON_CODES: readonly ReasonCode[] = [
-  'RH_TIMEOUT',
-  'RH_GATE_TIMEOUT',
+  'GPU_TIMEOUT',
+  'GPU_GATE_TIMEOUT',
   'PREP_TIMEOUT',
   'FREE_WAIT_EXPIRED',
 ];
@@ -88,12 +88,12 @@ const GENERIC_FAILURE_VI =
   'Xử lý không thành công do lỗi hệ thống. Credit đã được hoàn lại, vui lòng thử lại.';
 
 export const REASON_CODE_MESSAGES_VI: Readonly<Record<ReasonCode, string>> = {
-  RH_ERROR: GENERIC_FAILURE_VI,
-  RH_TIMEOUT: 'Quá thời gian xử lý. Credit đã được hoàn lại, vui lòng thử lại.',
-  RH_SUBMIT_UNKNOWN: GENERIC_FAILURE_VI,
-  RH_BUDGET: GENERIC_FAILURE_VI,
+  GPU_ERROR: GENERIC_FAILURE_VI,
+  GPU_TIMEOUT: 'Quá thời gian xử lý. Credit đã được hoàn lại, vui lòng thử lại.',
+  GPU_SUBMIT_UNKNOWN: GENERIC_FAILURE_VI,
+  GPU_BUDGET: GENERIC_FAILURE_VI,
   PREP_TIMEOUT: 'Quá thời gian chuẩn bị dữ liệu. Credit đã được hoàn lại, vui lòng thử lại.',
-  RH_GATE_TIMEOUT: 'Hệ thống đang quá tải. Credit đã được hoàn lại, vui lòng thử lại sau.',
+  GPU_GATE_TIMEOUT: 'Hệ thống đang quá tải. Credit đã được hoàn lại, vui lòng thử lại sau.',
   FFMPEG_ERROR: 'Không xử lý được tệp đầu vào. Credit đã được hoàn lại, vui lòng chọn file khác.',
   INPUT_FETCH_ERROR: 'Không đọc được ảnh đầu vào. Credit đã được hoàn lại, vui lòng tải lại ảnh.',
   OUTPUT_UPLOAD_ERROR: GENERIC_FAILURE_VI,
@@ -189,13 +189,13 @@ function refineTask(
       issue('reasonCode', 'FREE_WAIT_EXPIRED chỉ dùng cho Task timed_out');
     }
     if (
-      (t.reasonCode === 'RH_TIMEOUT' || t.reasonCode === 'RH_GATE_TIMEOUT') &&
+      (t.reasonCode === 'GPU_TIMEOUT' || t.reasonCode === 'GPU_GATE_TIMEOUT') &&
       t.status !== 'timed_out'
     ) {
       issue('reasonCode', `${t.reasonCode} chỉ dùng cho Task timed_out`);
     }
     if (t.status === 'timed_out' && hasReason && !TIMED_OUT_REASON_CODES.includes(t.reasonCode!)) {
-      issue('reasonCode', 'Task timed_out chỉ được có reasonCode hết hạn (RH_TIMEOUT, RH_GATE_TIMEOUT, PREP_TIMEOUT, FREE_WAIT_EXPIRED)');
+      issue('reasonCode', 'Task timed_out chỉ được có reasonCode hết hạn (GPU_TIMEOUT, GPU_GATE_TIMEOUT, PREP_TIMEOUT, FREE_WAIT_EXPIRED)');
     }
     if (t.status === 'queued' && t.queuePosition == null) {
       issue('queuePosition', 'Task queued bắt buộc có queuePosition');

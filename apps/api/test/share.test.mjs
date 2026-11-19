@@ -78,7 +78,7 @@ describe('Story 2.9: [BE] Chia sẻ kết quả bằng token', () => {
     await pool.query(
       `INSERT INTO tasks (id, user_id, pipeline, status, reason_code, result_key, tier_snapshot, consent, tos_version, input_keys, hold_amount)
        VALUES ($1,$2,'face_swap',$3,$4,$5,'{"tier":"FREE","priority":10,"maxVideoSeconds":5}',true,'tos-v7','{}',100)`,
-      [id, user.id, status, status === 'succeeded' ? null : status === 'queued' ? null : 'RH_ERROR', key],
+      [id, user.id, status, status === 'succeeded' ? null : status === 'queued' ? null : 'GPU_ERROR', key],
     );
     if (key) store.add(key);
     return { id, key };

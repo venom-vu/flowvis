@@ -13,7 +13,7 @@ import { useApiClient } from '~/composables/useApiClient';
 import { resolveAdminErrorMessageVi } from '~/utils/api-client';
 
 export const OPS_STATUS_REFRESH_MS = 30_000;
-/** Số dư RunningHub đọc quá 30 phút là cũ. */
+/** Số dư GPU đọc quá 30 phút là cũ. */
 export const RH_BALANCE_STALE_MS = 30 * 60 * 1000;
 /** Sao lưu hằng đêm: quá 36 giờ là cũ. */
 export const BACKUP_STALE_MS = 36 * 60 * 60 * 1000;

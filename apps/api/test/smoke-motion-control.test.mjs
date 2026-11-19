@@ -491,7 +491,7 @@ describe('Smoke Motion Control FE-BE trên stack Compose (Story 5.9)', () => {
         rh.mode = 'running';
         const t6 = await createMotion(frank, 0, 10);
         const timedOut = await waitFor(frank, t6.id, (t) => t.status === 'timed_out', 'timed_out', 120_000);
-        assert.equal(timedOut.reasonCode, 'RH_TIMEOUT');
+        assert.equal(timedOut.reasonCode, 'GPU_TIMEOUT');
         assert.equal(await balance(frank), frankBal, 'RELEASED');
         assert.ok((await ledgerTypes(frank, t6.id)).includes('RELEASED'));
         const fetchesBefore = rh.fileFetches;

@@ -89,7 +89,7 @@ describe('Story 2.7: [BE] Bộ quét Task treo và hạn chót', () => {
   const ledger = (id, type) => prisma.ledgerEntry.findMany({ where: { taskId: id, type } });
   async function clean() {
     for (const id of taskIds) await queue.remove(id).catch(() => {});
-    await pool.query(`UPDATE tasks SET status='failed', reason_code='RH_ERROR', finished_at=now(), rh_orphan_until=NULL WHERE user_id = ANY($1::uuid[]) AND status IN ('queued','running')`, [users]);
+    await pool.query(`UPDATE tasks SET status='failed', reason_code='GPU_ERROR', finished_at=now(), rh_orphan_until=NULL WHERE user_id = ANY($1::uuid[]) AND status IN ('queued','running')`, [users]);
     await pool.query(`UPDATE tasks SET rh_orphan_until=NULL WHERE user_id = ANY($1::uuid[])`, [users]);
   }
   async function running(user) {
@@ -206,7 +206,7 @@ describe('Story 2.7: [BE] Bộ quét Task treo và hạn chót', () => {
     assert.equal((await ledger(id, 'RELEASED')).length, 1);
   });
 
-  it('Running chờ cổng, job active: không đổi; quá gate_deadline: RH_GATE_TIMEOUT', async () => {
+  it('Running chờ cổng, job active: không đổi; quá gate_deadline: GPU_GATE_TIMEOUT', async () => {
     await clean();
     const id = await running(await newUser());
     await upd(id, `prep_deadline_at = now() - interval '1 second'`);
@@ -220,7 +220,7 @@ describe('Story 2.7: [BE] Bộ quét Task treo và hạn chót', () => {
     } finally { queue.getJob = orig; }
     const r = await row(id);
     assert.equal(r.status, 'timed_out');
-    assert.equal(r.reason_code, 'RH_GATE_TIMEOUT');
+    assert.equal(r.reason_code, 'GPU_GATE_TIMEOUT');
     assert.equal((await ledger(id, 'RELEASED')).length, 1);
   });
 
