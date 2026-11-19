@@ -9,6 +9,8 @@ import {
   type OutfitChangeCreateResponse,
   MotionCreateRequestSchema,
   MotionV2CreateRequestSchema,
+  Veo3CreateRequestSchema,
+  type Veo3CreateResponse,
   MotionBackgroundCreateRequestSchema,
   type MotionBackgroundCreateResponse,
   type MotionV2CreateResponse,
@@ -145,6 +147,24 @@ export class TasksController {
       });
     }
     return this.tasks.createMotionControl(user.sub, parsed.data);
+  }
+
+  @Post('veo3')
+  @CreatesTask()
+  @UseGuards(IntakeOpenGuard)
+  async createVeo3(
+    @CurrentUser() user: JwtUserPayload,
+    @Body() body: unknown,
+  ): Promise<Veo3CreateResponse> {
+    const parsed = Veo3CreateRequestSchema.safeParse(body);
+    if (!parsed.success) {
+      const code = ApiErrorCode.VALIDATION_FAILED;
+      throw new BadRequestException({
+        code,
+        message: parsed.error.issues[0]?.message ?? getApiErrorMessageVi(code),
+      });
+    }
+    return this.tasks.createVeo3(user.sub, parsed.data);
   }
 
   @Post('motion-v2')

@@ -29,7 +29,8 @@ export interface RunningHubNodeInfo {
   readonly fieldValue: string;
 }
 
-export type RunningHubRunMode = 'ai-app' | 'workflow';
+/** 'model' = API model chuẩn (`/openapi/v2/{model}/{endpoint}`, JSON phẳng, ảnh truyền bằng URL). */
+export type RunningHubRunMode = 'ai-app' | 'workflow' | 'model';
 
 /** Loại máy RunningHub: default = Standard, plus, ultra (Lite tự động, không chọn được). */
 export type RunningHubInstanceType = 'default' | 'plus' | 'ultra';
@@ -60,6 +61,10 @@ export interface RunningHubPort {
     mode?: RunningHubRunMode,
     instanceType?: RunningHubInstanceType,
   ): Promise<string>;
+  /** Upload ảnh cho API model chuẩn; trả URL tải về (hiệu lực khoảng một ngày). */
+  uploadMedia(bytes: Buffer, name: string, signal: AbortSignal): Promise<string>;
+  /** Gọi API model chuẩn `POST {path}` với JSON phẳng; trả runninghubTaskId. */
+  submitModel(path: string, payload: Record<string, unknown>, signal: AbortSignal): Promise<string>;
   outputs(runninghubTaskId: string, signal: AbortSignal): Promise<RunningHubOutputs>;
   /** Số dư USD còn lại của tài khoản RunningHub Enterprise-Shared (không âm). Ném lỗi khi không đọc được. */
   getBalance(signal: AbortSignal): Promise<number>;

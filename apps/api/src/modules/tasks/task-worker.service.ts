@@ -15,7 +15,6 @@ import {
   RunningHubNetworkError,
   STORAGE_PORT,
   type ResultIngestor,
-  type RunningHubInstanceType,
   type RunningHubNodeInfo,
   type RunningHubOutputs,
   type RunningHubPort,
@@ -374,7 +373,18 @@ export class TaskWorkerService implements OnModuleInit, OnModuleDestroy {
 
     // (c) upload
     const nodeInfo: RunningHubNodeInfo[] = [];
+    const imageUrls: Record<string, string> = {};
     try {
+      if (config.runMode === "model") {
+        for (const [inputKey, bytes] of Object.entries(inputs)) {
+          imageUrls[inputKey] = await this.rh.uploadMedia(
+            bytes,
+            `${taskId}-${inputKey}`,
+            this.timeoutSignal(signal, RH_UPLOAD_TIMEOUT_MS),
+          );
+          this.logger.log(`Task ${taskId}: đã upload ${inputKey} (${bytes.length} byte)`);
+        }
+      }
       for (const m of config.inputs) {
         const bytes = inputs[m.inputKey];
         const name = await this.rh.uploadFile(
@@ -407,20 +417,33 @@ export class TaskWorkerService implements OnModuleInit, OnModuleDestroy {
     // (d) submit
     const instanceType = this.pipelines.getInstanceType(config);
     if (!(await this.tasks.markSubmitStarted(taskId, instanceType))) return;
-    this.logger.log(
-      `Task ${taskId}: gửi ${this.pipelines.getRunMode(config)} (máy ${instanceType}) ${workflowId} với ${nodeInfo.length} node (${nodeInfo
-        .map((n) => `${n.nodeId}/${n.fieldName}`)
-        .join(", ")})`,
-    );
+    if (config.runMode === "model") {
+      this.logger.log(
+        `Task ${taskId}: gửi model ${workflowId} (${row.pipeline}) với ${Object.keys(imageUrls).length} ảnh (${Object.keys(imageUrls).join(", ") || "không có ảnh"})`,
+      );
+    } else {
+      this.logger.log(
+        `Task ${taskId}: gửi ${this.pipelines.getRunMode(config)} (máy ${instanceType}) ${workflowId} với ${nodeInfo.length} node (${nodeInfo
+          .map((n) => `${n.nodeId}/${n.fieldName}`)
+          .join(", ")})`,
+      );
+    }
+    let call: (s: AbortSignal) => Promise<string>;
+    if (config.runMode === "model") {
+      const req = config.model?.buildRequest(workflowId, (row.params ?? {}) as Record<string, unknown>, imageUrls);
+      if (!req) {
+        this.logger.error(`Task ${taskId}: không dựng được request model (${row.pipeline}) từ tasks.params`);
+        await this.finish(taskId, "failed", "INTERNAL_ERROR");
+        return;
+      }
+      call = (s) => this.rh.submitModel(req.path, req.payload, s);
+    } else {
+      const mode = this.pipelines.getRunMode(config);
+      call = (s) => this.rh.submit(workflowId, nodeInfo, s, mode, instanceType);
+    }
     let rhId: string;
     try {
-      rhId = await this.submitWithRetry(
-        workflowId,
-        nodeInfo,
-        signal,
-        this.pipelines.getRunMode(config),
-        instanceType,
-      );
+      rhId = await this.submitWithRetry(call, signal);
     } catch (err) {
       if (signal.aborted) return;
       if (err instanceof SubmitFailure) {
@@ -457,6 +480,14 @@ export class TaskWorkerService implements OnModuleInit, OnModuleDestroy {
       });
     const keys = (row.inputKeys ?? {}) as Record<string, string>;
     const out: Record<string, Buffer> = {};
+    if (config.runMode === "model") {
+      // Số ảnh phụ thuộc chế độ của pipeline (vd. Veo 3: 0-2): chỉ tải các khóa cấu hình trả về.
+      const wanted = config.model?.inputKeys((row.params ?? {}) as Record<string, unknown>, keys) ?? [];
+      for (const k of wanted) {
+        out[k] = await this.storage.getObject(keys[k], signal);
+      }
+      return out;
+    }
     for (const m of config.inputs) {
       const key = keys[m.inputKey];
       if (!key) throw new Error(`Thiếu input ${m.inputKey}`);
@@ -495,21 +526,12 @@ export class TaskWorkerService implements OnModuleInit, OnModuleDestroy {
   }
 
   private async submitWithRetry(
-    workflowId: string,
-    nodeInfo: RunningHubNodeInfo[],
+    call: (signal: AbortSignal) => Promise<string>,
     signal: AbortSignal,
-    mode?: "ai-app" | "workflow",
-    instanceType?: RunningHubInstanceType,
   ): Promise<string> {
     for (let attempt = 1; attempt <= 2; attempt++) {
       try {
-        return await this.rh.submit(
-          workflowId,
-          nodeInfo,
-          this.timeoutSignal(signal),
-          mode,
-          instanceType,
-        );
+        return await call(this.timeoutSignal(signal));
       } catch (err) {
         if (err instanceof RunningHubNetworkError) {
           this.logger.warn(

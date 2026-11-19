@@ -5,7 +5,7 @@ import net from 'node:net';
 import path from 'node:path';
 import { after, before, describe, it } from 'node:test';
 import { fileURLToPath } from 'node:url';
-import { AdminAuditResponseSchema, AdminStatsResponseSchema, ApiErrorCode } from '@flowvis/contracts';
+import { AdminAuditResponseSchema, AdminStatsResponseSchema, ApiErrorCode, TASK_PIPELINES } from '@flowvis/contracts';
 import { JwtService } from '@nestjs/jwt';
 import pg from 'pg';
 import { Redis } from 'ioredis';
@@ -72,14 +72,14 @@ describe('Story 6.6: [BE] Thống kê vận hành và nhật ký Admin', () => {
   const call = (who, url) =>
     fetch(`${baseUrl}${url}`, { headers: who ? { Authorization: `Bearer ${who.token}` } : {} });
   const snap = JSON.stringify({ tier: 'FREE', priority: 10, maxVideoSeconds: 5, priceVnd: 0, credits: 500 });
-  async function mkTask(uid, pipeline, status, { reason = null, cost = null, inst = null, secs = null, proc = null, created = at } = {}) {
+  async function mkTask(uid, pipeline, status, { reason = null, cost = null, inst = null, secs = null, proc = null, created = at, hold = 100 } = {}) {
     const params = secs ? { seconds: secs } : {};
     await pool.query(
       `INSERT INTO tasks (id,user_id,pipeline,status,result_key,reason_code,tier_snapshot,consent,tos_version,input_keys,params,hold_amount,cost_usd,instance_type,created_at,running_at,finished_at)
-       VALUES (gen_random_uuid(),$1,$2,$3,CASE WHEN $3='succeeded' THEN 'out/x' END,$4,$5::jsonb,true,'tos-v7','[]'::jsonb,$6::jsonb,100,$7,$10,$8::timestamptz,
+       VALUES (gen_random_uuid(),$1,$2,$3,CASE WHEN $3='succeeded' THEN 'out/x' END,$4,$5::jsonb,true,'tos-v7','[]'::jsonb,$6::jsonb,$11,$7,$10,$8::timestamptz,
          CASE WHEN $9::int IS NULL THEN NULL ELSE $8::timestamptz END,
          CASE WHEN $9::int IS NULL THEN NULL ELSE $8::timestamptz + ($9::int * interval '1 second') END)`,
-      [uid, pipeline, status, reason, snap, JSON.stringify(params), cost, created, proc, inst],
+      [uid, pipeline, status, reason, snap, JSON.stringify(params), cost, created, proc, inst, hold],
     );
   }
   async function mkTopup(uid, code, updated) {
@@ -148,7 +148,7 @@ describe('Story 6.6: [BE] Thống kê vận hành và nhật ký Admin', () => {
   it('khoảng rỗng trả null/0', async () => {
     const r = await call(admin, '/admin/stats?from=2031-01-01T00:00:00.000Z&to=2031-01-02T00:00:00.000Z');
     const j = AdminStatsResponseSchema.parse(await r.json());
-    assert.equal(j.pipelines.length, 6);
+    assert.equal(j.pipelines.length, TASK_PIPELINES.length);
     for (const p of j.pipelines) {
       assert.deepEqual(Object.values(p.taskCounts), [0, 0, 0, 0, 0, 0]);
       assert.equal(p.successRate, null);
@@ -162,6 +162,22 @@ describe('Story 6.6: [BE] Thống kê vận hành và nhật ký Admin', () => {
     assert.deepEqual(j.margins, []);
     assert.equal(j.successMetrics.conversionRate, null);
     assert.equal(j.successMetrics.approvedTopups, 0);
+  });
+
+  it('biên gộp Veo 3 tính theo credit thực thu (500/700/950), không cố định 720p', async () => {
+    // User tạo trước khoảng thống kê để không lọt vào cohort chuyển đổi của test khác; Task vẫn nằm trong khoảng.
+    const u = await mkUser('user', '2029-12-01T00:00:00.000Z');
+    await mkTask(u.id, 'veo3', 'succeeded', { cost: 0.13, inst: 'default', hold: 500 });
+    await mkTask(u.id, 'veo3', 'succeeded', { cost: 0.17, inst: 'default', hold: 700 });
+    await mkTask(u.id, 'veo3', 'succeeded', { cost: 0.23, inst: 'default', hold: 950 });
+    await mkTask(u.id, 'veo3', 'succeeded', { hold: 950 }); // chưa có chi phí: không được tính vào doanh thu trung bình
+    const real = await stats();
+    const m = real.margins.find((x) => x.pipeline === 'veo3' && x.pack === 'starter');
+    assert.ok(m, 'có dòng biên cho veo3');
+    const avgCredits = (500 + 700 + 950) / 3;
+    assert.ok(Math.abs(m.revenueVnd - (49000 / 5000) * avgCredits) < 1e-6, `revenueVnd=${m.revenueVnd}`);
+    // Dọn Task để không làm lệch tổng chi phí GPU của các test dùng chung khoảng thời gian.
+    await pool.query('DELETE FROM tasks WHERE user_id = $1::uuid', [u.id]);
   });
 
   it('số liệu, biên gộp, scope, SM-1', async () => {

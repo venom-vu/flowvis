@@ -502,6 +502,8 @@ describe('@flowvis/web — Story 5.8 Motion Control', () => {
         '~/composables/useAuthDialog': 'export const useAuthDialog = () => ({ open: () => {} });',
         '~/composables/usePricingConfig': 'export const usePricingConfig = () => ({ refreshAll: async () => {} });',
         '~/composables/useMotionControl': 'export const useMotionControl = () => globalThis.__fwd.motion;',
+        '~/composables/useVeo3': "import { ref } from 'vue'; export const useVeo3 = () => ({ mode: ref('text_to_video'), prompt: ref(''), aspectRatio: ref('16:9'), resolution: ref('720p'), imageKey: ref(null), firstFrameKey: ref(null), lastFrameKey: ref(null), submitErrorVi: ref(null), isSubmitting: ref(false), insufficientNoteVi: ref(null), intakePaused: ref(false), price: ref(500), hasEnoughBalance: ref(true), canSubmit: ref(false), clearState: () => {}, submit: async () => null });",
+        '~/components/Veo3Form.vue': 'export default {};',
         '~/utils/api-client': `export { ApiErrorCode, INTENSITY_DEFAULT, INTENSITY_LABEL_ZONES, INTENSITY_MAX, INTENSITY_MIN, IntensitySchema, getIntensityLabelVi, resolveApiErrorMessageVi } from ${JSON.stringify(apiClientUrl)};`,
         '~/utils/catalog': `export { calculateFeatureEstimatedCredits, formatNumberVi } from ${JSON.stringify(catalogUrl)};`,
       });

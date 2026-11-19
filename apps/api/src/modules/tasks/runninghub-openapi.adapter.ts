@@ -207,7 +207,31 @@ export class RunningHubOpenApiAdapter implements RunningHubPort {
       mode === 'workflow'
         ? { addMetadata: false, nodeInfoList, instanceType, usePersonalQueue: 'false' }
         : { nodeInfoList, instanceType, usePersonalQueue: 'false' };
-    const env = await this.post(path, JSON.stringify(payload), signal);
+    return this.parseSubmit(await this.post(path, JSON.stringify(payload), signal));
+  }
+
+  /** `POST /openapi/v2/media/upload/binary` (multipart `file`): trả `data.download_url` cho các tham số ảnh của API model chuẩn. */
+  async uploadMedia(bytes: Buffer, name: string, signal: AbortSignal): Promise<string> {
+    const form = new FormData();
+    form.set('file', new Blob([new Uint8Array(bytes)]), withImageExtension(name, bytes));
+    const env = await this.post('/openapi/v2/media/upload/binary', form, signal);
+    const url = (env.data as { download_url?: unknown } | null | undefined)?.download_url;
+    if (isTransientCode(env.code)) {
+      throw new RunningHubNetworkError(`RunningHub bận (code ${String(env.code)})`, false);
+    }
+    if (env.code !== CODE_OK || typeof url !== 'string' || !url) {
+      throw new RunningHubError(`RunningHub từ chối upload (code ${String(env.code)}${typeof env.msg === 'string' && env.msg ? `: ${env.msg}` : ''})`);
+    }
+    return url;
+  }
+
+  /** API model chuẩn (vd. `/openapi/v2/rhart-video-v3.1-pro/text-to-video`): JSON phẳng, không có nodeInfoList. */
+  async submitModel(path: string, payload: Record<string, unknown>, signal: AbortSignal): Promise<string> {
+    const p = path.startsWith('/') ? path : `/${path}`;
+    return this.parseSubmit(await this.post(p, JSON.stringify(payload), signal));
+  }
+
+  private parseSubmit(env: Envelope): string {
     const err = v2ErrorCode(env);
     // Bận/giới hạn tần suất: task chưa được tạo nên thử lại an toàn (requestSent=false).
     if (err && isTransientCode(err)) {

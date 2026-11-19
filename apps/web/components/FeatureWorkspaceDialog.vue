@@ -6,6 +6,8 @@ import TaskResultViewer from '~/components/TaskResultViewer.vue';
 import { useApiClient } from '~/composables/useApiClient';
 import { useAuthDialog } from '~/composables/useAuthDialog';
 import { useMotionControl } from '~/composables/useMotionControl';
+import { useVeo3 } from '~/composables/useVeo3';
+import Veo3Form from '~/components/Veo3Form.vue';
 import { usePricingConfig } from '~/composables/usePricingConfig';
 import {
   ApiErrorCode,
@@ -66,6 +68,17 @@ const motionSeconds = motion.seconds;
 const motionInsufficientNoteVi = motion.insufficientNoteVi;
 const motionSubmitErrorVi = motion.submitErrorVi;
 const motionIsSubmitting = motion.isSubmitting;
+const veo = useVeo3();
+const veoMode = veo.mode;
+const veoPrompt = veo.prompt;
+const veoAspectRatio = veo.aspectRatio;
+const veoResolution = veo.resolution;
+const veoImageKey = veo.imageKey;
+const veoFirstFrameKey = veo.firstFrameKey;
+const veoLastFrameKey = veo.lastFrameKey;
+const veoSubmitErrorVi = veo.submitErrorVi;
+const veoIsSubmitting = veo.isSubmitting;
+const veoInsufficientNoteVi = veo.insufficientNoteVi;
 const motionKey = ref<number>(0);
 
 // Dọn sạch trạng thái Motion và buộc VideoTrimmer/ImageUploader remount.
@@ -112,6 +125,7 @@ watch(
     activeTask.value = null;
     submitErrorVi.value = null;
     resetMotionState();
+    veo.clearState();
     if (nextFeature?.tierCapSeconds) {
       selectedSeconds.value = Math.min(MOTION_MIN_TRIM_SECONDS, nextFeature.tierCapSeconds);
     } else {
@@ -143,6 +157,7 @@ watch(
       activeTask.value = null;
       submitErrorVi.value = null;
       resetMotionState();
+      veo.clearState();
       }
   },
   { immediate: true },
@@ -158,7 +173,7 @@ watch(
 );
 
 const anySubmitting = computed<boolean>(
-  () => isSubmitting.value || motionIsSubmitting.value,
+  () => isSubmitting.value || motionIsSubmitting.value || veoIsSubmitting.value,
 );
 
 // Task đang xếp hàng/chạy: khóa nút tạo để tránh tạo trùng.
@@ -175,6 +190,7 @@ const isMotion = computed<boolean>(
     props.feature?.id === 'motion-control-v2' ||
     props.feature?.id === 'motion-background',
 );
+const isVeo3 = computed<boolean>(() => props.feature?.id === 'veo-3');
 const isMotionV2 = computed<boolean>(() => props.feature?.id === 'motion-control-v2');
 const isMotionBackground = computed<boolean>(() => props.feature?.id === 'motion-background');
 watch(
@@ -192,6 +208,7 @@ const estimatedCredits = computed<number>(() => {
   if (isMotion.value) {
     return motion.price.value ?? 0;
   }
+  if (isVeo3.value) return veo.price.value;
   return calculateFeatureEstimatedCredits(
     props.feature,
     selectedSeconds.value,
@@ -199,6 +216,7 @@ const estimatedCredits = computed<number>(() => {
 });
 
 const hasEnoughBalance = computed<boolean>(() => {
+  if (isVeo3.value) return isAuthenticated.value && veo.hasEnoughBalance.value;
   if (isMotion.value) {
     return (
       isAuthenticated.value &&
@@ -215,6 +233,9 @@ const hasEnoughBalance = computed<boolean>(() => {
 const canSubmit = computed<boolean>(() => {
   if (isTaskWorking.value) {
     return false;
+  }
+  if (isVeo3.value) {
+    return isAuthenticated.value && veo.canSubmit.value;
   }
   if (isMotion.value) {
     return (
@@ -258,6 +279,20 @@ async function handleSubmit(): Promise<void> {
     return;
   }
 
+
+  if (isVeo3.value) {
+    const credits = veo.price.value;
+    const task = await veo.submit();
+    if (task) {
+      activeTask.value = task;
+      emit('submit', {
+        featureId: props.feature.id,
+        seconds: 8,
+        estimatedCredits: credits,
+      });
+    }
+    return;
+  }
 
   if (isMotion.value) {
     // Logic tạo Task dùng chung với trang /motion-control (composable useMotionControl).
@@ -379,6 +414,7 @@ function handleRetry(): void {
   activeTask.value = null;
   submitErrorVi.value = null;
   if (isMotion.value) resetMotionState();
+  if (isVeo3.value) veo.clearState();
 }
 
 function handleKeydown(event: KeyboardEvent): void {
@@ -444,8 +480,8 @@ onBeforeUnmount(() => {
 
         <div class="flex items-center gap-2">
           <NuxtLink
-            v-if="feature.id === 'face-swap' || feature.id === 'outfit-change' || feature.id === 'person-replace' || feature.id === 'body-retouch' || isMotion"
-            :to="feature.id === 'body-retouch' ? '/body-retouch' : feature.id === 'motion-control' ? '/motion-control' : feature.id === 'motion-control-v2' ? '/motion-control-v2' : feature.id === 'motion-background' ? '/motion-background' : feature.id === 'outfit-change' ? '/outfit-change' : feature.id === 'person-replace' ? '/person-replace' : '/face-swap'"
+            v-if="feature.id === 'face-swap' || feature.id === 'veo-3' || feature.id === 'outfit-change' || feature.id === 'person-replace' || feature.id === 'body-retouch' || isMotion"
+            :to="feature.id === 'veo-3' ? '/veo-3' : feature.id === 'body-retouch' ? '/body-retouch' : feature.id === 'motion-control' ? '/motion-control' : feature.id === 'motion-control-v2' ? '/motion-control-v2' : feature.id === 'motion-background' ? '/motion-background' : feature.id === 'outfit-change' ? '/outfit-change' : feature.id === 'person-replace' ? '/person-replace' : '/face-swap'"
             data-testid="workspace-open-standalone-link"
             class="touch-target inline-flex min-h-[48px] items-center gap-1.5 rounded-xl border border-cyber-border bg-cyber-bg px-3 py-2 text-xs font-semibold text-cyber-muted transition hover:border-cyber-cyan hover:text-cyber-cyan"
             @click="emit('close')"
@@ -470,9 +506,23 @@ onBeforeUnmount(() => {
       <div class="grid grid-cols-1 gap-5 p-4 sm:p-6 lg:grid-cols-12">
         <!-- Cột trái: Tải tệp & Điều chỉnh thông số (Trimmer bước 1 giây cho video) -->
         <div class="space-y-3.5 lg:col-span-6">
+          <!-- Veo 3: ô nhập đổi theo chế độ (text / image / frames) -->
+          <Veo3Form
+            v-if="isVeo3"
+            v-model:mode="veoMode"
+            v-model:prompt="veoPrompt"
+            v-model:aspect-ratio="veoAspectRatio"
+            v-model:resolution="veoResolution"
+            v-model:image-key="veoImageKey"
+            v-model:first-frame-key="veoFirstFrameKey"
+            v-model:last-frame-key="veoLastFrameKey"
+            id-prefix="workspace-veo3"
+            :maintenance-note="veo.intakePaused.value"
+          />
+
           <!-- Trường hợp Face Swap: Yêu cầu 2 ảnh (mặt nguồn + đích) theo Story 2.11 -->
           <div
-            v-if="feature.id === 'face-swap'"
+            v-else-if="feature.id === 'face-swap'"
             class="space-y-3"
             data-testid="workspace-face-swap-inputs"
           >
@@ -712,14 +762,22 @@ onBeforeUnmount(() => {
 
           <!-- Banner lỗi nếu có -->
           <div
-            v-if="submitErrorVi || motionSubmitErrorVi"
+            v-if="submitErrorVi || motionSubmitErrorVi || veoSubmitErrorVi"
             data-testid="workspace-submit-error-banner"
             role="alert"
             aria-live="assertive"
             class="rounded-xl border border-cyber-danger/40 bg-cyber-danger/10 p-3 text-xs text-cyber-danger"
           >
-            {{ submitErrorVi || motionSubmitErrorVi }}
+            {{ submitErrorVi || motionSubmitErrorVi || veoSubmitErrorVi }}
           </div>
+
+          <p
+            v-if="isVeo3 && veoInsufficientNoteVi"
+            data-testid="workspace-insufficient-note"
+            class="text-xs font-semibold text-cyber-warning"
+          >
+            {{ veoInsufficientNoteVi }}
+          </p>
 
           <!-- Bộ cắt video bước 1 giây (VideoTrimmer, chỉ với Motion Control) -->
           <div

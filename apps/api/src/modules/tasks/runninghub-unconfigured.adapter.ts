@@ -15,6 +15,12 @@ export class UnconfiguredRunningHubAdapter implements RunningHubPort {
   submit(): Promise<string> {
     return Promise.reject(new RunningHubError('RunningHub chưa được cấu hình'));
   }
+  uploadMedia(): Promise<string> {
+    return Promise.reject(new RunningHubError('RunningHub chưa được cấu hình'));
+  }
+  submitModel(): Promise<string> {
+    return Promise.reject(new RunningHubError('RunningHub chưa được cấu hình'));
+  }
   outputs(): Promise<never> {
     return this.fail();
   }

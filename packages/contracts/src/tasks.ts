@@ -37,7 +37,7 @@ export function motionCapSeconds(pipeline: MotionPipeline, tierCapSeconds: numbe
   return Math.min(MOTION_MAX_SECONDS[pipeline], tierCapSeconds);
 }
 
-export const TASK_PIPELINES = ['face_swap', 'body_retouch', 'motion_control', 'outfit_change', 'person_replace', 'motion_control_v2', 'motion_background'] as const;
+export const TASK_PIPELINES = ['face_swap', 'body_retouch', 'motion_control', 'outfit_change', 'person_replace', 'motion_control_v2', 'motion_background', 'veo3'] as const;
 export type TaskPipeline = (typeof TASK_PIPELINES)[number];
 export const TaskPipelineSchema = z.enum(TASK_PIPELINES);
 
@@ -357,6 +357,74 @@ export const MotionCreateResponseSchema = TaskBaseSchema.extend({
 }).superRefine(refineMotionTask);
 export type MotionCreateResponse = z.infer<typeof MotionCreateResponseSchema>;
 
+/** Veo 3: chế độ tạo video; mỗi chế độ nhận số ảnh đầu vào khác nhau. */
+export const VEO3_MODES = ['text_to_video', 'image_to_video', 'frames_to_video'] as const;
+export type Veo3Mode = (typeof VEO3_MODES)[number];
+export const Veo3ModeSchema = z.enum(VEO3_MODES);
+export const VEO3_ASPECT_RATIOS = ['16:9', '9:16'] as const;
+export type Veo3AspectRatio = (typeof VEO3_ASPECT_RATIOS)[number];
+export const Veo3AspectRatioSchema = z.enum(VEO3_ASPECT_RATIOS);
+export const VEO3_RESOLUTIONS = ['720p', '1080p', '4k'] as const;
+export type Veo3Resolution = (typeof VEO3_RESOLUTIONS)[number];
+export const Veo3ResolutionSchema = z.enum(VEO3_RESOLUTIONS);
+/** Veo 3 luôn tạo video 8 giây. */
+export const VEO3_DURATION_SECONDS = 8;
+export const VEO3_PROMPT_MIN_LENGTH = 5;
+export const VEO3_PROMPT_MAX_LENGTH = 8000;
+/** Giá mỗi lần gọi (credit) theo độ phân giải; nơi duy nhất giữ các hằng này phía mã nguồn. */
+export const VEO3_PRICING = { '720p': 500, '1080p': 700, '4k': 950 } as const;
+export function veo3Price(resolution: Veo3Resolution): number {
+  return VEO3_PRICING[resolution];
+}
+
+const Veo3PromptSchema = z
+  .string({ required_error: 'Vui lòng nhập mô tả video.' })
+  .trim()
+  .min(VEO3_PROMPT_MIN_LENGTH, `Mô tả video tối thiểu ${VEO3_PROMPT_MIN_LENGTH} ký tự.`)
+  .max(VEO3_PROMPT_MAX_LENGTH, `Mô tả video tối đa ${VEO3_PROMPT_MAX_LENGTH} ký tự.`);
+
+/** POST /tasks/veo3 — union theo `mode`; giá do server quyết định theo `resolution`. */
+export const Veo3CreateRequestSchema = z.discriminatedUnion('mode', [
+  z
+    .object({
+      mode: z.literal('text_to_video'),
+      prompt: Veo3PromptSchema,
+      aspectRatio: Veo3AspectRatioSchema,
+      resolution: Veo3ResolutionSchema,
+    })
+    .strict(),
+  z
+    .object({
+      mode: z.literal('image_to_video'),
+      prompt: Veo3PromptSchema,
+      aspectRatio: Veo3AspectRatioSchema,
+      resolution: Veo3ResolutionSchema,
+      imageKey: ConfirmedUploadKeySchema,
+    })
+    .strict(),
+  z
+    .object({
+      mode: z.literal('frames_to_video'),
+      prompt: Veo3PromptSchema,
+      aspectRatio: Veo3AspectRatioSchema,
+      resolution: Veo3ResolutionSchema,
+      firstFrameKey: ConfirmedUploadKeySchema,
+      lastFrameKey: ConfirmedUploadKeySchema.optional(),
+    })
+    .strict(),
+]);
+export type Veo3CreateRequest = z.input<typeof Veo3CreateRequestSchema>;
+export const Veo3CreateResponseSchema = TaskBaseSchema.extend({
+  pipeline: z.literal('veo3'),
+  price: z.number().int().positive(),
+}).superRefine((t, ctx) => {
+  refineTask(t, ctx);
+  if (t.price !== t.creditCost) {
+    ctx.addIssue({ code: z.ZodIssueCode.custom, path: ['price'], message: 'price phải bằng creditCost' });
+  }
+});
+export type Veo3CreateResponse = z.infer<typeof Veo3CreateResponseSchema>;
+
 /** POST /tasks/motion-v2 — Motion Control v2: chỉ ảnh nhân vật + đoạn video đã cắt (không khung hình/prompt); giá riêng (`MOTION_PRICING`). */
 export const MotionV2CreateRequestSchema = z
   .object({
@@ -531,6 +599,8 @@ export const TaskResultParamsSchema = z.object({
   trimEnd: z.number().int().optional(),
   aspectRatio: z.string().optional(),
   prompt: z.string().optional(),
+  resolution: z.string().optional(),
+  mode: z.string().optional(),
 });
 export type TaskResultParams = z.infer<typeof TaskResultParamsSchema>;
 

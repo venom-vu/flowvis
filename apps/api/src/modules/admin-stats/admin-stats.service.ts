@@ -34,6 +34,7 @@ const EMPTY_ROW = (pipeline: string): TaskPipelineStatsRow => ({
   all_cost: null,
   ok_cost_n: 0,
   ok_seconds_costed: null,
+  ok_credits_costed: null,
   by_instance: [],
 });
 
@@ -129,6 +130,10 @@ export class AdminStatsService {
           q.motionPricePerSecond !== undefined
             ? q.motionPricePerSecond * avgSeconds
             : baseCredits + creditsPerSecond * avgSeconds;
+      } else if (pipeline === "veo3") {
+        // Giá theo độ phân giải: doanh thu là credit thực thu (hold_amount) trung bình, không phải một mức cố định.
+        unitUsd = okCost / r.ok_cost_n;
+        unitCredits = (r.ok_credits_costed ?? 0) / r.ok_cost_n;
       } else {
         unitUsd = okCost / r.ok_cost_n;
         unitCredits =

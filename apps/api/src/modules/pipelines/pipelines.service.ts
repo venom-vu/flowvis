@@ -24,7 +24,7 @@ export class PipelinesService implements OnModuleInit {
 
   getWorkflowId(config: PipelineConfig): string | null {
     const v = process.env[config.workflowEnvVar]?.trim();
-    return v ? v : null;
+    return v ? v : (config.defaultWorkflowId ?? null);
   }
 
   /** Loại máy RunningHub của pipeline (mặc định `default`); giá trị lạ thì ném lỗi (không đoán). */

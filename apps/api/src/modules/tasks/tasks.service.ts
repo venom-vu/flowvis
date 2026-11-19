@@ -42,6 +42,10 @@ import {
   type TaskResultInput,
   type TaskResultParams,
   vnDateRange,
+  VEO3_DURATION_SECONDS,
+  veo3Price,
+  type Veo3CreateRequest,
+  type Veo3CreateResponse,
 } from '@flowvis/contracts';
 import type { Queue } from 'bullmq';
 import { PrismaService, type PrismaTransactionClient } from '../../infra/prisma.service.js';
@@ -86,6 +90,8 @@ export interface TaskPipelineStatsRow {
   ok_cost_n: number;
   /** Số giây ok_seconds chỉ tính Task succeeded có cost_usd (để chia per-giây). */
   ok_seconds_costed: number | null;
+  /** Tổng credit đã thu (hold_amount) của Task succeeded có cost_usd; dùng cho pipeline giá theo độ phân giải. */
+  ok_credits_costed: number | null;
   by_instance: Array<{ instance_type: string; tasks: number; cost_usd: number }>;
 }
 
@@ -103,6 +109,7 @@ const INPUT_DISPLAY_ORDER: Readonly<Record<string, readonly string[]>> = {
   motion_control: ['characterKey', 'videoKey'],
   motion_control_v2: ['characterKey', 'videoKey'],
   motion_background: ['characterKey', 'videoKey'],
+  veo3: ['imageKey', 'firstFrameKey', 'lastFrameKey'],
 };
 
 /** Chỉ lộ các tham số người dùng chọn; không lộ giá, kích thước nội bộ. */
@@ -114,6 +121,8 @@ function pickDisplayParams(raw: unknown): TaskResultParams {
   }
   if (typeof p.aspectRatio === 'string') out.aspectRatio = p.aspectRatio;
   if (typeof p.prompt === 'string' && p.prompt.length > 0) out.prompt = p.prompt;
+  if (typeof p.resolution === 'string') out.resolution = p.resolution;
+  if (typeof p.mode === 'string') out.mode = p.mode;
   return out;
 }
 
@@ -270,7 +279,8 @@ export class TasksService {
         SUM(ok_seconds)::float8 AS ok_seconds,
         SUM(all_cost)::float8 AS all_cost,
         COUNT(ok_cost)::int AS ok_cost_n,
-        SUM(ok_seconds_costed)::float8 AS ok_seconds_costed
+        SUM(ok_seconds_costed)::float8 AS ok_seconds_costed,
+        SUM(ok_credits_costed)::float8 AS ok_credits_costed
       FROM (
         SELECT pipeline,
           (status = 'succeeded')::int AS ok,
@@ -283,6 +293,7 @@ export class TasksService {
             THEN (params->>'seconds')::float8 ELSE 0 END AS ok_seconds,
           CASE WHEN status = 'succeeded' AND cost_usd IS NOT NULL AND jsonb_typeof(params->'seconds') = 'number'
             THEN (params->>'seconds')::float8 ELSE 0 END AS ok_seconds_costed,
+          CASE WHEN status = 'succeeded' AND cost_usd IS NOT NULL THEN hold_amount ELSE 0 END AS ok_credits_costed,
           COALESCE(cost_usd, 0) AS all_cost
         FROM tasks
         WHERE created_at >= ${from}::timestamptz AND created_at <= ${to}::timestamptz
@@ -743,6 +754,37 @@ export class TasksService {
     return task as MotionBackgroundCreateResponse;
   }
 
+  /** Veo 3: giá theo độ phân giải; số ảnh đầu vào theo chế độ (0-2); luôn 8 giây. */
+  async createVeo3(userId: string, req: Veo3CreateRequest): Promise<Veo3CreateResponse> {
+    // `req` đã qua Veo3CreateRequestSchema ở controller; không parse lại.
+    const parsed = req;
+    const inputKeys: Record<string, string> = {};
+    if (parsed.mode === 'image_to_video') inputKeys.imageKey = parsed.imageKey;
+    if (parsed.mode === 'frames_to_video') {
+      inputKeys.firstFrameKey = parsed.firstFrameKey;
+      if (parsed.lastFrameKey) inputKeys.lastFrameKey = parsed.lastFrameKey;
+    }
+    // Khung đầu và khung cuối được phép trùng nhau (video loop); kiểm tra sở hữu tự khử khóa trùng.
+    const keys = Object.values(inputKeys);
+    const price = veo3Price(parsed.resolution);
+    const task = await this.createPipelineTask(userId, {
+      pipeline: 'veo3',
+      amount: price,
+      inputKeys,
+      params: {
+        mode: parsed.mode,
+        prompt: parsed.prompt,
+        aspectRatio: parsed.aspectRatio,
+        resolution: parsed.resolution,
+        seconds: VEO3_DURATION_SECONDS,
+        price,
+      },
+      // Text-to-video không có ảnh: bỏ qua kiểm tra sở hữu (danh sách rỗng).
+      keysVerified: keys.length === 0,
+    });
+    return { ...task, pipeline: 'veo3', price } as Veo3CreateResponse;
+  }
+
   private async createMotionTask(
     userId: string,
     pipeline: 'motion_control' | 'motion_control_v2' | 'motion_background',
@@ -792,7 +834,7 @@ export class TasksService {
   private async createPipelineTask(
     userId: string,
     spec: {
-      pipeline: 'face_swap' | 'outfit_change' | 'person_replace' | 'body_retouch' | 'motion_control' | 'motion_control_v2' | 'motion_background';
+      pipeline: 'face_swap' | 'outfit_change' | 'person_replace' | 'body_retouch' | 'motion_control' | 'motion_control_v2' | 'motion_background' | 'veo3';
       amount: number;
       inputKeys: Record<string, string>;
       params: Record<string, unknown>;

@@ -72,7 +72,8 @@ const isVideoPipeline = computed<boolean>(
   () =>
     currentTask.value?.pipeline === 'motion_control' ||
     currentTask.value?.pipeline === 'motion_control_v2' ||
-    currentTask.value?.pipeline === 'motion_background',
+    currentTask.value?.pipeline === 'motion_background' ||
+    currentTask.value?.pipeline === 'veo3',
 );
 
 const INPUT_LABELS_VI: Readonly<Record<string, string>> = {
@@ -81,6 +82,8 @@ const INPUT_LABELS_VI: Readonly<Record<string, string>> = {
   imageKey: 'Ảnh đầu vào',
   characterKey: 'Ảnh nhân vật',
   videoKey: 'Video mẫu',
+  firstFrameKey: 'Khung hình đầu',
+  lastFrameKey: 'Khung hình cuối',
 };
 
 function inputLabelVi(role: string): string {
@@ -100,6 +103,7 @@ const paramRows = computed<{ label: string; value: string }[]>(() => {
   }
   if (p.seconds != null) rows.push({ label: 'Thời lượng', value: `${p.seconds} giây` });
   if (p.aspectRatio) rows.push({ label: 'Khung hình', value: p.aspectRatio });
+  if (p.resolution) rows.push({ label: 'Độ phân giải', value: p.resolution });
   return rows;
 });
 
@@ -140,6 +144,7 @@ function getPipelineRoute(pipeline?: string): string {
   if (pipeline === 'motion_control') return '/motion-control';
   if (pipeline === 'motion_control_v2') return '/motion-control-v2';
   if (pipeline === 'motion_background') return '/motion-background';
+  if (pipeline === 'veo3') return '/veo-3';
   return '/face-swap';
 }
 

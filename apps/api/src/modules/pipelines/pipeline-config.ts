@@ -1,5 +1,6 @@
 import type { ReasonCode } from '@flowvis/contracts';
 import type { RunningHubRunMode } from '../../ports/index.js';
+import { VEO3_DEFAULT_MODEL, buildVeo3Request, veo3InputKeys } from './veo3.js';
 import { videoTrim, type PrepareContext } from '../tasks/video-trim.service.js';
 
 export interface PipelineInputMapping {
@@ -18,6 +19,17 @@ export interface PipelineParamMapping {
   readonly scale?: number;
   /** Giá trị dùng khi tasks.params thiếu khóa (Task tạo trước khi có tham số này). */
   readonly fallback?: string;
+}
+
+export interface ModelRequestBuilder {
+  /** Khóa input (tasks.input_keys) cần tải từ R2 và upload lên RunningHub. */
+  readonly inputKeys: (params: Record<string, unknown>, inputKeys: Record<string, string>) => string[];
+  /** `imageUrls` ánh xạ khóa input -> URL RunningHub; trả null khi tasks.params không hợp lệ. */
+  readonly buildRequest: (
+    model: string,
+    params: Record<string, unknown>,
+    imageUrls: Record<string, string>,
+  ) => { path: string; payload: Record<string, unknown> } | null;
 }
 
 export interface PipelineConfig {
@@ -39,6 +51,10 @@ export interface PipelineConfig {
   readonly referenceInputKey?: string;
   /** Bước chuẩn bị tùy chọn (vd. cắt video); tự lấy input, trả bytes theo inputKey. Chạy trước cổng RunningHub, trong hạn prep_deadline_at. */
   readonly prepare?: (ctx: PrepareContext) => Promise<Record<string, Buffer>>;
+  /** Chỉ dùng với `runMode: 'model'`: chọn ảnh cần tải và dựng request JSON phẳng của API model. */
+  readonly model?: ModelRequestBuilder;
+  /** ID dùng khi biến môi trường workflow trống (vd. tên model của API model chuẩn). */
+  readonly defaultWorkflowId?: string;
   /** Hạn xử lý RunningHub (ms) tính từ lúc qua cổng; mặc định 180000. */
   readonly deadlineMs?: number;
 }
@@ -147,6 +163,17 @@ export const PIPELINE_CONFIGS: Readonly<Record<string, PipelineConfig>> = {
     ],
     deadlineMs: 360_000,
     prepare: (ctx) => videoTrim.prepare(ctx),
+  },
+  veo3: {
+    pipeline: 'veo3',
+    workflowEnvVar: 'RUNNINGHUB_VEO3_MODEL',
+    instanceEnvVar: 'RUNNINGHUB_INSTANCE_VEO3',
+    // API model chuẩn: JSON phẳng, ảnh truyền bằng URL (xem veo3.ts); danh sách input phụ thuộc chế độ nên để trống.
+    runMode: 'model',
+    inputs: [],
+    defaultWorkflowId: VEO3_DEFAULT_MODEL,
+    model: { inputKeys: veo3InputKeys, buildRequest: buildVeo3Request },
+    deadlineMs: 600_000,
   },
   motion_background: {
     pipeline: 'motion_background',

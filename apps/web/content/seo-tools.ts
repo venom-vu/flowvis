@@ -105,6 +105,20 @@ export const TOOL_SEO_CONTENT = {
       'Chỉ cắt đúng đoạn cần dùng để tiết kiệm credit.',
     ],
   },
+  'veo-3': {
+    heading: 'Veo 3: tạo video AI từ văn bản, ảnh hoặc khung hình',
+    intro:
+      'Veo 3 tạo video 8 giây có âm thanh. Bạn có thể chỉ mô tả bằng văn bản, thêm một ảnh để làm động, hoặc đưa khung hình đầu và cuối để AI nội suy chuyển động ở giữa.',
+    steps: [
+      'Chọn chế độ Text to Video, Image to Video hoặc Frames Video.',
+      'Nhập mô tả, tải ảnh nếu chế độ yêu cầu, chọn tỉ lệ khung và độ phân giải.',
+      'Bấm tạo, theo dõi tiến trình rồi tải video kết quả.',
+    ],
+    tips: [
+      'Mô tả rõ chủ thể, hành động, chuyển động camera và âm thanh mong muốn.',
+      'Ở chế độ Frames, chọn hai khung hình cùng bố cục để chuyển động mượt.',
+    ],
+  },
 } as const satisfies Record<string, ToolSeoContent>;
 
 export type ToolSeoId = keyof typeof TOOL_SEO_CONTENT;

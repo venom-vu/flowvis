@@ -64,6 +64,24 @@ export class RunningHubHttpAdapter implements RunningHubPort {
     return body.taskId;
   }
 
+  async uploadMedia(bytes: Buffer, name: string, signal: AbortSignal): Promise<string> {
+    return this.uploadFile(bytes, name, signal);
+  }
+
+  async submitModel(path: string, payload: Record<string, unknown>, signal: AbortSignal): Promise<string> {
+    const body = await this.call(
+      '/submit',
+      {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ workflowId: path, nodeInfoList: [], mode: 'model', payload }),
+      },
+      signal,
+    );
+    if (typeof body.taskId !== 'string') throw new RunningHubError('Phản hồi submit không hợp lệ');
+    return body.taskId;
+  }
+
   async outputs(runninghubTaskId: string, signal: AbortSignal): Promise<RunningHubOutputs> {
     const body = await this.call(`/outputs/${encodeURIComponent(runninghubTaskId)}`, { method: 'GET' }, signal);
     const status = body.status;

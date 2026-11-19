@@ -22,6 +22,9 @@ export const PRICING_CONFIG: PricingConfigResponse = {
     motionControlCreditsPerSecond: 20,
     motionControlV2BaseCredits: 150,
     motionControlV2CreditsPerSecond: 65,
+    veo3Credits720p: 500,
+    veo3Credits1080p: 700,
+    veo3Credits4k: 950,
     motionControlMinSeconds: 5,
   },
   tiers: [

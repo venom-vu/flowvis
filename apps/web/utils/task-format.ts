@@ -21,6 +21,7 @@ export const PIPELINE_LABELS_VI: Readonly<Record<string, string>> = {
   motion_control: 'Điều khiển chuyển động',
   motion_control_v2: 'Điều khiển chuyển động v2',
   motion_background: 'Motion control nền video',
+  veo3: 'Veo 3 tạo video',
 };
 
 export function getPipelineLabelVi(pipeline: TaskPipeline | string): string {

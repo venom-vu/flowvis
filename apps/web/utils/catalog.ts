@@ -26,7 +26,8 @@ export type FeaturePipelineId =
   | "body-retouch"
   | "motion-control"
   | "motion-control-v2"
-  | "motion-background";
+  | "motion-background"
+  | "veo-3";
 
 /** Chức năng tạm ẩn khỏi kho công cụ, sitemap và trang riêng (backend giữ nguyên); xóa id khỏi đây để bật lại. */
 export const HIDDEN_FEATURE_IDS: readonly FeaturePipelineId[] = [
@@ -124,6 +125,7 @@ export function buildAiFeatureCatalog(
     motionControlCreditsPerSecond,
     motionControlV2BaseCredits,
     motionControlV2CreditsPerSecond,
+    veo3Credits720p,
   } = pricing.pipelines;
 
   const all: AiFeatureTool[] = [
@@ -270,6 +272,29 @@ export function buildAiFeatureCatalog(
       accentGradient: "from-violet-600/35 via-indigo-950 to-cyan-500/30",
       inputRequirementVi: "1 ảnh nhân vật rõ dáng + 1 video chuyển động mẫu",
       outputFormatVi: "Video MP4 H.264",
+    },
+    {
+      id: "veo-3",
+      slug: "veo-3",
+      titleVi: "Veo 3 Tạo Video AI",
+      descriptionVi:
+        "Tạo video 8 giây có âm thanh từ mô tả văn bản, từ một ảnh hoặc từ khung hình đầu và cuối. Chọn tỉ lệ khung 16:9 hoặc 9:16 và độ phân giải tới 4K.",
+      category: "video",
+      categoryLabelVi: "Chuyển động video AI",
+      badgeVi: "Mới",
+      icon: "lucide:film",
+      billingMode: "per_run",
+      unitCredits: veo3Credits720p,
+      priceBadgeVi: `Từ ${formatNumberVi(veo3Credits720p)} CR / video`,
+      tierCapSeconds: null,
+      tierCapLabelVi: null,
+      beforeLabelVi: "Mô tả hoặc ảnh đầu vào",
+      afterLabelVi: "Video 8 giây có âm thanh",
+      bannerUrl: "/banner/veo-3.jpg",
+      bannerType: "image",
+      accentGradient: "from-cyan-500/30 via-indigo-950 to-violet-600/30",
+      inputRequirementVi: "Mô tả video, tùy chọn 1 ảnh hoặc 2 khung hình",
+      outputFormatVi: "Video MP4 H.264 kèm âm thanh",
     },
     {
       id: "motion-background",

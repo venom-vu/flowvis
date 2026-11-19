@@ -60,6 +60,11 @@ import {
   MotionCreateResponseSchema,
   MotionV2CreateRequestSchema,
   MotionV2CreateResponseSchema,
+  Veo3CreateRequestSchema,
+  Veo3CreateResponseSchema,
+  VEO3_PROMPT_MAX_LENGTH,
+  VEO3_PROMPT_MIN_LENGTH,
+  veo3Price,
   MotionBackgroundCreateRequestSchema,
   MotionBackgroundCreateResponseSchema,
   PricingConfigResponseSchema,
@@ -138,6 +143,8 @@ import {
   type MotionCreateRequest,
   type MotionCreateResponse,
   type MotionV2CreateRequest,
+  type Veo3CreateRequest,
+  type Veo3CreateResponse,
   type MotionV2CreateResponse,
   type MotionBackgroundCreateRequest,
   type MotionBackgroundCreateResponse,
@@ -188,6 +195,11 @@ export {
   MotionCreateResponseSchema,
   MotionV2CreateRequestSchema,
   MotionV2CreateResponseSchema,
+  Veo3CreateRequestSchema,
+  Veo3CreateResponseSchema,
+  VEO3_PROMPT_MAX_LENGTH,
+  VEO3_PROMPT_MIN_LENGTH,
+  veo3Price,
   MotionBackgroundCreateRequestSchema,
   MotionBackgroundCreateResponseSchema,
   ShareInfoResponseSchema,
@@ -221,6 +233,8 @@ export {
   type MotionCreateRequest,
   type MotionCreateResponse,
   type MotionV2CreateRequest,
+  type Veo3CreateRequest,
+  type Veo3CreateResponse,
   type MotionV2CreateResponse,
   type ShareInfoResponse,
   type BodyRetouchCreateRequest,
@@ -809,6 +823,23 @@ export function createMotionApiClient(options: MotionApiClientOptions = {}) {
           signal: options?.signal,
         },
         (payload) => MotionV2CreateResponseSchema.parse(payload),
+      );
+    },
+
+    async createVeo3Task(
+      rawRequest: Veo3CreateRequest,
+      options?: { signal?: AbortSignal },
+    ): Promise<Veo3CreateResponse> {
+      const data = Veo3CreateRequestSchema.parse(rawRequest);
+      return requestLive(
+        '/tasks/veo3',
+        {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(data),
+          signal: options?.signal,
+        },
+        (payload) => Veo3CreateResponseSchema.parse(payload),
       );
     },
 
