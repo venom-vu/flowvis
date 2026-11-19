@@ -24,6 +24,8 @@ const props = withDefaults(
     label?: string;
     placeholder?: string;
     disabled?: boolean;
+    /** Hiện nút X để đưa giá trị về rỗng khi đã chọn một option. */
+    clearable?: boolean;
     error?: string | null;
     variant?: UiVariant;
     focusAccent?: FocusAccent;
@@ -33,6 +35,7 @@ const props = withDefaults(
     label: undefined,
     placeholder: 'Chọn...',
     disabled: false,
+    clearable: false,
     error: null,
     variant: undefined,
     focusAccent: 'default',
@@ -47,6 +50,15 @@ const resolvedId = computed(() => props.id ?? `select-${generatedId}`);
 const listboxId = computed(() => `${resolvedId.value}-listbox`);
 
 const resolvedVariant = useUiVariant(() => props.variant);
+
+const showClear = computed(
+  () => props.clearable && !props.disabled && Boolean(modelValue.value),
+);
+
+function clearSelection(): void {
+  modelValue.value = '';
+  isOpen.value = false;
+}
 
 const rootEl = ref<HTMLElement | null>(null);
 const triggerEl = ref<HTMLButtonElement | null>(null);
@@ -251,6 +263,7 @@ defineExpose({
           {{ selectedOption?.label ?? placeholder }}
         </span>
         <Icon
+          v-if="!showClear"
           name="lucide:chevron-down"
           class="h-4 w-4 shrink-0 transition-transform duration-150"
           :class="[
@@ -263,6 +276,16 @@ defineExpose({
                 : 'text-cyber-muted',
           ]"
         />
+      </button>
+
+      <button
+        v-if="showClear"
+        type="button"
+        aria-label="Bỏ chọn"
+        class="absolute right-0 top-0 flex h-full w-11 items-center justify-center text-cyber-muted transition-colors hover:text-cyber-text"
+        @click.stop="clearSelection"
+      >
+        <Icon name="lucide:x" class="h-4 w-4" />
       </button>
 
       <div

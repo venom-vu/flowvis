@@ -1,4 +1,5 @@
 import { z } from 'zod';
+import { DateOnlySchema, refineDateRange } from './date-range.js';
 import { TopupPackIdSchema } from './wallet.js';
 
 /** Trạng thái đơn nạp (Epic 3). */
@@ -67,8 +68,8 @@ type TopupInvariantInput = {
 function checkTopupInvariants(t: TopupInvariantInput, ctx: z.RefinementCtx): void {
   const issue = (path: string, message: string) =>
     ctx.addIssue({ code: z.ZodIssueCode.custom, path: [path], message });
-  if (t.transferContent !== `NAP ${t.code}`) {
-    issue('transferContent', 'Nội dung chuyển khoản phải có dạng "NAP <code>"');
+  if (t.transferContent !== t.code) {
+    issue('transferContent', 'Nội dung chuyển khoản phải trùng mã đơn (code)');
   }
   if (t.status === 'pending' && t.approveBy == null) {
     issue('approveBy', 'Đơn pending bắt buộc có approveBy');
@@ -136,10 +137,19 @@ export const TopupConfirmTransferResponseSchema = TopupSchema;
 export type TopupConfirmTransferResponse = Topup;
 
 /** GET /topups — cursor, mới nhất trước (như GET /tasks). */
-export const TopupListQuerySchema = z.object({
-  pageSize: z.coerce.number().int().min(1).max(100).default(20),
-  cursor: z.string().min(1).optional(),
-});
+export const TopupListQuerySchema = z
+  .object({
+    pageSize: z.coerce.number().int().min(1).max(100).default(20),
+    cursor: z.string().min(1).optional(),
+    /** Lọc theo khoảng ngày tạo đơn (YYYY-MM-DD, giờ Việt Nam, gồm cả hai đầu). */
+    from: DateOnlySchema.optional(),
+    to: DateOnlySchema.optional(),
+    /** Mã đơn (chứa chuỗi, không phân biệt hoa thường). */
+    code: z.string().trim().min(1).max(64).optional(),
+    pack: TopupPackIdSchema.optional(),
+    status: TopupStatusSchema.optional(),
+  })
+  .superRefine(refineDateRange);
 export type TopupListQuery = z.infer<typeof TopupListQuerySchema>;
 
 export function pagedResponse<T extends z.ZodTypeAny>(item: T, noun: string) {

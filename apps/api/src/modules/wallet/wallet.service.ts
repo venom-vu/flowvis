@@ -17,7 +17,9 @@ import {
   type TierSnapshot,
   type TopupPackId,
   type WalletLedgerResponse,
+  vnDateRange,
 } from '@flowvis/contracts';
+import { Prisma } from '../../generated/prisma/client.js';
 import {
   PrismaService,
   type PrismaTransactionClient,
@@ -376,6 +378,7 @@ export class WalletService {
     userId: string,
     pageSize: number,
     cursor?: string,
+    filter: { from?: string; to?: string; type?: LedgerEntryType } = {},
   ): Promise<WalletLedgerResponse> {
     this.assertId(userId, 'userId');
     const prisma = this.requirePrisma();
@@ -383,10 +386,17 @@ export class WalletService {
     if (cursor !== undefined) {
       before = this.decodeCursor(cursor);
     }
-    const rows = before
-      ? await prisma.$queryRaw<LedgerRow[]>`SELECT id, user_id, type, amount, task_id, topup_id, pack, date_trunc('milliseconds', created_at) AS created_at FROM ledger_entries WHERE user_id = ${userId}::uuid AND (date_trunc('milliseconds', created_at), id) < (${before.createdAt}, ${before.id}::uuid) ORDER BY date_trunc('milliseconds', created_at) DESC, id DESC LIMIT ${pageSize + 1}`
-      : await prisma.$queryRaw<LedgerRow[]>`SELECT id, user_id, type, amount, task_id, topup_id, pack, date_trunc('milliseconds', created_at) AS created_at FROM ledger_entries WHERE user_id = ${userId}::uuid ORDER BY date_trunc('milliseconds', created_at) DESC, id DESC LIMIT ${pageSize + 1}`;
-    const [{ n: total }] = await prisma.$queryRaw<Array<{ n: number }>>`SELECT COUNT(*)::int AS n FROM ledger_entries WHERE user_id = ${userId}::uuid`;
+    const range = vnDateRange(filter.from, filter.to);
+    const conds: Prisma.Sql[] = [Prisma.sql`user_id = ${userId}::uuid`];
+    if (filter.type) conds.push(Prisma.sql`type = ${filter.type}`);
+    if (range.gte) conds.push(Prisma.sql`created_at >= ${range.gte}`);
+    if (range.lt) conds.push(Prisma.sql`created_at < ${range.lt}`);
+    const filterWhere = Prisma.join(conds, ' AND ');
+    const pageWhere = before
+      ? Prisma.sql`${filterWhere} AND (date_trunc('milliseconds', created_at), id) < (${before.createdAt}, ${before.id}::uuid)`
+      : filterWhere;
+    const rows = await prisma.$queryRaw<LedgerRow[]>`SELECT id, user_id, type, amount, task_id, topup_id, pack, date_trunc('milliseconds', created_at) AS created_at FROM ledger_entries WHERE ${pageWhere} ORDER BY date_trunc('milliseconds', created_at) DESC, id DESC LIMIT ${pageSize + 1}`;
+    const [{ n: total }] = await prisma.$queryRaw<Array<{ n: number }>>`SELECT COUNT(*)::int AS n FROM ledger_entries WHERE ${filterWhere}`;
     const hasMore = rows.length > pageSize;
     const page = rows.slice(0, pageSize);
     const items: LedgerEntry[] = page.map((r) => ({

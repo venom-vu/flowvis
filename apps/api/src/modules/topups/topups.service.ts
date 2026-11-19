@@ -24,6 +24,7 @@ import {
   type TopupListResponse,
   type TopupPackId,
   type TopupStatus,
+  vnDateRange,
 } from '@flowvis/contracts';
 import { PrismaService, type PrismaTransactionClient } from '../../infra/prisma.service.js';
 import { AuditService } from '../audit/audit.service.js';
@@ -144,7 +145,7 @@ export class TopupsService {
     const bank = this.resolveBank(row.status, bankInput, lenient);
     const pack = PRICING_CONFIG.topupPacks.find((p) => p.id === row.pack);
     if (!pack) throw new Error(`Gói nạp không hợp lệ: ${row.pack}`);
-    const transferContent = `NAP ${row.code}`;
+    const transferContent = row.code;
     return {
       id: row.id,
       code: row.code,
@@ -287,14 +288,22 @@ export class TopupsService {
         : null;
       if (!owner) throw this.apiError(BadRequestException, ApiErrorCode.VALIDATION_FAILED);
     }
+    const range = vnDateRange(query.from, query.to);
+    const where = {
+      userId,
+      ...(range.gte || range.lt ? { createdAt: range } : {}),
+      ...(query.code ? { code: { contains: query.code, mode: 'insensitive' as const } } : {}),
+      ...(query.pack ? { pack: query.pack } : {}),
+      ...(query.status ? { status: query.status } : {}),
+    };
     const [rows, total] = await Promise.all([
       this.prisma.topup.findMany({
-        where: { userId },
+        where,
         orderBy: [{ createdAt: 'desc' }, { id: 'desc' }],
         take: pageSize + 1,
         ...(cursor ? { cursor: { id: cursor }, skip: 1 } : {}),
       }),
-      this.prisma.topup.count({ where: { userId } }),
+      this.prisma.topup.count({ where }),
     ]);
     const hasMore = rows.length > pageSize;
     const items = hasMore ? rows.slice(0, pageSize) : rows;

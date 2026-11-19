@@ -309,6 +309,7 @@ export const useApiClient = () => ({
       code = code.replace("from '~/composables/useApiClient'", `from './${path.basename(tmpContextPath)}'`);
       code = code.replace("from '~/utils/api-client'", "from '../utils/api-client.ts'");
       code = code.replace("from '~/utils/topup'", "from '../utils/topup.ts'");
+      code = code.replace("from '~/utils/compact-filters'", "from '../utils/compact-filters.ts'");
 
       fs.writeFileSync(tmpHarnessPath, code, 'utf8');
 
@@ -759,7 +760,7 @@ export const useApiClient = () => ({
       assert.match(html, /14:45/);
       assert.match(html, /<svg xmlns="http:\/\/www\.w3\.org\/2000\/svg"/);
       assert.match(html, /99\.000 VNĐ/);
-      assert.match(html, /NAP K7M2Q9XA/);
+      assert.match(html, /K7M2Q9XA/);
       assert.match(html, /data-testid="confirm-transfer-button"/);
       assert.match(html, /Tôi Đã Chuyển Khoản Xong/);
       // Chưa hết hạn thì không hiển thị nút Tạo mã mới
@@ -1076,7 +1077,7 @@ export const useApiClient = () => ({
         assert.match(authedHtml, /data-testid="pricing-topup-history"/);
         assert.match(authedHtml, /Lịch Sử Đơn Nạp Credit/);
         assert.match(authedHtml, /data-testid="topup-orders-list"/);
-        assert.match(authedHtml, /NAP P4N8T2WD/);
+        assert.match(authedHtml, /P4N8T2WD/);
         assert.match(authedHtml, /data-testid="topup-orders-list"[^]*<table/);
         assert.match(authedHtml, /data-testid="user-pager"/);
       } finally {

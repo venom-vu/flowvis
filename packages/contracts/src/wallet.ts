@@ -1,5 +1,6 @@
 import { z } from 'zod';
 import { UserRoleSchema } from './auth.js';
+import { DateOnlySchema, refineDateRange } from './date-range.js';
 
 /**
  * Hạng tài khoản (Tier) theo AD-10 / AD-11.
@@ -327,10 +328,16 @@ export type LedgerEntry = z.infer<typeof LedgerEntrySchema>;
  * GET /wallet/ledger — Phân trang theo cursor (sổ cái append-only), bút toán mới nhất trước.
  * Thứ tự ổn định: createdAt giảm dần, cùng createdAt thì id giảm dần.
  */
-export const WalletLedgerQuerySchema = z.object({
-  pageSize: z.coerce.number().int().min(1).max(100).default(20),
-  cursor: z.string().min(1).optional(),
-});
+export const WalletLedgerQuerySchema = z
+  .object({
+    pageSize: z.coerce.number().int().min(1).max(100).default(20),
+    cursor: z.string().min(1).optional(),
+    /** Lọc theo khoảng ngày (YYYY-MM-DD, giờ Việt Nam, gồm cả hai đầu) và loại bút toán. */
+    from: DateOnlySchema.optional(),
+    to: DateOnlySchema.optional(),
+    type: LedgerEntryTypeSchema.optional(),
+  })
+  .superRefine(refineDateRange);
 export const WalletLedgerRequestSchema = WalletLedgerQuerySchema;
 export type WalletLedgerQuery = z.infer<typeof WalletLedgerQuerySchema>;
 export type WalletLedgerRequest = WalletLedgerQuery;

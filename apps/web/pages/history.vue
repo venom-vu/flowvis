@@ -1,7 +1,7 @@
 <script setup lang="ts">
-import { computed, watch } from 'vue';
+import { computed, ref, watch } from 'vue';
 import { clearNuxtData, useAsyncData } from '#imports';
-import type { WalletLedgerResponse } from '@flowvis/contracts';
+import type { LedgerEntryType, WalletLedgerResponse } from '@flowvis/contracts';
 import { useApiClient } from '~/composables/useApiClient';
 import { useAuth } from '~/composables/useAuth';
 import { useAuthDialog } from '~/composables/useAuthDialog';
@@ -15,6 +15,7 @@ import {
 } from '~/utils/wallet-ledger';
 import { badgeClass, getLedgerTypeTone } from '~/utils/status-badge';
 import { USER_TABLE_PAGE_SIZE, userTable } from '~/utils/user-table';
+import { LEDGER_FILTER_FIELDS, compactFilters, emptyFilters } from '~/utils/history-filters';
 import { usePageSeo } from '~/composables/usePageSeo';
 
 usePageSeo({
@@ -29,14 +30,24 @@ const { client, accessToken } = useApiClient();
 const { isAuthenticated, sessionChecked } = useAuth();
 const { open: openAuthDialog } = useAuthDialog();
 
+const filterModel = ref<Record<string, string>>(emptyFilters(LEDGER_FILTER_FIELDS));
+const appliedFilters = computed(() => compactFilters(filterModel.value) as {
+  from?: string;
+  to?: string;
+  type?: LedgerEntryType;
+});
+const hasFilter = computed(() => Object.keys(appliedFilters.value).length > 0);
+
 const ledgerAsync = useAsyncData<WalletLedgerResponse>(
   'flowvis-wallet-ledger',
-  () => client.getWalletLedger({ pageSize: 20 }),
+  () => client.getWalletLedger({ pageSize: 20, ...appliedFilters.value }),
+  { watch: [appliedFilters] },
 );
 
 const pagination = createWalletLedgerPagination({
   client,
   pageSize: 20,
+  filters: () => appliedFilters.value,
   initialData: () => ledgerAsync.data.value,
   isInitialPending: () => Boolean(ledgerAsync.pending.value),
   onRefreshInitial: async () => {
@@ -135,6 +146,11 @@ const {
   reset: resetPage,
 } = useCursorPager(entries, hasMore, loadMore, USER_TABLE_PAGE_SIZE, total);
 
+function handleFilter(values: Record<string, string>): void {
+  filterModel.value = values;
+  resetPage();
+}
+
 async function handleRefresh(): Promise<void> {
   resetPage();
   await refreshLedger();
@@ -176,8 +192,17 @@ async function handleRefresh(): Promise<void> {
     />
 
     <section
-      class="overflow-hidden rounded-2xl border border-cyber-border bg-cyber-surface"
+      class="rounded-2xl border border-cyber-border bg-cyber-surface"
     >
+      <HistoryFilterBar
+        v-if="!isUnauthenticated"
+        :model-value="filterModel"
+        :fields="LEDGER_FILTER_FIELDS"
+        :disabled="Boolean(ledgerAsync.pending.value) || loadingMore"
+        testid-prefix="ledger"
+        @update:model-value="handleFilter"
+      />
+
       <!-- Skeleton khi đang tải trang đầu -->
       <div
         v-if="ledgerAsync.pending.value && entries.length === 0"
@@ -268,7 +293,7 @@ async function handleRefresh(): Promise<void> {
       <!-- Trạng thái rỗng -->
       <div
         v-else-if="entries.length === 0"
-        data-testid="history-empty"
+        :data-testid="hasFilter ? 'history-filter-empty' : 'history-empty'"
         class="flex flex-col items-center justify-center p-10 text-center sm:p-12"
       >
         <div
@@ -277,10 +302,14 @@ async function handleRefresh(): Promise<void> {
           <Icon name="lucide:inbox" class="h-7 w-7" />
         </div>
         <h3 class="text-base font-semibold text-cyber-text">
-          Chưa Có Biến Động Số Dư Nào
+          {{ hasFilter ? 'Không Có Biến Động Khớp Bộ Lọc' : 'Chưa Có Biến Động Số Dư Nào' }}
         </h3>
         <p class="mt-1.5 max-w-sm text-sm text-cyber-muted">
-          Mọi bút toán tặng credit trải nghiệm, nạp gói hoặc tạm giữ và hoàn credit tác vụ sẽ hiển thị tại đây.
+          {{
+            hasFilter
+              ? 'Hãy thử đổi hoặc xóa bớt điều kiện lọc.'
+              : 'Mọi bút toán tặng credit trải nghiệm, nạp gói hoặc tạm giữ và hoàn credit tác vụ sẽ hiển thị tại đây.'
+          }}
         </p>
       </div>
 

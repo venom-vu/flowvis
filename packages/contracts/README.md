@@ -57,7 +57,7 @@ Gói hợp đồng dùng chung (Shared Contracts) giữa Backend (`@flowvis/api`
 ### 6. Nạp tiền và duyệt đơn (Epic 3: `src/topups.ts`)
 
 - Trạng thái đơn `TopupStatus` (`awaiting_transfer`, `pending`, `approved`, `rejected`, `needs_review`, `expired`), nhãn tiếng Việt `TOPUP_STATUS_LABELS_VI` / `getTopupStatusLabelVi` (`pending` = "Đang chờ duyệt", `needs_review` = "Cần xem xét"). Gói nạp dùng lại `TopupPackId` của `wallet.ts`.
-- `TopupSchema` (bất biến: `transferContent` = `NAP <code>`, `approveBy` bắt buộc khi `pending`, `bankRef` chỉ khi `approved`, `rejectReason` khi và chỉ khi `rejected`) và `AdminTopupSchema` (thêm `userId`, `isOverdue`; không có email).
+- `TopupSchema` (bất biến: `transferContent` = `<code>`, `approveBy` bắt buộc khi `pending`, `bankRef` chỉ khi `approved`, `rejectReason` khi và chỉ khi `rejected`) và `AdminTopupSchema` (thêm `userId`, `isOverdue`; không có email).
 - Endpoint người dùng: `POST /topups` (`pack`, `.strict()` nên không nhận `amountVnd`), `POST /topups/{id}/confirm-transfer`, `GET /topups` (cursor), `GET /topups/{id}`.
 - Endpoint Admin: `GET /admin/topups` (lọc `status`, cursor), `POST /admin/topups/{id}/approve`, `approve-expired` (`bankRef`), `reject` (`rejectReason`), `needs-review` (`note`), `return-to-pending` (body rỗng).
 - Mã lỗi API mới: `TOPUP_LIMIT`, `BANK_REF_DUPLICATE`, `TOPUP_STATE_INVALID`, `TOPUP_QR_EXPIRED`.

@@ -7,6 +7,7 @@ import {
 } from '@flowvis/contracts';
 import { ME_KEY, useApiClient } from '~/composables/useApiClient';
 import { resolveApiErrorMessageVi } from '~/utils/api-client';
+import { compactFilters } from '~/utils/compact-filters';
 import {
   formatCountdown,
   getRemainingSeconds,
@@ -34,6 +35,7 @@ export function useTopup() {
   const nextCursor = ref<string | null>(null);
   const hasMore = ref<boolean>(false);
   const total = ref<number | null>(null);
+  const listFilters = ref<Record<string, string>>({});
 
   let countdownInterval: ReturnType<typeof setInterval> | null = null;
   let pollInterval: ReturnType<typeof setInterval> | null = null;
@@ -286,7 +288,7 @@ export function useTopup() {
     listErrorVi.value = null;
 
     try {
-      const res = await client.listTopups({ pageSize: 20, cursor });
+      const res = await client.listTopups({ pageSize: 20, cursor, ...listFilters.value });
       if (isPaging) {
         const existingIds = new Set(topups.value.map((t) => t.id));
         const newItems = res.items.filter((item) => !existingIds.has(item.id));
@@ -306,6 +308,11 @@ export function useTopup() {
         isLoadingList.value = false;
       }
     }
+  }
+
+  async function applyFilters(filters: Record<string, string>): Promise<void> {
+    listFilters.value = compactFilters(filters);
+    await fetchTopups();
   }
 
   async function refreshTopups(): Promise<void> {
@@ -356,6 +363,8 @@ export function useTopup() {
     listErrorVi,
     hasMore,
     total,
+    listFilters,
+    applyFilters,
     nextCursor,
     openModal,
     closeModal,

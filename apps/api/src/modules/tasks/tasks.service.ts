@@ -41,6 +41,7 @@ import {
   type TierSnapshot,
   type TaskResultInput,
   type TaskResultParams,
+  vnDateRange,
 } from '@flowvis/contracts';
 import type { Queue } from 'bullmq';
 import { PrismaService, type PrismaTransactionClient } from '../../infra/prisma.service.js';
@@ -513,12 +514,28 @@ export class TasksService {
       }
     }
 
+    const range = vnDateRange(query.from, query.to);
+    // Cột id kiểu uuid không hỗ trợ startsWith qua Prisma nên tra mã theo đầu UUID bằng SQL.
+    let codeIds: string[] | undefined;
+    if (query.code) {
+      const rowsByCode = await this.prisma.$queryRaw<Array<{ id: string }>>`
+        SELECT id::text AS id FROM tasks WHERE user_id = ${userId}::uuid AND id::text LIKE ${query.code.toLowerCase() + '%'}`;
+      codeIds = rowsByCode.map((r) => r.id);
+    }
+    const where = {
+      userId,
+      ...(query.pipeline ? { pipeline: query.pipeline } : {}),
+      ...(query.status ? { status: query.status } : {}),
+      ...(range.gte || range.lt ? { createdAt: range } : {}),
+      ...(codeIds ? { id: { in: codeIds } } : {}),
+    };
+
     let rows;
     let total: number;
     try {
       [rows, total] = await Promise.all([
         this.prisma.task.findMany({
-          where: { userId },
+          where,
           orderBy: [{ createdAt: 'desc' }, { id: 'desc' }],
           take: pageSize + 1,
           ...(cursor
@@ -528,7 +545,7 @@ export class TasksService {
               }
             : {}),
         }),
-        this.prisma.task.count({ where: { userId } }),
+        this.prisma.task.count({ where }),
       ]);
     } catch (err) {
       if ((err as { code?: unknown }).code === 'P2025') {

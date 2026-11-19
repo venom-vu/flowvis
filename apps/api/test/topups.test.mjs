@@ -107,7 +107,7 @@ describe('vietqr thuần', () => {
     assert.equal(crc16('123456789'), '29B1');
   });
   it('payload giải mã đúng từng tag và CRC khớp', () => {
-    const p = buildVietQrPayload({ bin: '970422', accountNo: '0123456789', amountVnd: 99000, content: 'NAP ABCD2345' });
+    const p = buildVietQrPayload({ bin: '970422', accountNo: '0123456789', amountVnd: 99000, content: 'ABCD2345' });
     assert.equal(crc16(p.slice(0, -4)), p.slice(-4));
     const t = parseTlv(p);
     assert.equal(t['00'], '01');
@@ -115,7 +115,7 @@ describe('vietqr thuần', () => {
     assert.equal(t['53'], '704');
     assert.equal(t['54'], '99000');
     assert.equal(t['58'], 'VN');
-    assert.equal(parseTlv(t['62'])['08'], 'NAP ABCD2345');
+    assert.equal(parseTlv(t['62'])['08'], 'ABCD2345');
     const m = parseTlv(t['38']);
     assert.equal(m['00'], 'A000000727');
     assert.equal(m['02'], 'QRIBFTTA');
@@ -216,7 +216,7 @@ describe('Story 3.2: [BE] Tạo đơn nạp và mã VietQR', () => {
     assert.equal(t.status, 'awaiting_transfer');
     assert.equal(t.amountVnd, 99000);
     assert.equal(t.credits, 12000);
-    assert.equal(t.transferContent, `NAP ${t.code}`);
+    assert.equal(t.transferContent, t.code);
     assert.match(t.code, /^[A-HJKMNP-Z2-9]{8}$/);
     const ttl = new Date(t.qrExpiresAt).getTime() - before;
     assert.ok(ttl > 14.9 * 60_000 && ttl < 15.1 * 60_000, String(ttl));

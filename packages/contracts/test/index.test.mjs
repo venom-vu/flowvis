@@ -1045,7 +1045,7 @@ describe('@flowvis/contracts', () => {
       };
       fails({ status: 'pending' }, 'approveBy');
       fails({ status: 'rejected' }, 'rejectReason');
-      fails({ transferContent: 'NAP OTHER' }, 'transferContent');
+      fails({ transferContent: 'OTHER' }, 'transferContent');
       fails({ bankRef: 'FT1' }, 'bankRef');
       fails({ rejectReason: 'x' }, 'rejectReason');
       fails({ status: 'paid' }, 'status');

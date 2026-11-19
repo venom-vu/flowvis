@@ -69,6 +69,7 @@ export class MeController {
       user.sub,
       parsed.data.pageSize,
       parsed.data.cursor,
+      { from: parsed.data.from, to: parsed.data.to, type: parsed.data.type },
     );
   }
 }

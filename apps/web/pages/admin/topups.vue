@@ -346,7 +346,7 @@ watch(isAdmin, (admin) => {
                 class="hover:bg-muted/50"
               >
                 <TableCell>
-                  <div class="font-geist-mono font-medium">NAP {{ order.code }}</div>
+                  <div class="font-geist-mono font-medium">{{ order.code }}</div>
                   <div class="text-sm text-muted-foreground">{{ formatTopupTimestampVi(order.createdAt) }}</div>
                 </TableCell>
                 <TableCell>

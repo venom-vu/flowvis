@@ -220,7 +220,7 @@ function handleSubmit(): void {
           <Icon v-else name="lucide:help-circle" class="h-5 w-5 text-orange-400" />
           <span>{{ modalTitle }}</span>
         </DialogTitle>
-        <DialogDescription class="sr-only">Xác nhận thao tác với đơn nạp NAP {{ topup.code }}</DialogDescription>
+        <DialogDescription class="sr-only">Xác nhận thao tác với đơn nạp {{ topup.code }}</DialogDescription>
       </DialogHeader>
 
       <!-- Tóm tắt thông tin đơn nạp -->
@@ -228,7 +228,7 @@ function handleSubmit(): void {
         <div class="flex flex-wrap items-center justify-between gap-2 border-b pb-2">
           <div class="flex items-center gap-2">
             <span class="text-muted-foreground">Mã đơn:</span>
-            <span class="font-bold">NAP {{ topup.code }}</span>
+            <span class="font-bold">{{ topup.code }}</span>
           </div>
           <Badge variant="secondary">Gói {{ topup.pack }}</Badge>
         </div>

@@ -1,4 +1,5 @@
 import { z } from 'zod';
+import { DateOnlySchema, refineDateRange } from './date-range.js';
 import { ConfirmedUploadKeySchema } from './uploads.js';
 
 /** Số giây Trim tối thiểu của Motion Control. */
@@ -454,10 +455,23 @@ export function getValidationReasonMessageVi(
 }
 
 /** GET /tasks — phân trang cursor, mới nhất trước. */
-export const TaskListQuerySchema = z.object({
-  pageSize: z.coerce.number().int().min(1).max(100).default(20),
-  cursor: z.string().min(1).optional(),
-});
+export const TaskListQuerySchema = z
+  .object({
+    pageSize: z.coerce.number().int().min(1).max(100).default(20),
+    cursor: z.string().min(1).optional(),
+    pipeline: TaskPipelineSchema.optional(),
+    status: TaskStatusSchema.optional(),
+    /** Lọc theo khoảng ngày tạo (YYYY-MM-DD, giờ Việt Nam, gồm cả hai đầu). */
+    from: DateOnlySchema.optional(),
+    to: DateOnlySchema.optional(),
+    /** Mã tác vụ: đầu của UUID (hex và dấu gạch, tối thiểu 4 ký tự). */
+    code: z
+      .string()
+      .trim()
+      .regex(/^[0-9a-fA-F-]{4,36}$/, 'Mã tác vụ không hợp lệ.')
+      .optional(),
+  })
+  .superRefine(refineDateRange);
 export type TaskListQuery = z.infer<typeof TaskListQuerySchema>;
 
 export const TaskListResponseSchema = z

@@ -5,7 +5,7 @@ import {
   type Ref,
   type WritableComputedRef,
 } from 'vue';
-import type { LedgerEntry, WalletLedgerResponse } from '@flowvis/contracts';
+import type { LedgerEntry, LedgerEntryType, WalletLedgerResponse } from '@flowvis/contracts';
 import { resolveApiErrorMessageVi } from './api-client.ts';
 
 const VIETNAM_TIMESTAMP_FORMATTER = new Intl.DateTimeFormat('vi-VN', {
@@ -29,12 +29,17 @@ export interface WalletLedgerPaginationClient {
   getWalletLedger(query: {
     pageSize?: number;
     cursor?: string;
+    from?: string;
+    to?: string;
+    type?: LedgerEntryType;
   }): Promise<WalletLedgerResponse>;
 }
 
 export interface WalletLedgerPaginationOptions {
   client: WalletLedgerPaginationClient;
   pageSize?: number;
+  /** Bộ lọc hiện hành, đọc mỗi lần tải thêm để trang sau cùng điều kiện với trang đầu. */
+  filters?: () => { from?: string; to?: string; type?: LedgerEntryType };
   initialData?: () => WalletLedgerResponse | null | undefined;
   isInitialPending?: () => boolean;
   onRefreshInitial?: () => Promise<WalletLedgerResponse | void>;
@@ -160,6 +165,7 @@ export function createWalletLedgerPagination(
       const res = await options.client.getWalletLedger({
         pageSize,
         cursor: nextCursor.value,
+        ...options.filters?.(),
       });
       if (currentSeq !== operationSeq) {
         return false;
@@ -200,7 +206,7 @@ export function createWalletLedgerPagination(
         return;
       }
 
-      const res = await options.client.getWalletLedger({ pageSize });
+      const res = await options.client.getWalletLedger({ pageSize, ...options.filters?.() });
       syncInitialData(res);
     } catch {
       // Lỗi làm mới được xử lý phía caller

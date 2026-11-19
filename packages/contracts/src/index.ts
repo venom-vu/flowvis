@@ -5,6 +5,7 @@ export interface HealthContract {
 }
 
 export * from './errors.js';
+export * from './date-range.js';
 export * from './auth.js';
 export * from './wallet.js';
 export * from './uploads.js';

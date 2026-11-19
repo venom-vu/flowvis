@@ -598,6 +598,9 @@ export function createMotionApiClient(options: MotionApiClientOptions = {}) {
       if (query.cursor) {
         params.set('cursor', query.cursor);
       }
+      for (const key of ['from', 'to', 'type'] as const) {
+        if (query[key]) params.set(key, query[key]);
+      }
       return requestLive(
         `/wallet/ledger?${params.toString()}`,
         { method: 'GET' },
@@ -880,6 +883,9 @@ export function createMotionApiClient(options: MotionApiClientOptions = {}) {
       if (query.cursor) {
         params.set('cursor', query.cursor);
       }
+      for (const key of ['pipeline', 'status', 'from', 'to', 'code'] as const) {
+        if (query[key]) params.set(key, query[key]);
+      }
       const qs = params.toString();
       return requestLive(
         `/tasks${qs ? `?${qs}` : ''}`,
@@ -994,6 +1000,9 @@ export function createMotionApiClient(options: MotionApiClientOptions = {}) {
       }
       if (query.cursor) {
         params.set('cursor', query.cursor);
+      }
+      for (const key of ['from', 'to', 'code', 'pack', 'status'] as const) {
+        if (query[key]) params.set(key, query[key]);
       }
       const qs = params.toString();
       return requestLive(

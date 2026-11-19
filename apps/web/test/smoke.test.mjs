@@ -1383,6 +1383,7 @@ describe('@flowvis/web — Story 1.10 Lịch sử credit & phân trang vô tận
           items: MOCK_WALLET_LEDGER_ITEMS,
           pageSize: 20,
           hasMore: false,
+          total: MOCK_WALLET_LEDGER_ITEMS.length,
           nextCursor: null,
         });
       }

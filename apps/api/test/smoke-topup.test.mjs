@@ -211,7 +211,7 @@ describe('Smoke nạp tiền FE-BE trên stack Compose (Story 3.8)', () => {
         const t1 = await createTopup(alice, 'pro');
         assert.equal(t1.amountVnd, 99000);
         assert.equal(t1.credits, 12000);
-        assert.equal(t1.transferContent, `NAP ${t1.code}`);
+        assert.equal(t1.transferContent, t1.code);
         assert.equal(t1.bankCode, '970436');
         const c1 = await confirm(alice, t1.id);
         assert.equal(c1.status, 200);

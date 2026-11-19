@@ -1,13 +1,14 @@
 <script setup lang="ts">
 import { computed, onBeforeUnmount, ref, watch } from 'vue';
 import { clearNuxtData, refreshNuxtData, useAsyncData, useHead } from '#imports';
-import type { Task, TaskListResponse } from '@flowvis/contracts';
+import type { Task, TaskListQuery, TaskListResponse } from '@flowvis/contracts';
 import { ME_KEY, useApiClient } from '~/composables/useApiClient';
 import { useAuth } from '~/composables/useAuth';
 import { useAuthDialog } from '~/composables/useAuthDialog';
 import { useCursorPager } from '~/composables/useCursorPager';
 import { resolveApiErrorMessageVi } from '~/utils/api-client';
 import { isUnauthorizedError } from '~/utils/auth-session';
+import { TASK_FILTER_FIELDS, compactFilters, emptyFilters } from '~/utils/history-filters';
 import { USER_TABLE_PAGE_SIZE, userTable } from '~/utils/user-table';
 
 useHead({
@@ -26,9 +27,16 @@ const { open: openAuthDialog } = useAuthDialog();
 
 const PAGE_SIZE = 20;
 
+const filterModel = ref<Record<string, string>>(emptyFilters(TASK_FILTER_FIELDS));
+const appliedFilters = computed(
+  () => compactFilters(filterModel.value) as Omit<TaskListQuery, 'pageSize' | 'cursor'>,
+);
+const hasFilter = computed(() => Object.keys(appliedFilters.value).length > 0);
+
 const tasksAsync = useAsyncData<TaskListResponse>(
   'flowvis-tasks-list',
-  () => client.listTasks({ pageSize: PAGE_SIZE }),
+  () => client.listTasks({ pageSize: PAGE_SIZE, ...appliedFilters.value }),
+  { watch: [appliedFilters] },
 );
 
 const items = ref<Task[]>([]);
@@ -40,6 +48,14 @@ const loadMoreErrorVi = ref<string | null>(null);
 const cancellingTaskId = ref<string | null>(null);
 const actionMessageVi = ref<string | null>(null);
 const actionErrorVi = ref<string | null>(null);
+
+// Đổi bộ lọc thì bỏ các trang đã tải để không trộn với kết quả của điều kiện cũ.
+watch(appliedFilters, () => {
+  items.value = [];
+  nextCursor.value = null;
+  hasMore.value = false;
+  total.value = null;
+});
 
 watch(
   () => tasksAsync.data.value,
@@ -104,6 +120,7 @@ async function loadMore(): Promise<void> {
     const res = await client.listTasks({
       pageSize: PAGE_SIZE,
       cursor: nextCursor.value,
+      ...appliedFilters.value,
     });
     // Tránh trùng lặp
     const existingIds = new Set(items.value.map((t) => t.id));
@@ -155,6 +172,11 @@ const {
   goTo: goToPage,
   reset: resetPage,
 } = useCursorPager(items, hasMore, loadMore, USER_TABLE_PAGE_SIZE, total);
+
+function handleFilter(values: Record<string, string>): void {
+  filterModel.value = values;
+  resetPage();
+}
 
 function handleRefresh(): void {
   resetPage();
@@ -275,6 +297,21 @@ onBeforeUnmount(() => {
       </button>
     </div>
 
+    <!-- Bộ lọc: luôn hiển thị (kể cả khi kết quả rỗng) trừ khi chưa đăng nhập -->
+    <div
+      v-if="!isUnauthenticated"
+      class="rounded-2xl border border-cyber-border bg-cyber-surface"
+    >
+      <HistoryFilterBar
+        :model-value="filterModel"
+        :fields="TASK_FILTER_FIELDS"
+        :disabled="Boolean(tasksAsync.pending.value) || loadingMore"
+        testid-prefix="tasks"
+        class="!border-b-0"
+        @update:model-value="handleFilter"
+      />
+    </div>
+
     <!-- Trạng thái: Đang tải lần đầu -->
     <div
       v-if="tasksAsync.pending.value && !items.length"
@@ -354,7 +391,7 @@ onBeforeUnmount(() => {
     <!-- Trạng thái: Danh sách rỗng -->
     <div
       v-else-if="!items.length"
-      data-testid="tasks-empty"
+      :data-testid="hasFilter ? 'tasks-filter-empty' : 'tasks-empty'"
       class="flex flex-col items-center justify-center rounded-2xl border border-cyber-border bg-cyber-surface p-10 text-center sm:p-12"
     >
       <div
@@ -363,12 +400,17 @@ onBeforeUnmount(() => {
         <Icon name="lucide:inbox" class="h-7 w-7" />
       </div>
       <h2 class="font-display text-lg font-bold">
-        Chưa Có Tác Vụ Nào
+        {{ hasFilter ? 'Không Có Tác Vụ Khớp Bộ Lọc' : 'Chưa Có Tác Vụ Nào' }}
       </h2>
       <p class="mt-1.5 max-w-sm text-sm text-cyber-muted">
-        Bạn chưa tạo tác vụ nào. Hãy bắt đầu trải nghiệm ngay các công cụ hoán đổi khuôn mặt và chỉnh ảnh AI.
+        {{
+          hasFilter
+            ? 'Hãy thử đổi hoặc xóa bớt điều kiện lọc.'
+            : 'Bạn chưa tạo tác vụ nào. Hãy bắt đầu trải nghiệm ngay các công cụ hoán đổi khuôn mặt và chỉnh ảnh AI.'
+        }}
       </p>
       <NuxtLink
+        v-if="!hasFilter"
         to="/"
         class="touch-target mt-5 inline-flex min-h-[48px] min-w-[48px] items-center justify-center gap-2 rounded-xl bg-cyber-violet px-6 py-2.5 text-xs font-semibold text-cyber-text transition hover:bg-cyber-violet/90"
       >

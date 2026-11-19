@@ -712,7 +712,7 @@ export const useApiClient = () => ({
       assert.match(html, /data-testid="modal-bank-ref-input"/);
       assert.match(html, /99\.000/); // Số tiền đối chiếu
       assert.match(html, /12\.000 CR/); // Credit cộng vào
-      assert.match(html, /NAP P4N8T2WD/);
+      assert.match(html, /P4N8T2WD/);
     });
 
     it('SSR render action approve-expired hiển thị banner cảnh báo đơn hết hạn', async () => {
@@ -1079,7 +1079,7 @@ export const useApiClient = () => ({
         'Tuyệt đối không để lộ mã đơn nạp hay bất kỳ dữ liệu nào khi bị 403',
       );
       assert.equal(
-        htmlUser.includes('NAP P4N8T2WD'),
+        htmlUser.includes('P4N8T2WD'),
         false,
       );
     });

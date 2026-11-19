@@ -1,11 +1,12 @@
 <script setup lang="ts">
-import { onMounted, ref, watch } from 'vue';
+import { computed, onMounted, ref, watch } from 'vue';
 import type { Topup, TopupPackId } from '@flowvis/contracts';
 import { useAuth } from '~/composables/useAuth';
 import { useAuthDialog } from '~/composables/useAuthDialog';
 import { useCursorPager } from '~/composables/useCursorPager';
 import { usePricingConfig } from '~/composables/usePricingConfig';
 import { useTopup } from '~/composables/useTopup';
+import { TOPUP_FILTER_FIELDS, emptyFilters } from '~/utils/history-filters';
 import { formatNumberVi, formatVndVi } from '~/utils/catalog';
 import { formatTopupTimestampVi } from '~/utils/topup';
 import {
@@ -57,7 +58,18 @@ const {
   confirmTransfer,
   fetchTopups,
   loadMore,
+  listFilters,
+  applyFilters,
 } = useTopup();
+
+const topupFilterModel = ref<Record<string, string>>(emptyFilters(TOPUP_FILTER_FIELDS));
+const hasTopupFilter = computed(() => Object.keys(listFilters.value).length > 0);
+
+async function handleTopupFilter(values: Record<string, string>): Promise<void> {
+  topupFilterModel.value = values;
+  resetPage();
+  await applyFilters(values);
+}
 
 const creatingPackId = ref<TopupPackId | null>(null);
 
@@ -328,11 +340,11 @@ function dismissCreateError(): void {
     <section
       v-if="isAuthenticated"
       data-testid="pricing-topup-history"
-      class="overflow-hidden rounded-2xl border border-cyber-border bg-cyber-surface"
+      class="rounded-2xl border border-cyber-border bg-cyber-surface"
     >
       <!-- Header của khung Lịch Sử Đơn Nạp -->
       <div
-        class="flex flex-col justify-between gap-4 border-b border-cyber-border p-5 sm:flex-row sm:items-center"
+        class="flex flex-col justify-between gap-4 rounded-t-2xl border-b border-cyber-border p-5 sm:flex-row sm:items-center"
       >
         <div class="flex items-center gap-3">
           <span
@@ -375,6 +387,14 @@ function dismissCreateError(): void {
           </button>
         </div>
       </div>
+
+      <HistoryFilterBar
+        v-model="topupFilterModel"
+        :fields="TOPUP_FILTER_FIELDS"
+        :disabled="isLoadingList || isLoadingMore"
+        testid-prefix="topup"
+        @update:model-value="handleTopupFilter"
+      />
 
       <!-- Banner lỗi khi đã có danh sách nhưng làm mới thất bại -->
       <div
@@ -452,7 +472,7 @@ function dismissCreateError(): void {
       <!-- Trạng thái rỗng -->
       <div
         v-else-if="!isLoadingList && topups.length === 0"
-        data-testid="topup-list-empty"
+        :data-testid="hasTopupFilter ? 'topup-list-filter-empty' : 'topup-list-empty'"
         class="flex flex-col items-center justify-center p-10 text-center sm:p-12"
       >
         <div
@@ -461,10 +481,10 @@ function dismissCreateError(): void {
           <Icon name="lucide:inbox" class="h-7 w-7" />
         </div>
         <h3 class="text-base font-semibold text-cyber-text">
-          Bạn chưa có đơn nạp nào
+          {{ hasTopupFilter ? 'Không có đơn nạp khớp bộ lọc' : 'Bạn chưa có đơn nạp nào' }}
         </h3>
         <p class="mt-1.5 max-w-sm text-sm text-cyber-muted">
-          Các đơn nạp qua VietQR sẽ được lưu và hiển thị trạng thái xử lý tại đây.
+          {{ hasTopupFilter ? 'Hãy thử đổi hoặc xóa bớt điều kiện lọc.' : 'Các đơn nạp qua VietQR sẽ được lưu và hiển thị trạng thái xử lý tại đây.' }}
         </p>
       </div>
 
@@ -492,7 +512,7 @@ function dismissCreateError(): void {
                 @click="handleOpenOrder(order)"
               >
                 <td :class="[userTable.td, 'whitespace-nowrap font-mono font-bold']">
-                  NAP {{ order.code }}
+                  {{ order.code }}
                 </td>
                 <td :class="[userTable.td, 'whitespace-nowrap font-mono text-xs text-cyber-muted']">
                   {{ formatTopupTimestampVi(order.createdAt) }}

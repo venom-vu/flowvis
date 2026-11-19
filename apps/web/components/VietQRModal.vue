@@ -594,7 +594,7 @@ function handleRecreate(): void {
             >
               <div class="px-3.5 py-2.5">
                 <span class="block text-[11px] text-cyber-muted">Mã đơn</span>
-                <span class="mt-0.5 block font-mono font-bold text-cyber-text">NAP {{ topup.code }}</span>
+                <span class="mt-0.5 block font-mono font-bold text-cyber-text">{{ topup.code }}</span>
               </div>
               <div class="px-3.5 py-2.5">
                 <span class="block text-[11px] text-cyber-muted">Số tiền</span>
