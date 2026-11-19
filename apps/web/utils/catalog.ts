@@ -315,7 +315,7 @@ export function buildAiFeatureCatalog(
       tierCapLabelVi: null,
       beforeLabelVi: "1-9 ảnh tham chiếu + mô tả",
       afterLabelVi: "Video 10 giây có âm thanh",
-      bannerUrl: "/banner/muse-video.jpg",
+      bannerUrl: "/banner/muse-video.png",
       bannerType: "image",
       accentGradient: "from-violet-600/30 via-indigo-950 to-cyan-500/30",
       inputRequirementVi: "Mô tả video và 1-9 ảnh tham chiếu (tổng ≤ 11 MB)",
