@@ -866,11 +866,12 @@ onBeforeUnmount(() => {
           </div>
         </div>
 
-        <!-- Cột phải: So sánh Trước / Sau AI; loading và kết quả hiển thị ngay tại đây -->
+        <!-- Cột phải: Khung kết quả AI; loading và kết quả hiển thị ngay tại đây -->
         <div class="space-y-4 lg:col-span-6">
           <TaskResultViewer
             :task="activeTask"
             :submitting="anySubmitting"
+            :video-output="feature.category === 'video'"
             :before-label-vi="feature.beforeLabelVi"
             :after-label-vi="feature.afterLabelVi"
             :output-format-vi="feature.outputFormatVi"

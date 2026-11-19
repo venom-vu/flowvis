@@ -376,11 +376,12 @@ function handleCreateNewTask(): void {
         </section>
       </aside>
 
-      <!-- Cột phải: Kết quả (loading, so sánh Trước/Sau, tải về, sao chép liên kết) -->
+      <!-- Cột phải: Kết quả (loading, kết quả video hoặc so sánh Trước/Sau, tải về, sao chép liên kết) -->
       <section class="space-y-4 lg:col-span-7">
         <div class="rounded-2xl border border-cyber-border bg-cyber-surface p-4 sm:p-5">
           <TaskResultViewer
             :task="currentTask"
+            :video-output="isVideoPipeline"
             embedded
             @update:task="currentTask = $event"
             @result="result = $event"
@@ -389,7 +390,7 @@ function handleCreateNewTask(): void {
             <template #header-title>
               <h2 class="flex items-center gap-2 font-display text-sm font-bold">
                 <Icon name="lucide:sparkles" class="h-4 w-4 text-cyber-violet" />
-                <span>{{ isVideoPipeline && currentTask.status === 'succeeded' ? 'Video kết quả' : 'Kết quả' }}</span>
+                <span>{{ isVideoPipeline ? 'Video kết quả' : 'Kết quả' }}</span>
               </h2>
             </template>
           </TaskResultViewer>
