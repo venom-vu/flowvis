@@ -315,7 +315,9 @@ onBeforeUnmount(() => {
         {{
           localTask?.pipeline === 'body_retouch'
             ? 'AI đang phân tích tỷ lệ cơ thể và tinh chỉnh vóc dáng theo mức độ đã chọn. Quá trình này thường diễn ra trong khoảng 10–25 giây.'
-            : 'AI đang phân tích khuôn mặt, căn chỉnh góc xoay và tái tạo biểu cảm chi tiết. Quá trình này thường diễn ra trong khoảng 10–25 giây.'
+            : localTask?.pipeline === 'multi_angle_product'
+              ? 'AI đang dựng ảnh sản phẩm từ nhiều góc nhìn. Quá trình này thường diễn ra trong khoảng 30–90 giây.'
+              : 'AI đang phân tích khuôn mặt, căn chỉnh góc xoay và tái tạo biểu cảm chi tiết. Quá trình này thường diễn ra trong khoảng 10–25 giây.'
         }}
       </p>
 

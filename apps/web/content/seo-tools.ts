@@ -133,6 +133,20 @@ export const TOOL_SEO_CONTENT = {
       'Sắp xếp ảnh theo thứ tự quan trọng; ảnh được gửi đúng thứ tự bạn chọn.',
     ],
   },
+  'multi-angle-product': {
+    heading: 'Tạo ảnh sản phẩm đa góc bằng AI',
+    intro:
+      'Tải 3 ảnh của cùng một sản phẩm, AI dựng một ảnh thể hiện sản phẩm từ nhiều góc nhìn. Phù hợp làm ảnh bán hàng, ảnh giới thiệu sản phẩm trên sàn thương mại điện tử.',
+    steps: [
+      'Tải 3 ảnh sản phẩm rõ nét, mỗi ô một ảnh.',
+      'Kiểm tra lại ba ảnh rồi bấm tạo.',
+      'Theo dõi tiến trình và tải ảnh kết quả khi hoàn tất.',
+    ],
+    tips: [
+      'Chụp sản phẩm ở các góc khác nhau để AI có đủ chi tiết.',
+      'Dùng nền đơn giản, đủ sáng và không bị che khuất sản phẩm.',
+    ],
+  },
 } as const satisfies Record<string, ToolSeoContent>;
 
 export type ToolSeoId = keyof typeof TOOL_SEO_CONTENT;

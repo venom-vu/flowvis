@@ -130,8 +130,8 @@ export class AdminStatsService {
           q.motionPricePerSecond !== undefined
             ? q.motionPricePerSecond * avgSeconds
             : baseCredits + creditsPerSecond * avgSeconds;
-      } else if (pipeline === "veo3" || pipeline === "muse_video") {
-        // Pipeline video tính theo lượt: doanh thu là credit thực thu (hold_amount) trung bình, không lấy giá hiện hành.
+      } else if (pipeline === "veo3" || pipeline === "muse_video" || pipeline === "multi_angle_product") {
+        // Pipeline tính theo lượt có giá riêng: doanh thu là credit thực thu (hold_amount) trung bình, không lấy giá hiện hành.
         unitUsd = okCost / r.ok_cost_n;
         unitCredits = (r.ok_credits_costed ?? 0) / r.ok_cost_n;
       } else {

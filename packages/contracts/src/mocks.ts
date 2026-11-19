@@ -75,6 +75,7 @@ export const DEFAULT_PRICING_CONFIG: PricingConfigResponse = {
     veo3Credits1080p: 700,
     veo3Credits4k: 950,
     museVideoCredits: 200,
+    multiAngleProductCredits: 200,
     motionControlMinSeconds: 5,
   },
   tiers: [

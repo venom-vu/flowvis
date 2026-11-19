@@ -34,6 +34,8 @@ import {
   CONTRACTS_PACKAGE_VERSION,
   FaceSwapCreateRequestSchema,
   OutfitChangeCreateRequestSchema,
+  MultiAngleProductCreateRequestSchema,
+  MULTI_ANGLE_PRODUCT_PRICE,
   ConfirmedUploadKeySchema,
   RawUploadKeySchema,
   ImageMetaSchema,
@@ -544,6 +546,7 @@ describe('@flowvis/contracts', () => {
       [500, 700, 950],
     );
       assert.equal(MOCK_PRICING_CONFIG_RESPONSE.pipelines.museVideoCredits, 200);
+      assert.equal(MOCK_PRICING_CONFIG_RESPONSE.pipelines.multiAngleProductCredits, 200);
       assert.equal(MOCK_PRICING_CONFIG_RESPONSE.pipelines.motionControlMinSeconds, 5);
 
       const tiersByKey = Object.fromEntries(
@@ -934,7 +937,7 @@ describe('@flowvis/contracts', () => {
     const KEY = 'in/10000000-0000-4000-8000-000000000001/60000000-0000-4000-8000-000000000001';
 
     it('exports pipelines and intensity constants', () => {
-      assert.deepEqual([...TASK_PIPELINES], ['face_swap', 'body_retouch', 'motion_control', 'outfit_change', 'person_replace', 'motion_control_v2', 'motion_background', 'veo3', 'muse_video']);
+      assert.deepEqual([...TASK_PIPELINES], ['face_swap', 'body_retouch', 'motion_control', 'outfit_change', 'person_replace', 'motion_control_v2', 'motion_background', 'veo3', 'muse_video', 'multi_angle_product']);
       assert.deepEqual([INTENSITY_MIN, INTENSITY_MAX, INTENSITY_DEFAULT], [1, 10, 5]);
     });
 
@@ -944,6 +947,19 @@ describe('@flowvis/contracts', () => {
       assert.equal(OutfitChangeCreateRequestSchema.safeParse({ modelKey: KEY }).success, false);
       assert.equal(
         OutfitChangeCreateRequestSchema.safeParse({ modelKey: KEY, clothingKey: KEY2, credit: 1 }).success,
+        false,
+      );
+    });
+
+    it('validates multi angle product request (3 distinct keys, strict)', () => {
+      const K2 = 'in/10000000-0000-4000-8000-000000000001/60000000-0000-4000-8000-000000000002';
+      const K3 = 'in/10000000-0000-4000-8000-000000000001/60000000-0000-4000-8000-000000000003';
+      assert.equal(MULTI_ANGLE_PRODUCT_PRICE, 200);
+      assert.ok(MultiAngleProductCreateRequestSchema.safeParse({ productKey1: KEY, productKey2: K2, productKey3: K3 }).success);
+      assert.equal(MultiAngleProductCreateRequestSchema.safeParse({ productKey1: KEY, productKey2: K2 }).success, false);
+      assert.equal(MultiAngleProductCreateRequestSchema.safeParse({ productKey1: KEY, productKey2: K2, productKey3: KEY }).success, false);
+      assert.equal(
+        MultiAngleProductCreateRequestSchema.safeParse({ productKey1: KEY, productKey2: K2, productKey3: K3, credit: 1 }).success,
         false,
       );
     });

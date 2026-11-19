@@ -370,3 +370,9 @@
 - source_spec: `_bmad-output/implementation-artifacts/spec-muse-video-image-to-video.md`
   summary: Thêm test thực thi cho frontend Muse Video (useMuseVideo canSubmit/pending/hasHole, MuseVideoForm quản lý ô và tổng dung lượng, nhánh muse trong FeatureWorkspaceDialog).
   evidence: Test web hiện chỉ stub useMuseVideo/MuseVideoForm; Veo 3 cũng chưa có test tương ứng, nên dùng harness compile SFC trong motion-control.test.mjs (review vòng 1, mục 20).
+- source_spec: `_bmad-output/implementation-artifacts/spec-multi-angle-product.md`
+  summary: Hỗ trợ nhiều ảnh kết quả mỗi Task cho "Tạo sản phẩm đa góc". Cột `extra_result_keys`, `RunningHubOutputs.fileUrls`, vòng lặp ingest có EXIF và dọn R2 khi lỗi, `transition` ghi khóa phụ, `TaskResultResponse.resultUrls`, gỡ nội dung xóa cả ảnh phụ, thư viện ảnh trong `TaskResultViewer`. Ảnh đầu vẫn giữ ở `result_key`.
+  evidence: Người dùng chọn hỗ trợ nhiều ảnh, nhưng spec gộp dài khoảng 3.000 token nên được tách theo lựa chọn của người dùng (2026-11-20). Phần đầu chỉ lưu một ảnh: adapter `outputs()` lấy URL media đầu tiên. Thiết kế chi tiết đã khảo sát gồm `tasks.service.ts` transition :173-225, `result-ingestor.ts` :134-218, `admin-tasks.service.ts` :83-86, `ports/index.ts` :38/:83.
+- source_spec: `_bmad-output/implementation-artifacts/spec-multi-angle-product.md`
+  summary: Thêm test thực thi cho luồng submit phía web của các pipeline ảnh (createMultiAngleProductTask, nhánh multi-angle-product trong FeatureWorkspaceDialog, getPipelineRoute).
+  evidence: Đổi path API hoặc bỏ nhánh submit thì mọi test web vẫn xanh. Outfit Change và Muse Video cũng thiếu test tương tự (review vòng 1, mục 19).

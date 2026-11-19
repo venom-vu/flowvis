@@ -37,7 +37,7 @@ export function motionCapSeconds(pipeline: MotionPipeline, tierCapSeconds: numbe
   return Math.min(MOTION_MAX_SECONDS[pipeline], tierCapSeconds);
 }
 
-export const TASK_PIPELINES = ['face_swap', 'body_retouch', 'motion_control', 'outfit_change', 'person_replace', 'motion_control_v2', 'motion_background', 'veo3', 'muse_video'] as const;
+export const TASK_PIPELINES = ['face_swap', 'body_retouch', 'motion_control', 'outfit_change', 'person_replace', 'motion_control_v2', 'motion_background', 'veo3', 'muse_video', 'multi_angle_product'] as const;
 export type TaskPipeline = (typeof TASK_PIPELINES)[number];
 export const TaskPipelineSchema = z.enum(TASK_PIPELINES);
 
@@ -261,6 +261,27 @@ export const PersonReplaceCreateRequestSchema = z
 export type PersonReplaceCreateRequest = z.infer<typeof PersonReplaceCreateRequestSchema>;
 export const PersonReplaceCreateResponseSchema = TaskSchema;
 export type PersonReplaceCreateResponse = Task;
+
+/** Tạo sản phẩm đa góc (AI App 2030848699949125633): giá cố định mỗi lần chạy (credit). */
+export const MULTI_ANGLE_PRODUCT_PRICE = 200;
+
+/** POST /tasks/multi-angle-product — 3 ảnh sản phẩm (bắt buộc đủ, không trùng); giá do server quyết định. */
+export const MultiAngleProductCreateRequestSchema = z
+  .object({
+    productKey1: ConfirmedUploadKeySchema,
+    productKey2: ConfirmedUploadKeySchema,
+    productKey3: ConfirmedUploadKeySchema,
+  })
+  .strict()
+  .superRefine((v, ctx) => {
+    const keys = [v.productKey1, v.productKey2, v.productKey3];
+    if (new Set(keys).size !== keys.length) {
+      ctx.addIssue({ code: z.ZodIssueCode.custom, message: 'Ba ảnh sản phẩm không được trùng nhau.' });
+    }
+  });
+export type MultiAngleProductCreateRequest = z.infer<typeof MultiAngleProductCreateRequestSchema>;
+export const MultiAngleProductCreateResponseSchema = TaskSchema;
+export type MultiAngleProductCreateResponse = Task;
 
 /** Ba vùng nhãn của thanh mức điều chỉnh (min/max gồm cả hai đầu). */
 export const INTENSITY_LABEL_ZONES = [

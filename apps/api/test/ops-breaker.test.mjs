@@ -331,17 +331,22 @@ describe('Story 6.2: [BE] Ngắt mạch và chặn tạo Task khi tạm dừng',
       'createBodyRetouch',
       'createFaceSwap',
       'createMotion',
+      'createMotionBackground',
       'createMotionV2',
+      'createMultiAngleProduct',
+      'createMuseVideo',
       'createOutfitChange',
       'createPersonReplace',
+      'createVeo3',
     ]);
     for (const n of marked) {
       const guards = Reflect.getMetadata('__guards__', proto[n]) ?? [];
       assert.ok(guards.includes(IntakeOpenGuard), `${n} thiếu IntakeOpenGuard`);
     }
-    // mọi handler POST của TasksController có tên bắt đầu bằng create phải được đánh dấu
+    // mọi handler có tên bắt đầu bằng create phải được đánh dấu, trừ createShare (tạo link chia sẻ, không tạo Task)
     for (const n of Object.getOwnPropertyNames(proto)) {
-      if (/^create(FaceSwap|OutfitChange|PersonReplace|BodyRetouch|Motion)/.test(n)) assert.ok(marked.includes(n), `${n} chưa đánh dấu @CreatesTask`);
+      if (/^create/.test(n) && n !== 'createShare') assert.ok(marked.includes(n), `${n} chưa đánh dấu @CreatesTask`);
     }
+    assert.ok(!marked.includes('createShare'));
   });
 });

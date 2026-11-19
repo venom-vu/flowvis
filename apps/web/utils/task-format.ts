@@ -23,6 +23,7 @@ export const PIPELINE_LABELS_VI: Readonly<Record<string, string>> = {
   motion_background: 'Motion control nền video',
   veo3: 'Veo 3 tạo video',
   muse_video: 'Muse Video',
+  multi_angle_product: 'Tạo sản phẩm đa góc',
 };
 
 export function getPipelineLabelVi(pipeline: TaskPipeline | string): string {

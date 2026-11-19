@@ -434,6 +434,11 @@ describe('Story 5.3: [BE] Tạo Task Motion Control', () => {
     assert.match(chk.rows[0].def, /muse_video/);
   });
 
+  it('migration: CHECK pipeline nhận multi_angle_product', async () => {
+    const chk = await pool.query(`SELECT pg_get_constraintdef(oid) def FROM pg_constraint WHERE conname='tasks_pipeline_valid_chk'`);
+    assert.match(chk.rows[0].def, /multi_angle_product/);
+  });
+
   it('thiếu RUNNINGHUB_WORKFLOW_MOTION => khởi động thất bại, nêu tên biến', async () => {
     const saved = process.env.RUNNINGHUB_WORKFLOW_MOTION;
     delete process.env.RUNNINGHUB_WORKFLOW_MOTION;

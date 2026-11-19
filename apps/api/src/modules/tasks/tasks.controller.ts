@@ -6,6 +6,8 @@ import {
   OutfitChangeCreateRequestSchema,
   PersonReplaceCreateRequestSchema,
   type PersonReplaceCreateResponse,
+  MultiAngleProductCreateRequestSchema,
+  type MultiAngleProductCreateResponse,
   type OutfitChangeCreateResponse,
   MotionCreateRequestSchema,
   MotionV2CreateRequestSchema,
@@ -97,6 +99,24 @@ export class TasksController {
       });
     }
     return this.tasks.createPersonReplace(user.sub, parsed.data);
+  }
+
+  @Post('multi-angle-product')
+  @CreatesTask()
+  @UseGuards(IntakeOpenGuard)
+  async createMultiAngleProduct(
+    @CurrentUser() user: JwtUserPayload,
+    @Body() body: unknown,
+  ): Promise<MultiAngleProductCreateResponse> {
+    const parsed = MultiAngleProductCreateRequestSchema.safeParse(body);
+    if (!parsed.success) {
+      const code = ApiErrorCode.VALIDATION_FAILED;
+      throw new BadRequestException({
+        code,
+        message: parsed.error.issues[0]?.message ?? getApiErrorMessageVi(code),
+      });
+    }
+    return this.tasks.createMultiAngleProduct(user.sub, parsed.data);
   }
 
   @Post('body-retouch')

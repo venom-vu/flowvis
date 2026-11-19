@@ -102,6 +102,20 @@ export const PIPELINE_CONFIGS: Readonly<Record<string, PipelineConfig>> = {
     ],
     fixedNodes: [{ nodeId: '49', fieldName: 'value', fieldValue: '1280' }],
   },
+  multi_angle_product: {
+    pipeline: 'multi_angle_product',
+    workflowEnvVar: 'RUNNINGHUB_WORKFLOW_MULTI_ANGLE_PRODUCT',
+    instanceEnvVar: 'RUNNINGHUB_INSTANCE_MULTI_ANGLE_PRODUCT',
+    runMode: 'ai-app',
+    // AI App Tạo sản phẩm đa góc (2030848699949125633): 27 = ảnh sản phẩm 1, 28 = ảnh sản phẩm 2, 7 = ảnh sản phẩm 3.
+    // Không đặt referenceInputKey: ảnh kết quả là bố cục mới, kích thước không theo ảnh đầu vào nào.
+    inputs: [
+      { inputKey: 'productKey1', nodeId: '27', fieldName: 'image' },
+      { inputKey: 'productKey2', nodeId: '28', fieldName: 'image' },
+      { inputKey: 'productKey3', nodeId: '7', fieldName: 'image' },
+    ],
+    defaultWorkflowId: '2030848699949125633',
+  },
   body_retouch: {
     pipeline: 'body_retouch',
     workflowEnvVar: 'RUNNINGHUB_WORKFLOW_BODY_RESHAPE',

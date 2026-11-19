@@ -50,6 +50,8 @@ import {
   OutfitChangeCreateResponseSchema,
   PersonReplaceCreateRequestSchema,
   PersonReplaceCreateResponseSchema,
+  MultiAngleProductCreateRequestSchema,
+  MultiAngleProductCreateResponseSchema,
   INTENSITY_DEFAULT,
   INTENSITY_LABEL_ZONES,
   INTENSITY_MAX,
@@ -145,6 +147,8 @@ import {
   type OutfitChangeCreateResponse,
   type PersonReplaceCreateRequest,
   type PersonReplaceCreateResponse,
+  type MultiAngleProductCreateRequest,
+  type MultiAngleProductCreateResponse,
   type Intensity,
   type MeResponse,
   type MotionCreateRequest,
@@ -263,6 +267,8 @@ export {
   type OutfitChangeCreateResponse,
   type PersonReplaceCreateRequest,
   type PersonReplaceCreateResponse,
+  type MultiAngleProductCreateRequest,
+  type MultiAngleProductCreateResponse,
   type Intensity,
   type ReasonCode,
   type Task,
@@ -790,6 +796,25 @@ export function createMotionApiClient(options: MotionApiClientOptions = {}) {
           signal: options?.signal,
         },
         (payload) => PersonReplaceCreateResponseSchema.parse(payload),
+      );
+    },
+
+    async createMultiAngleProductTask(
+      rawRequest: MultiAngleProductCreateRequest,
+      options?: { signal?: AbortSignal },
+    ): Promise<MultiAngleProductCreateResponse> {
+      const data = MultiAngleProductCreateRequestSchema.parse(rawRequest);
+      return requestLive(
+        '/tasks/multi-angle-product',
+
+        {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(data),
+          signal: options?.signal,
+        },
+
+        (payload) => MultiAngleProductCreateResponseSchema.parse(payload),
       );
     },
 

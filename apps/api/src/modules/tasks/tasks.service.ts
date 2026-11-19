@@ -20,6 +20,7 @@ import {
   type FaceSwapCreateRequest,
   type OutfitChangeCreateRequest,
   type PersonReplaceCreateRequest,
+  type MultiAngleProductCreateRequest,
   type MotionCreateRequest,
   type MotionV2CreateRequest,
   type MotionV2CreateResponse,
@@ -112,6 +113,7 @@ const INPUT_DISPLAY_ORDER: Readonly<Record<string, readonly string[]>> = {
   face_swap: ['sourceKey', 'targetKey'],
   outfit_change: ['modelKey', 'clothingKey'],
   person_replace: ['sceneKey', 'personKey'],
+  multi_angle_product: ['productKey1', 'productKey2', 'productKey3'],
   body_retouch: ['imageKey'],
   motion_control: ['characterKey', 'videoKey'],
   motion_control_v2: ['characterKey', 'videoKey'],
@@ -713,6 +715,23 @@ export class TasksService {
     });
   }
 
+  /** Tạo sản phẩm đa góc: 3 ảnh sản phẩm không trùng; giá cố định do server quyết định. */
+  async createMultiAngleProduct(userId: string, req: MultiAngleProductCreateRequest): Promise<Task> {
+    const keys = [req.productKey1, req.productKey2, req.productKey3];
+    if (new Set(keys).size !== keys.length) {
+      throw new BadRequestException({
+        code: ApiErrorCode.VALIDATION_FAILED,
+        message: 'Ba ảnh sản phẩm không được trùng nhau.',
+      });
+    }
+    return this.createPipelineTask(userId, {
+      pipeline: 'multi_angle_product',
+      amount: PRICING_CONFIG.pipelines.multiAngleProductCredits,
+      inputKeys: { productKey1: req.productKey1, productKey2: req.productKey2, productKey3: req.productKey3 },
+      params: {},
+    });
+  }
+
   async createBodyRetouch(userId: string, req: BodyRetouchCreateRequest): Promise<Task> {
     // Phòng thủ: parse lại để áp mặc định intensity=5 và chặn giá trị sai khi gọi từ nơi khác controller.
     const parsed = BodyRetouchCreateRequestSchema.safeParse(req);
@@ -880,7 +899,7 @@ export class TasksService {
   private async createPipelineTask(
     userId: string,
     spec: {
-      pipeline: 'face_swap' | 'outfit_change' | 'person_replace' | 'body_retouch' | 'motion_control' | 'motion_control_v2' | 'motion_background' | 'veo3' | 'muse_video';
+      pipeline: 'face_swap' | 'outfit_change' | 'person_replace' | 'body_retouch' | 'motion_control' | 'motion_control_v2' | 'motion_background' | 'veo3' | 'muse_video' | 'multi_angle_product';
       amount: number;
       inputKeys: Record<string, string>;
       params: Record<string, unknown>;

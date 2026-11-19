@@ -28,7 +28,8 @@ export type FeaturePipelineId =
   | "motion-control-v2"
   | "motion-background"
   | "veo-3"
-  | "muse-video";
+  | "muse-video"
+  | "multi-angle-product";
 
 /** Chức năng tạm ẩn khỏi kho công cụ, sitemap và trang riêng (backend giữ nguyên); xóa id khỏi đây để bật lại. */
 export const HIDDEN_FEATURE_IDS: readonly FeaturePipelineId[] = [
@@ -128,6 +129,7 @@ export function buildAiFeatureCatalog(
     motionControlV2CreditsPerSecond,
     veo3Credits720p,
     museVideoCredits,
+    multiAngleProductCredits,
   } = pricing.pipelines;
 
   const all: AiFeatureTool[] = [
@@ -224,6 +226,30 @@ export function buildAiFeatureCatalog(
       bannerType: "image",
       accentGradient: "from-cyan-500/25 via-slate-900 to-violet-600/25",
       inputRequirementVi: "1 ảnh toàn thân hoặc bán thân đủ ánh sáng",
+      outputFormatVi:
+        "Ảnh PNG/JPEG chất lượng cao (kèm nhãn EXIF AI Generator)",
+    },
+    {
+      id: "multi-angle-product",
+      slug: "multi-angle-product",
+      titleVi: "Tạo Sản Phẩm Đa Góc",
+      descriptionVi:
+        "Tải 3 ảnh sản phẩm, AI dựng ảnh sản phẩm nhìn từ nhiều góc khác nhau. Phù hợp ảnh bán hàng và giới thiệu sản phẩm.",
+      category: "image",
+      categoryLabelVi: "Xử lý ảnh AI",
+      badgeVi: "Mới",
+      icon: "lucide:box",
+      billingMode: "per_run",
+      unitCredits: multiAngleProductCredits,
+      priceBadgeVi: `${formatNumberVi(multiAngleProductCredits)} CR / lượt`,
+      tierCapSeconds: null,
+      tierCapLabelVi: null,
+      beforeLabelVi: "3 ảnh sản phẩm",
+      afterLabelVi: "Ảnh sản phẩm đa góc",
+      bannerUrl: "/banner/multi-angle-product.png",
+      bannerType: "image",
+      accentGradient: "from-cyan-500/25 via-slate-900 to-violet-600/25",
+      inputRequirementVi: "3 ảnh sản phẩm rõ nét",
       outputFormatVi:
         "Ảnh PNG/JPEG chất lượng cao (kèm nhãn EXIF AI Generator)",
     },

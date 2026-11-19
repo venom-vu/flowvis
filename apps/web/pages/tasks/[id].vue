@@ -85,6 +85,9 @@ const INPUT_LABELS_VI: Readonly<Record<string, string>> = {
   videoKey: 'Video mẫu',
   firstFrameKey: 'Khung hình đầu',
   lastFrameKey: 'Khung hình cuối',
+  productKey1: 'Ảnh sản phẩm 1',
+  productKey2: 'Ảnh sản phẩm 2',
+  productKey3: 'Ảnh sản phẩm 3',
 };
 
 function inputLabelVi(role: string): string {
@@ -149,6 +152,7 @@ function getPipelineRoute(pipeline?: string): string {
   if (pipeline === 'motion_background') return '/motion-background';
   if (pipeline === 'veo3') return '/veo-3';
   if (pipeline === 'muse_video') return '/muse-video';
+  if (pipeline === 'multi_angle_product') return '/multi-angle-product';
   return '/face-swap';
 }
 
