@@ -44,6 +44,8 @@ const emit = defineEmits<{
     },
   ];
   error: [messageVi: string];
+  /** true khi đang kiểm tra/tải ảnh; false khi ready/error/idle. */
+  busy: [isBusy: boolean];
 }>();
 
 const { client } = useApiClient();
@@ -61,6 +63,11 @@ let activeCameraStream: MediaStream | null = null;
 
 type UploadStatus = 'idle' | 'validating' | 'uploading' | 'ready' | 'error';
 const status = ref<UploadStatus>(props.modelValue ? 'ready' : 'idle');
+watch(
+  () => status.value === 'validating' || status.value === 'uploading',
+  (isBusy) => emit('busy', isBusy),
+  { flush: 'sync' },
+);
 
 const currentFile = ref<File | null>(null);
 const currentMeta = ref<ImageMeta | null>(null);

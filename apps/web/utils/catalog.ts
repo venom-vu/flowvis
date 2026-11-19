@@ -27,7 +27,8 @@ export type FeaturePipelineId =
   | "motion-control"
   | "motion-control-v2"
   | "motion-background"
-  | "veo-3";
+  | "veo-3"
+  | "muse-video";
 
 /** Chức năng tạm ẩn khỏi kho công cụ, sitemap và trang riêng (backend giữ nguyên); xóa id khỏi đây để bật lại. */
 export const HIDDEN_FEATURE_IDS: readonly FeaturePipelineId[] = [
@@ -126,6 +127,7 @@ export function buildAiFeatureCatalog(
     motionControlV2BaseCredits,
     motionControlV2CreditsPerSecond,
     veo3Credits720p,
+    museVideoCredits,
   } = pricing.pipelines;
 
   const all: AiFeatureTool[] = [
@@ -294,6 +296,29 @@ export function buildAiFeatureCatalog(
       bannerType: "image",
       accentGradient: "from-cyan-500/30 via-indigo-950 to-violet-600/30",
       inputRequirementVi: "Mô tả video, tùy chọn 1 ảnh hoặc 2 khung hình",
+      outputFormatVi: "Video MP4 H.264 kèm âm thanh",
+    },
+    {
+      id: "muse-video",
+      slug: "muse-video",
+      titleVi: "Muse Video",
+      descriptionVi:
+        "Tạo video khoảng 10 giây, 720p, có âm thanh từ 1 đến 9 ảnh tham chiếu và mô tả. Chọn tỉ lệ khung hoặc để AI theo tỉ lệ ảnh.",
+      category: "video",
+      categoryLabelVi: "Chuyển động video AI",
+      badgeVi: "Mới",
+      icon: "lucide:images",
+      billingMode: "per_run",
+      unitCredits: museVideoCredits,
+      priceBadgeVi: `${formatNumberVi(museVideoCredits)} CR / video`,
+      tierCapSeconds: null,
+      tierCapLabelVi: null,
+      beforeLabelVi: "1-9 ảnh tham chiếu + mô tả",
+      afterLabelVi: "Video 10 giây có âm thanh",
+      bannerUrl: "/banner/muse-video.jpg",
+      bannerType: "image",
+      accentGradient: "from-violet-600/30 via-indigo-950 to-cyan-500/30",
+      inputRequirementVi: "Mô tả video và 1-9 ảnh tham chiếu (tổng ≤ 11 MB)",
       outputFormatVi: "Video MP4 H.264 kèm âm thanh",
     },
     {

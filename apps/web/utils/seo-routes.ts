@@ -7,6 +7,7 @@ export const SITEMAP_PATHS = [
   '/motion-control',
   '/motion-control-v2',
   '/veo-3',
+  '/muse-video',
   '/tiktok-downloader',
   '/pricing',
   '/terms',

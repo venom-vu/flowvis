@@ -157,7 +157,12 @@ describe('Veo 3: cấu hình model do pipeline mang theo', () => {
     assert.equal(typeof c.model.inputKeys, 'function');
     assert.equal(typeof c.model.buildRequest, 'function');
     for (const [name, cfg] of Object.entries(PIPELINE_CONFIGS)) {
-      if (name !== 'veo3') assert.equal(cfg.model, undefined, `${name} không được có model builder`);
+      if (cfg.runMode === 'model') {
+        assert.equal(typeof cfg.model?.buildRequest, 'function', `${name} chạy model phải có buildRequest`);
+        assert.equal(typeof cfg.model?.inputKeys, 'function', `${name} chạy model phải có inputKeys`);
+      } else {
+        assert.equal(cfg.model, undefined, `${name} không được có model builder`);
+      }
     }
   });
 

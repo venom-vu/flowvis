@@ -180,6 +180,20 @@ describe('Story 6.6: [BE] Thống kê vận hành và nhật ký Admin', () => {
     await pool.query('DELETE FROM tasks WHERE user_id = $1::uuid', [u.id]);
   });
 
+  it('biên gộp Muse Video tính theo credit thực thu, không theo giá hiện hành', async () => {
+    const u = await mkUser('user', '2029-12-01T00:00:00.000Z');
+    // Giá thực thu khác giá hiện hành (200) để chứng minh không đọc PRICING_CONFIG.
+    await mkTask(u.id, 'muse_video', 'succeeded', { cost: 0.1, inst: 'default', hold: 180 });
+    await mkTask(u.id, 'muse_video', 'succeeded', { cost: 0.12, inst: 'default', hold: 200 });
+    await mkTask(u.id, 'muse_video', 'succeeded', { hold: 500 }); // chưa có chi phí: không tính
+    const real = await stats();
+    const m = real.margins.find((x) => x.pipeline === 'muse_video' && x.pack === 'starter');
+    assert.ok(m, 'có dòng biên cho muse_video');
+    const avgCredits = (180 + 200) / 2;
+    assert.ok(Math.abs(m.revenueVnd - (49000 / 5000) * avgCredits) < 1e-6, `revenueVnd=${m.revenueVnd}`);
+    await pool.query('DELETE FROM tasks WHERE user_id = $1::uuid', [u.id]);
+  });
+
   it('số liệu, biên gộp, scope, SM-1', async () => {
     const u = await mkUser();
     const bench = await mkUser();

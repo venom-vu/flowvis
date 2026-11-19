@@ -88,7 +88,8 @@ const isVideo = computed<boolean>(
     localTask.value?.pipeline === 'motion_control' ||
     localTask.value?.pipeline === 'motion_control_v2' ||
     localTask.value?.pipeline === 'motion_background' ||
-    localTask.value?.pipeline === 'veo3',
+    localTask.value?.pipeline === 'veo3' ||
+    localTask.value?.pipeline === 'muse_video',
 );
 const isExpired = computed<boolean>(() =>
   localTask.value ? isTaskRetentionExpired(localTask.value.createdAt) : false,

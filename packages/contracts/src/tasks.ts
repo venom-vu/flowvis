@@ -37,7 +37,7 @@ export function motionCapSeconds(pipeline: MotionPipeline, tierCapSeconds: numbe
   return Math.min(MOTION_MAX_SECONDS[pipeline], tierCapSeconds);
 }
 
-export const TASK_PIPELINES = ['face_swap', 'body_retouch', 'motion_control', 'outfit_change', 'person_replace', 'motion_control_v2', 'motion_background', 'veo3'] as const;
+export const TASK_PIPELINES = ['face_swap', 'body_retouch', 'motion_control', 'outfit_change', 'person_replace', 'motion_control_v2', 'motion_background', 'veo3', 'muse_video'] as const;
 export type TaskPipeline = (typeof TASK_PIPELINES)[number];
 export const TaskPipelineSchema = z.enum(TASK_PIPELINES);
 
@@ -424,6 +424,54 @@ export const Veo3CreateResponseSchema = TaskBaseSchema.extend({
   }
 });
 export type Veo3CreateResponse = z.infer<typeof Veo3CreateResponseSchema>;
+
+/** Muse Video (Meta, RunningHub `meta/muse-video/economy`): chỉ image-to-video, 1-9 ảnh tham chiếu, video ~10 giây 720p. */
+export const MUSE_VIDEO_PROMPT_MIN_LENGTH = 1;
+export const MUSE_VIDEO_PROMPT_MAX_LENGTH = 4000;
+export const MUSE_VIDEO_MIN_IMAGES = 1;
+export const MUSE_VIDEO_MAX_IMAGES = 9;
+/** Tổng dung lượng tối đa của các ảnh tham chiếu (11 MB), tính theo kích thước ảnh đã lưu sau khi xác nhận (có thể đã thu nhỏ), không phải tệp gốc. */
+export const MUSE_VIDEO_MAX_TOTAL_BYTES = 11 * 1024 * 1024;
+/** Muse Video luôn tạo video khoảng 10 giây. */
+export const MUSE_VIDEO_DURATION_SECONDS = 10;
+export const MUSE_VIDEO_RESOLUTION = '720p';
+/** Giá cố định mỗi video (credit). */
+export const MUSE_VIDEO_PRICE = 200;
+export const MUSE_VIDEO_ASPECT_RATIOS = ['16:9', '9:16', '1:1', '4:3', '3:4', '3:2', '2:3'] as const;
+export type MuseVideoAspectRatio = (typeof MUSE_VIDEO_ASPECT_RATIOS)[number];
+export const MuseVideoAspectRatioSchema = z.enum(MUSE_VIDEO_ASPECT_RATIOS);
+
+/** POST /tasks/muse-video — giá cố định do server quyết định; không gửi `aspectRatio` = theo ảnh tham chiếu. */
+export const MuseVideoCreateRequestSchema = z
+  .object({
+    prompt: z
+      .string({ required_error: 'Vui lòng nhập mô tả video.' })
+      .trim()
+      .min(MUSE_VIDEO_PROMPT_MIN_LENGTH, 'Vui lòng nhập mô tả video.')
+      .max(MUSE_VIDEO_PROMPT_MAX_LENGTH, `Mô tả video tối đa ${MUSE_VIDEO_PROMPT_MAX_LENGTH} ký tự.`),
+    imageKeys: z
+      .array(ConfirmedUploadKeySchema)
+      .min(MUSE_VIDEO_MIN_IMAGES, 'Vui lòng chọn ít nhất 1 ảnh tham chiếu.')
+      .max(MUSE_VIDEO_MAX_IMAGES, `Tối đa ${MUSE_VIDEO_MAX_IMAGES} ảnh tham chiếu.`)
+      .superRefine((keys, ctx) => {
+        if (new Set(keys).size !== keys.length) {
+          ctx.addIssue({ code: z.ZodIssueCode.custom, message: 'Ảnh tham chiếu không được trùng nhau.' });
+        }
+      }),
+    aspectRatio: MuseVideoAspectRatioSchema.optional(),
+  })
+  .strict();
+export type MuseVideoCreateRequest = z.input<typeof MuseVideoCreateRequestSchema>;
+export const MuseVideoCreateResponseSchema = TaskBaseSchema.extend({
+  pipeline: z.literal('muse_video'),
+  price: z.number().int().positive(),
+}).superRefine((t, ctx) => {
+  refineTask(t, ctx);
+  if (t.price !== t.creditCost) {
+    ctx.addIssue({ code: z.ZodIssueCode.custom, path: ['price'], message: 'price phải bằng creditCost' });
+  }
+});
+export type MuseVideoCreateResponse = z.infer<typeof MuseVideoCreateResponseSchema>;
 
 /** POST /tasks/motion-v2 — Motion Control v2: chỉ ảnh nhân vật + đoạn video đã cắt (không khung hình/prompt); giá riêng (`MOTION_PRICING`). */
 export const MotionV2CreateRequestSchema = z

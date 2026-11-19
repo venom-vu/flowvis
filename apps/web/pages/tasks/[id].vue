@@ -73,7 +73,8 @@ const isVideoPipeline = computed<boolean>(
     currentTask.value?.pipeline === 'motion_control' ||
     currentTask.value?.pipeline === 'motion_control_v2' ||
     currentTask.value?.pipeline === 'motion_background' ||
-    currentTask.value?.pipeline === 'veo3',
+    currentTask.value?.pipeline === 'veo3' ||
+    currentTask.value?.pipeline === 'muse_video',
 );
 
 const INPUT_LABELS_VI: Readonly<Record<string, string>> = {
@@ -87,6 +88,8 @@ const INPUT_LABELS_VI: Readonly<Record<string, string>> = {
 };
 
 function inputLabelVi(role: string): string {
+  const refMatch = /^imageKey(\d)$/.exec(role);
+  if (refMatch) return `Ảnh tham chiếu ${Number(refMatch[1]) + 1}`;
   return INPUT_LABELS_VI[role] ?? role;
 }
 
@@ -145,6 +148,7 @@ function getPipelineRoute(pipeline?: string): string {
   if (pipeline === 'motion_control_v2') return '/motion-control-v2';
   if (pipeline === 'motion_background') return '/motion-background';
   if (pipeline === 'veo3') return '/veo-3';
+  if (pipeline === 'muse_video') return '/muse-video';
   return '/face-swap';
 }
 

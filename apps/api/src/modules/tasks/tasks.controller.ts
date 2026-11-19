@@ -11,6 +11,8 @@ import {
   MotionV2CreateRequestSchema,
   Veo3CreateRequestSchema,
   type Veo3CreateResponse,
+  MuseVideoCreateRequestSchema,
+  type MuseVideoCreateResponse,
   MotionBackgroundCreateRequestSchema,
   type MotionBackgroundCreateResponse,
   type MotionV2CreateResponse,
@@ -165,6 +167,24 @@ export class TasksController {
       });
     }
     return this.tasks.createVeo3(user.sub, parsed.data);
+  }
+
+  @Post('muse-video')
+  @CreatesTask()
+  @UseGuards(IntakeOpenGuard)
+  async createMuseVideo(
+    @CurrentUser() user: JwtUserPayload,
+    @Body() body: unknown,
+  ): Promise<MuseVideoCreateResponse> {
+    const parsed = MuseVideoCreateRequestSchema.safeParse(body);
+    if (!parsed.success) {
+      const code = ApiErrorCode.VALIDATION_FAILED;
+      throw new BadRequestException({
+        code,
+        message: parsed.error.issues[0]?.message ?? getApiErrorMessageVi(code),
+      });
+    }
+    return this.tasks.createMuseVideo(user.sub, parsed.data);
   }
 
   @Post('motion-v2')

@@ -65,6 +65,13 @@ import {
   VEO3_PROMPT_MAX_LENGTH,
   VEO3_PROMPT_MIN_LENGTH,
   veo3Price,
+  MuseVideoCreateRequestSchema,
+  MuseVideoCreateResponseSchema,
+  MUSE_VIDEO_PROMPT_MAX_LENGTH,
+  MUSE_VIDEO_PROMPT_MIN_LENGTH,
+  MUSE_VIDEO_MAX_IMAGES,
+  MUSE_VIDEO_MAX_TOTAL_BYTES,
+  MUSE_VIDEO_PRICE,
   MotionBackgroundCreateRequestSchema,
   MotionBackgroundCreateResponseSchema,
   PricingConfigResponseSchema,
@@ -145,6 +152,8 @@ import {
   type MotionV2CreateRequest,
   type Veo3CreateRequest,
   type Veo3CreateResponse,
+  type MuseVideoCreateRequest,
+  type MuseVideoCreateResponse,
   type MotionV2CreateResponse,
   type MotionBackgroundCreateRequest,
   type MotionBackgroundCreateResponse,
@@ -200,6 +209,13 @@ export {
   VEO3_PROMPT_MAX_LENGTH,
   VEO3_PROMPT_MIN_LENGTH,
   veo3Price,
+  MuseVideoCreateRequestSchema,
+  MuseVideoCreateResponseSchema,
+  MUSE_VIDEO_PROMPT_MAX_LENGTH,
+  MUSE_VIDEO_PROMPT_MIN_LENGTH,
+  MUSE_VIDEO_MAX_IMAGES,
+  MUSE_VIDEO_MAX_TOTAL_BYTES,
+  MUSE_VIDEO_PRICE,
   MotionBackgroundCreateRequestSchema,
   MotionBackgroundCreateResponseSchema,
   ShareInfoResponseSchema,
@@ -235,6 +251,8 @@ export {
   type MotionV2CreateRequest,
   type Veo3CreateRequest,
   type Veo3CreateResponse,
+  type MuseVideoCreateRequest,
+  type MuseVideoCreateResponse,
   type MotionV2CreateResponse,
   type ShareInfoResponse,
   type BodyRetouchCreateRequest,
@@ -840,6 +858,23 @@ export function createMotionApiClient(options: MotionApiClientOptions = {}) {
           signal: options?.signal,
         },
         (payload) => Veo3CreateResponseSchema.parse(payload),
+      );
+    },
+
+    async createMuseVideoTask(
+      rawRequest: MuseVideoCreateRequest,
+      options?: { signal?: AbortSignal },
+    ): Promise<MuseVideoCreateResponse> {
+      const data = MuseVideoCreateRequestSchema.parse(rawRequest);
+      return requestLive(
+        '/tasks/muse-video',
+        {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(data),
+          signal: options?.signal,
+        },
+        (payload) => MuseVideoCreateResponseSchema.parse(payload),
       );
     },
 

@@ -119,6 +119,20 @@ export const TOOL_SEO_CONTENT = {
       'Ở chế độ Frames, chọn hai khung hình cùng bố cục để chuyển động mượt.',
     ],
   },
+  'muse-video': {
+    heading: 'Muse Video: tạo video AI từ ảnh tham chiếu',
+    intro:
+      'Muse Video tạo video khoảng 10 giây, 720p, có âm thanh từ 1 đến 9 ảnh tham chiếu kèm mô tả. Bạn chọn tỉ lệ khung hoặc để AI theo tỉ lệ ảnh.',
+    steps: [
+      'Tải từ 1 đến 9 ảnh tham chiếu, tổng dung lượng không quá 11 MB.',
+      'Nhập mô tả chủ thể, hành động và chuyển động camera, chọn tỉ lệ khung nếu cần.',
+      'Bấm tạo, theo dõi tiến trình rồi tải video kết quả.',
+    ],
+    tips: [
+      'Mô tả rõ chủ thể, hành động và chuyển động camera mong muốn.',
+      'Sắp xếp ảnh theo thứ tự quan trọng; ảnh được gửi đúng thứ tự bạn chọn.',
+    ],
+  },
 } as const satisfies Record<string, ToolSeoContent>;
 
 export type ToolSeoId = keyof typeof TOOL_SEO_CONTENT;

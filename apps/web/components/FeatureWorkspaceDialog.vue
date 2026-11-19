@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import { computed, onBeforeUnmount, onMounted, ref, watch } from 'vue';
-import { MOTION_MIN_TRIM_SECONDS, type AccountTier, type Task } from '@flowvis/contracts';
+import { MOTION_MIN_TRIM_SECONDS, MUSE_VIDEO_DURATION_SECONDS, type AccountTier, type Task } from '@flowvis/contracts';
 import ImageUploader from '~/components/ImageUploader.vue';
 import TaskResultViewer from '~/components/TaskResultViewer.vue';
 import { useApiClient } from '~/composables/useApiClient';
@@ -8,6 +8,8 @@ import { useAuthDialog } from '~/composables/useAuthDialog';
 import { useMotionControl } from '~/composables/useMotionControl';
 import { useVeo3 } from '~/composables/useVeo3';
 import Veo3Form from '~/components/Veo3Form.vue';
+import { useMuseVideo } from '~/composables/useMuseVideo';
+import MuseVideoForm from '~/components/MuseVideoForm.vue';
 import { usePricingConfig } from '~/composables/usePricingConfig';
 import {
   ApiErrorCode,
@@ -79,6 +81,15 @@ const veoLastFrameKey = veo.lastFrameKey;
 const veoSubmitErrorVi = veo.submitErrorVi;
 const veoIsSubmitting = veo.isSubmitting;
 const veoInsufficientNoteVi = veo.insufficientNoteVi;
+const muse = useMuseVideo();
+const musePrompt = muse.prompt;
+const museAspectRatio = muse.aspectRatio;
+const museImageKeys = muse.imageKeys;
+const museTotalBytes = muse.totalBytes;
+const musePending = muse.pending;
+const museSubmitErrorVi = muse.submitErrorVi;
+const museIsSubmitting = muse.isSubmitting;
+const museInsufficientNoteVi = muse.insufficientNoteVi;
 const motionKey = ref<number>(0);
 
 // Dọn sạch trạng thái Motion và buộc VideoTrimmer/ImageUploader remount.
@@ -126,6 +137,7 @@ watch(
     submitErrorVi.value = null;
     resetMotionState();
     veo.clearState();
+    muse.clearState();
     if (nextFeature?.tierCapSeconds) {
       selectedSeconds.value = Math.min(MOTION_MIN_TRIM_SECONDS, nextFeature.tierCapSeconds);
     } else {
@@ -158,6 +170,7 @@ watch(
       submitErrorVi.value = null;
       resetMotionState();
       veo.clearState();
+      muse.clearState();
       }
   },
   { immediate: true },
@@ -173,7 +186,7 @@ watch(
 );
 
 const anySubmitting = computed<boolean>(
-  () => isSubmitting.value || motionIsSubmitting.value || veoIsSubmitting.value,
+  () => isSubmitting.value || motionIsSubmitting.value || veoIsSubmitting.value || museIsSubmitting.value,
 );
 
 // Task đang xếp hàng/chạy: khóa nút tạo để tránh tạo trùng.
@@ -191,6 +204,7 @@ const isMotion = computed<boolean>(
     props.feature?.id === 'motion-background',
 );
 const isVeo3 = computed<boolean>(() => props.feature?.id === 'veo-3');
+const isMuseVideo = computed<boolean>(() => props.feature?.id === 'muse-video');
 const isMotionV2 = computed<boolean>(() => props.feature?.id === 'motion-control-v2');
 const isMotionBackground = computed<boolean>(() => props.feature?.id === 'motion-background');
 watch(
@@ -209,6 +223,7 @@ const estimatedCredits = computed<number>(() => {
     return motion.price.value ?? 0;
   }
   if (isVeo3.value) return veo.price.value;
+  if (isMuseVideo.value) return muse.price.value;
   return calculateFeatureEstimatedCredits(
     props.feature,
     selectedSeconds.value,
@@ -217,6 +232,7 @@ const estimatedCredits = computed<number>(() => {
 
 const hasEnoughBalance = computed<boolean>(() => {
   if (isVeo3.value) return isAuthenticated.value && veo.hasEnoughBalance.value;
+  if (isMuseVideo.value) return isAuthenticated.value && muse.hasEnoughBalance.value;
   if (isMotion.value) {
     return (
       isAuthenticated.value &&
@@ -236,6 +252,9 @@ const canSubmit = computed<boolean>(() => {
   }
   if (isVeo3.value) {
     return isAuthenticated.value && veo.canSubmit.value;
+  }
+  if (isMuseVideo.value) {
+    return isAuthenticated.value && muse.canSubmit.value;
   }
   if (isMotion.value) {
     return (
@@ -288,6 +307,20 @@ async function handleSubmit(): Promise<void> {
       emit('submit', {
         featureId: props.feature.id,
         seconds: 8,
+        estimatedCredits: credits,
+      });
+    }
+    return;
+  }
+
+  if (isMuseVideo.value) {
+    const credits = muse.price.value;
+    const task = await muse.submit();
+    if (task) {
+      activeTask.value = task;
+      emit('submit', {
+        featureId: props.feature.id,
+        seconds: MUSE_VIDEO_DURATION_SECONDS,
         estimatedCredits: credits,
       });
     }
@@ -415,6 +448,7 @@ function handleRetry(): void {
   submitErrorVi.value = null;
   if (isMotion.value) resetMotionState();
   if (isVeo3.value) veo.clearState();
+  if (isMuseVideo.value) muse.clearState();
 }
 
 function handleKeydown(event: KeyboardEvent): void {
@@ -480,8 +514,8 @@ onBeforeUnmount(() => {
 
         <div class="flex items-center gap-2">
           <NuxtLink
-            v-if="feature.id === 'face-swap' || feature.id === 'veo-3' || feature.id === 'outfit-change' || feature.id === 'person-replace' || feature.id === 'body-retouch' || isMotion"
-            :to="feature.id === 'veo-3' ? '/veo-3' : feature.id === 'body-retouch' ? '/body-retouch' : feature.id === 'motion-control' ? '/motion-control' : feature.id === 'motion-control-v2' ? '/motion-control-v2' : feature.id === 'motion-background' ? '/motion-background' : feature.id === 'outfit-change' ? '/outfit-change' : feature.id === 'person-replace' ? '/person-replace' : '/face-swap'"
+            v-if="feature.id === 'face-swap' || feature.id === 'veo-3' || feature.id === 'muse-video' || feature.id === 'outfit-change' || feature.id === 'person-replace' || feature.id === 'body-retouch' || isMotion"
+            :to="feature.id === 'veo-3' ? '/veo-3' : feature.id === 'muse-video' ? '/muse-video' : feature.id === 'body-retouch' ? '/body-retouch' : feature.id === 'motion-control' ? '/motion-control' : feature.id === 'motion-control-v2' ? '/motion-control-v2' : feature.id === 'motion-background' ? '/motion-background' : feature.id === 'outfit-change' ? '/outfit-change' : feature.id === 'person-replace' ? '/person-replace' : '/face-swap'"
             data-testid="workspace-open-standalone-link"
             class="touch-target inline-flex min-h-[48px] items-center gap-1.5 rounded-xl border border-cyber-border bg-cyber-bg px-3 py-2 text-xs font-semibold text-cyber-muted transition hover:border-cyber-cyan hover:text-cyber-cyan"
             @click="emit('close')"
@@ -518,6 +552,18 @@ onBeforeUnmount(() => {
             v-model:last-frame-key="veoLastFrameKey"
             id-prefix="workspace-veo3"
             :maintenance-note="veo.intakePaused.value"
+          />
+
+          <!-- Muse Video: 1-9 ảnh tham chiếu + mô tả + tỉ lệ khung -->
+          <MuseVideoForm
+            v-else-if="isMuseVideo"
+            v-model:prompt="musePrompt"
+            v-model:aspect-ratio="museAspectRatio"
+            v-model:image-keys="museImageKeys"
+            v-model:total-bytes="museTotalBytes"
+            v-model:pending="musePending"
+            id-prefix="workspace-muse-video"
+            :maintenance-note="muse.intakePaused.value"
           />
 
           <!-- Trường hợp Face Swap: Yêu cầu 2 ảnh (mặt nguồn + đích) theo Story 2.11 -->
@@ -762,13 +808,13 @@ onBeforeUnmount(() => {
 
           <!-- Banner lỗi nếu có -->
           <div
-            v-if="submitErrorVi || motionSubmitErrorVi || veoSubmitErrorVi"
+            v-if="submitErrorVi || motionSubmitErrorVi || veoSubmitErrorVi || museSubmitErrorVi"
             data-testid="workspace-submit-error-banner"
             role="alert"
             aria-live="assertive"
             class="rounded-xl border border-cyber-danger/40 bg-cyber-danger/10 p-3 text-xs text-cyber-danger"
           >
-            {{ submitErrorVi || motionSubmitErrorVi || veoSubmitErrorVi }}
+            {{ submitErrorVi || motionSubmitErrorVi || veoSubmitErrorVi || museSubmitErrorVi }}
           </div>
 
           <p
@@ -777,6 +823,13 @@ onBeforeUnmount(() => {
             class="text-xs font-semibold text-cyber-warning"
           >
             {{ veoInsufficientNoteVi }}
+          </p>
+          <p
+            v-if="isMuseVideo && museInsufficientNoteVi"
+            data-testid="workspace-insufficient-note"
+            class="text-xs font-semibold text-cyber-warning"
+          >
+            {{ museInsufficientNoteVi }}
           </p>
 
           <!-- Bộ cắt video bước 1 giây (VideoTrimmer, chỉ với Motion Control) -->

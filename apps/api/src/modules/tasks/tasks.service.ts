@@ -46,6 +46,13 @@ import {
   veo3Price,
   type Veo3CreateRequest,
   type Veo3CreateResponse,
+  MUSE_VIDEO_DURATION_SECONDS,
+  MUSE_VIDEO_MAX_IMAGES,
+  MUSE_VIDEO_MAX_TOTAL_BYTES,
+  MUSE_VIDEO_PRICE,
+  MUSE_VIDEO_RESOLUTION,
+  type MuseVideoCreateRequest,
+  type MuseVideoCreateResponse,
 } from '@flowvis/contracts';
 import type { Queue } from 'bullmq';
 import { PrismaService, type PrismaTransactionClient } from '../../infra/prisma.service.js';
@@ -110,6 +117,7 @@ const INPUT_DISPLAY_ORDER: Readonly<Record<string, readonly string[]>> = {
   motion_control_v2: ['characterKey', 'videoKey'],
   motion_background: ['characterKey', 'videoKey'],
   veo3: ['imageKey', 'firstFrameKey', 'lastFrameKey'],
+  muse_video: Array.from({ length: MUSE_VIDEO_MAX_IMAGES }, (_, i) => `imageKey${i}`),
 };
 
 /** Chỉ lộ các tham số người dùng chọn; không lộ giá, kích thước nội bộ. */
@@ -785,6 +793,44 @@ export class TasksService {
     return { ...task, pipeline: 'veo3', price } as Veo3CreateResponse;
   }
 
+  /** Muse Video: giá cố định; 1-9 ảnh tham chiếu (tổng <= 11 MB) giữ thứ tự qua khóa imageKey0..8; luôn ~10 giây 720p. */
+  async createMuseVideo(userId: string, req: MuseVideoCreateRequest): Promise<MuseVideoCreateResponse> {
+    // `req` đã qua MuseVideoCreateRequestSchema ở controller (1-9 khóa không trùng, prompt đã trim).
+    const inputKeys: Record<string, string> = {};
+    req.imageKeys.forEach((key, i) => {
+      inputKeys[`imageKey${i}`] = key;
+    });
+    const totalBytes = await this.uploads.getConfirmedImagesTotalBytes(userId, req.imageKeys);
+    if (totalBytes === null) {
+      throw new BadRequestException({
+        code: ApiErrorCode.VALIDATION_FAILED,
+        message: getApiErrorMessageVi(ApiErrorCode.VALIDATION_FAILED),
+      });
+    }
+    if (totalBytes > MUSE_VIDEO_MAX_TOTAL_BYTES) {
+      throw new BadRequestException({
+        code: ApiErrorCode.VALIDATION_FAILED,
+        message: `Tổng dung lượng ảnh tham chiếu vượt quá giới hạn ${MUSE_VIDEO_MAX_TOTAL_BYTES / (1024 * 1024)} MB. Vui lòng bỏ bớt ảnh hoặc dùng ảnh nhẹ hơn.`,
+      });
+    }
+    const price = MUSE_VIDEO_PRICE;
+    const task = await this.createPipelineTask(userId, {
+      pipeline: 'muse_video',
+      amount: price,
+      inputKeys,
+      params: {
+        prompt: req.prompt,
+        ...(req.aspectRatio ? { aspectRatio: req.aspectRatio } : {}),
+        resolution: MUSE_VIDEO_RESOLUTION,
+        imageCount: req.imageKeys.length,
+        seconds: MUSE_VIDEO_DURATION_SECONDS,
+        price,
+      },
+      keysVerified: true,
+    });
+    return { ...task, pipeline: 'muse_video', price } as MuseVideoCreateResponse;
+  }
+
   private async createMotionTask(
     userId: string,
     pipeline: 'motion_control' | 'motion_control_v2' | 'motion_background',
@@ -834,7 +880,7 @@ export class TasksService {
   private async createPipelineTask(
     userId: string,
     spec: {
-      pipeline: 'face_swap' | 'outfit_change' | 'person_replace' | 'body_retouch' | 'motion_control' | 'motion_control_v2' | 'motion_background' | 'veo3';
+      pipeline: 'face_swap' | 'outfit_change' | 'person_replace' | 'body_retouch' | 'motion_control' | 'motion_control_v2' | 'motion_background' | 'veo3' | 'muse_video';
       amount: number;
       inputKeys: Record<string, string>;
       params: Record<string, unknown>;

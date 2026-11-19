@@ -363,3 +363,10 @@
 - source_spec: không có (review chế độ no-spec)
   summary: Khóa ffmpeg dùng chung (`FifoLock`, `video-trim.service.ts`) và `prep_deadline_at` 120 giây có thể gây `PREP_TIMEOUT` khi nhiều Task video vào bước chuẩn bị cùng lúc; `PREP_TIMEOUT` tính vào ngắt mạch (`SYSTEM_FAILURE_REASONS`), 5 lần liên tiếp sẽ tạm dừng nhận Task.
   evidence: Chưa xác minh trên production (mức low đến medium, hạ từ medium). Đo trên máy dev 8 nhân, video 1280x720: clip 3 giây cắt 0,35 giây, 10 giây 1,08 giây, 20 giây 1,65 giây, nên 85 task video vào cùng lúc chờ tối đa khoảng 140 giây so với hạn 120 giây. Cần đo ffmpeg trên máy production và theo dõi số `PREP_TIMEOUT` khi nâng `WORKER_CONCURRENCY` lên 85. Nếu xảy ra, hướng sửa là nâng hạn chuẩn bị (`tasks.service.ts` dòng 179) hoặc tính hạn từ lúc lấy được khóa.
+
+- source_spec: `_bmad-output/implementation-artifacts/spec-muse-video-image-to-video.md`
+  summary: Kiểm tra RunningHub Muse Video có trả errorCode kiểm duyệt nội dung (do gửi nsfwCheck=false) và adapter model có ánh xạ nó sang reason CONTENT_BLOCKED hay không.
+  evidence: Tài liệu muse-video ghi "submit thành công không bảo đảm video qua kiểm duyệt sau đó"; cần mã lỗi thật từ một task bị chặn để kết luận (review vòng 1, mục 7, maybe-false/medium chưa xác minh).
+- source_spec: `_bmad-output/implementation-artifacts/spec-muse-video-image-to-video.md`
+  summary: Thêm test thực thi cho frontend Muse Video (useMuseVideo canSubmit/pending/hasHole, MuseVideoForm quản lý ô và tổng dung lượng, nhánh muse trong FeatureWorkspaceDialog).
+  evidence: Test web hiện chỉ stub useMuseVideo/MuseVideoForm; Veo 3 cũng chưa có test tương ứng, nên dùng harness compile SFC trong motion-control.test.mjs (review vòng 1, mục 20).

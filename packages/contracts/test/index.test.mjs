@@ -543,6 +543,7 @@ describe('@flowvis/contracts', () => {
       [MOCK_PRICING_CONFIG_RESPONSE.pipelines.veo3Credits720p, MOCK_PRICING_CONFIG_RESPONSE.pipelines.veo3Credits1080p, MOCK_PRICING_CONFIG_RESPONSE.pipelines.veo3Credits4k],
       [500, 700, 950],
     );
+      assert.equal(MOCK_PRICING_CONFIG_RESPONSE.pipelines.museVideoCredits, 200);
       assert.equal(MOCK_PRICING_CONFIG_RESPONSE.pipelines.motionControlMinSeconds, 5);
 
       const tiersByKey = Object.fromEntries(
@@ -933,7 +934,7 @@ describe('@flowvis/contracts', () => {
     const KEY = 'in/10000000-0000-4000-8000-000000000001/60000000-0000-4000-8000-000000000001';
 
     it('exports pipelines and intensity constants', () => {
-      assert.deepEqual([...TASK_PIPELINES], ['face_swap', 'body_retouch', 'motion_control', 'outfit_change', 'person_replace', 'motion_control_v2', 'motion_background', 'veo3']);
+      assert.deepEqual([...TASK_PIPELINES], ['face_swap', 'body_retouch', 'motion_control', 'outfit_change', 'person_replace', 'motion_control_v2', 'motion_background', 'veo3', 'muse_video']);
       assert.deepEqual([INTENSITY_MIN, INTENSITY_MAX, INTENSITY_DEFAULT], [1, 10, 5]);
     });
 

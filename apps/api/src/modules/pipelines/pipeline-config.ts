@@ -1,6 +1,7 @@
 import type { ReasonCode } from '@flowvis/contracts';
 import type { RunningHubRunMode } from '../../ports/index.js';
 import { VEO3_DEFAULT_MODEL, buildVeo3Request, veo3InputKeys } from './veo3.js';
+import { MUSE_VIDEO_DEFAULT_MODEL, buildMuseVideoRequest, museVideoInputKeys } from './muse-video.js';
 import { videoTrim, type PrepareContext } from '../tasks/video-trim.service.js';
 
 export interface PipelineInputMapping {
@@ -173,6 +174,17 @@ export const PIPELINE_CONFIGS: Readonly<Record<string, PipelineConfig>> = {
     inputs: [],
     defaultWorkflowId: VEO3_DEFAULT_MODEL,
     model: { inputKeys: veo3InputKeys, buildRequest: buildVeo3Request },
+    deadlineMs: 600_000,
+  },
+  muse_video: {
+    pipeline: 'muse_video',
+    workflowEnvVar: 'RUNNINGHUB_MUSE_VIDEO_MODEL',
+    instanceEnvVar: 'RUNNINGHUB_INSTANCE_MUSE_VIDEO',
+    // API model chuẩn: JSON phẳng, 1-9 ảnh tham chiếu truyền bằng URL theo thứ tự imageKey0..8 (xem muse-video.ts).
+    runMode: 'model',
+    inputs: [],
+    defaultWorkflowId: MUSE_VIDEO_DEFAULT_MODEL,
+    model: { inputKeys: museVideoInputKeys, buildRequest: buildMuseVideoRequest },
     deadlineMs: 600_000,
   },
   motion_background: {
