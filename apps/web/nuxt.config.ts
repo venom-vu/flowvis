@@ -10,7 +10,9 @@ export default defineNuxtConfig({
       assertReportEmail(process.env.NUXT_PUBLIC_REPORT_EMAIL, process.env.NODE_ENV);
     },
   },
-  modules: ['@nuxtjs/tailwindcss', '@nuxt/icon', 'shadcn-nuxt'],
+  modules: ['@nuxtjs/tailwindcss', '@nuxt/icon', 'shadcn-nuxt', 'nuxt-gtag'],
+  // Google Analytics 4: để trống NUXT_PUBLIC_GTAG_ID thì không nạp script (dev/local không đếm traffic).
+  gtag: { id: process.env.NUXT_PUBLIC_GTAG_ID || '' },
   shadcn: { prefix: '', componentDir: './components/ui' },
   css: ['~/assets/css/main.css'],
   // Mặc định build server Node (.output/server/index.mjs) để chạy trên VPS (deploy/Dockerfile.web).

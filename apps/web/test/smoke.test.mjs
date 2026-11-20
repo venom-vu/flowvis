@@ -488,6 +488,7 @@ describe('@flowxis/web — Story 1.4 Nuxt 4 mobile-first & API client', () => {
           items: MOCK_WALLET_LEDGER_ITEMS.slice(0, 20),
           pageSize: 20,
           hasMore: false,
+          total: Math.min(MOCK_WALLET_LEDGER_ITEMS.length, 20),
           nextCursor: null,
         });
       }
@@ -519,7 +520,7 @@ describe('@flowxis/web — Story 1.4 Nuxt 4 mobile-first & API client', () => {
           'data-testid="app-top-header"',
           'data-testid="app-bottom-nav"',
           '100 CR / lượt',
-          '150 + 20 CR / giây',
+          '150 + 15 CR / giây',
           '5 giây',
         ],
       },

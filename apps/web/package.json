@@ -22,6 +22,7 @@
     "clsx": "2.1.1",
     "lucide-vue-next": "1.0.0",
     "nuxt": "4.6.3",
+    "nuxt-gtag": "^5.1.0",
     "qrcode": "1.5.4",
     "reka-ui": "2.11.0",
     "shadcn-nuxt": "2.9.0",

@@ -596,7 +596,7 @@ describe('Story 6.8: các trang quản trị vận hành (SSR)', () => {
   it('hộp xác nhận mở lại nêu rủi ro và số dư lần đọc cuối', async () => {
     const html = await renderOps({ status: MOCK_OPS_STATUS_BUDGET_EXHAUSTED, confirmOpen: true });
     assert.match(html, /thất bại nhanh/);
-    assert.match(html, /Số dư RunningHub lần đọc cuối/);
+    assert.match(html, /Số dư GPU lần đọc cuối/);
   });
 
   it('hộp xác nhận khóa nêu email tài khoản', async () => {
