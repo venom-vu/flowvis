@@ -44,7 +44,7 @@ const TIER_SPECS: Record<
   FREE: {
     packId: null,
     priority: 10,
-    maxVideoSeconds: 5,
+    maxVideoSeconds: 20,
     maxActiveTasks: 1,
     priceVnd: 0,
     credits: 250,

@@ -221,7 +221,7 @@ describe('@flowxis/web — Story 5.7 VideoTrimmer', () => {
       assert.doesNotMatch(raw, /\/topup/);
       assert.match(raw, /h-12 w-12/);
       assert.doesNotMatch(raw, /[\u{1F300}-\u{1FAFF}]/u);
-      assert.equal(MOCK_PRICING_CONFIG_RESPONSE.tiers[0].maxVideoSeconds, 5);
+      assert.equal(MOCK_PRICING_CONFIG_RESPONSE.tiers[0].maxVideoSeconds, 20);
       assert.ok(typeof createSSRApp === 'function' && typeof renderToString === 'function');
     });
   });

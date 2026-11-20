@@ -82,7 +82,7 @@ export const DEFAULT_PRICING_CONFIG: PricingConfigResponse = {
       packId: null,
       priceVnd: 0,
       credits: 250,
-      maxVideoSeconds: 5,
+      maxVideoSeconds: 20,
       maxActiveTasks: 1,
       priority: 10,
     },

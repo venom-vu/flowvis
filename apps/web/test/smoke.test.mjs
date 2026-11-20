@@ -246,7 +246,7 @@ describe('@flowxis/web — Story 1.4 Nuxt 4 mobile-first & API client', () => {
   it('AC5 & I/O Row 5: danh mục công cụ và tính phí lấy động từ GET /config/pricing theo từng Tier, không hardcode', () => {
     const pricing = MOCK_PRICING_CONFIG_RESPONSE;
 
-    assert.equal(getTierCapSeconds(pricing, 'FREE'), 5);
+    assert.equal(getTierCapSeconds(pricing, "FREE"), 20);
     assert.equal(getTierCapSeconds(pricing, 'Starter'), 20);
     assert.equal(getTierCapSeconds(pricing, 'Pro'), 20);
     assert.equal(getTierCapSeconds(pricing, 'Creator'), 20);
@@ -271,11 +271,11 @@ describe('@flowxis/web — Story 1.4 Nuxt 4 mobile-first & API client', () => {
       pricing.pipelines.motionControlCreditsPerSecond,
     );
     assert.equal(motionControlFree.baseCredits, pricing.pipelines.motionControlBaseCredits);
-    assert.equal(motionControlFree.tierCapSeconds, 5);
+    assert.equal(motionControlFree.tierCapSeconds, 20);
     // Giá = phí cố định + đơn giá × giây: v1 5 giây = 150 + 15 × 5 = 225 (nằm trong 250 credit tặng của FREE)
     assert.equal(calculateFeatureEstimatedCredits(motionControlFree, 5), 225);
-    // Clamped ở trần 5 giây của FREE
-    assert.equal(calculateFeatureEstimatedCredits(motionControlFree, 12), 225);
+    // FREE không còn giới hạn 5 giây: trần là giới hạn của chức năng (20 giây)
+    assert.equal(calculateFeatureEstimatedCredits(motionControlFree, 12), 150 + 15 * 12);
 
     const creatorCatalog = buildAiFeatureCatalog(pricing, 'Creator');
     const motionControlCreator = creatorCatalog.find(
@@ -521,7 +521,6 @@ describe('@flowxis/web — Story 1.4 Nuxt 4 mobile-first & API client', () => {
           'data-testid="app-bottom-nav"',
           '100 CR / lượt',
           '150 + 15 CR / giây',
-          '5 giây',
         ],
       },
       {

@@ -549,7 +549,7 @@ describe('@flowxis/contracts', () => {
       const tiersByKey = Object.fromEntries(
         MOCK_PRICING_CONFIG_RESPONSE.tiers.map((t) => [t.tier, t]),
       );
-      assert.equal(tiersByKey.FREE.maxVideoSeconds, 5);
+      assert.equal(tiersByKey.FREE.maxVideoSeconds, 20);
       assert.equal(tiersByKey.FREE.priority, 10);
       assert.equal(tiersByKey.Starter.maxVideoSeconds, 20);
       assert.equal(tiersByKey.Starter.priority, 3);

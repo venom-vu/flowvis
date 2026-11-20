@@ -5,7 +5,7 @@ import { ConfirmedUploadKeySchema } from './uploads.js';
 /** Số giây Trim tối thiểu của Motion Control. */
 export const MOTION_MIN_TRIM_SECONDS = 5;
 
-/** Số giây Trim tối đa theo chức năng Motion; gói FREE bị giới hạn thêm bởi `maxVideoSeconds` của Tier (5 giây). */
+/** Số giây Trim tối đa theo chức năng Motion; giới hạn thêm bởi `maxVideoSeconds` của Tier. */
 export const MOTION_MAX_SECONDS = {
   motion_control: 20,
   motion_control_v2: 10,
