@@ -1,0 +1,177 @@
+{
+  "summary": {
+    "health_score": 53,
+    "business_type": "SaaS AI image/video tools (Vietnamese)",
+    "top_findings": [
+      "Canonical/og/JSON-LD/sitemap trỏ sang flowxis.adasweep.xyz (không truy cập được)",
+      "www không redirect",
+      "Nội dung mỏng",
+      "Rủi ro chính sách nội dung nhạy cảm"
+    ],
+    "quick_wins": [
+      "Đặt site URL = https://flowxis.app",
+      "301 www→apex",
+      "Rút gọn title trang chủ",
+      "Tối ưu ảnh banner"
+    ]
+  },
+  "categories": [
+    {
+      "name": "Technical SEO",
+      "score": 45,
+      "what_works": [
+        "HTTPS/HSTS",
+        "robots.txt và sitemap hợp lệ"
+      ],
+      "findings": [
+        {
+          "title": "Canonical/sitemap sai domain",
+          "severity": "Critical",
+          "description": "Mọi canonical, og:url, JSON-LD, sitemap trỏ flowxis.adasweep.xyz, host không phản hồi.",
+          "recommendation": "Đặt site URL production = https://flowxis.app và build lại."
+        },
+        {
+          "title": "www không redirect",
+          "severity": "High",
+          "description": "www.flowxis.app trả 200.",
+          "recommendation": "301 về apex."
+        }
+      ]
+    },
+    {
+      "name": "Content Quality",
+      "score": 55,
+      "what_works": [
+        "Mỗi trang có H1 và description riêng"
+      ],
+      "findings": [
+        {
+          "title": "Nội dung mỏng, không có FAQ/blog",
+          "severity": "High",
+          "description": "Trang chủ ~1.090 ký tự văn bản.",
+          "recommendation": "Thêm nội dung hướng dẫn, ví dụ, FAQ."
+        },
+        {
+          "title": "Rủi ro nội dung nhạy cảm",
+          "severity": "High",
+          "description": "Nâng Ngực, Face Swap.",
+          "recommendation": "Điều chỉnh câu chữ, thêm chính sách sử dụng."
+        }
+      ]
+    },
+    {
+      "name": "On-Page SEO",
+      "score": 50,
+      "what_works": [
+        "Title/description duy nhất"
+      ],
+      "findings": [
+        {
+          "title": "Title trang chủ ~68 ký tự; tên card lệch từ khóa",
+          "severity": "Medium",
+          "description": "",
+          "recommendation": "Rút gọn, đồng bộ tên."
+        }
+      ]
+    },
+    {
+      "name": "Schema / Structured Data",
+      "score": 55,
+      "what_works": [
+        "Organization, WebSite, SoftwareApplication"
+      ],
+      "findings": [
+        {
+          "title": "Schema thiếu offers/sameAs và URL sai domain",
+          "severity": "Medium",
+          "description": "",
+          "recommendation": "Sửa URL, bổ sung trường."
+        }
+      ]
+    },
+    {
+      "name": "Performance (CWV)",
+      "score": 60,
+      "what_works": [
+        "HTTP/2-3, Cloudflare"
+      ],
+      "findings": [
+        {
+          "title": "TTFB 1,07s, chưa đo CWV",
+          "severity": "Medium",
+          "description": "Ước lượng, không có Lighthouse/CrUX.",
+          "recommendation": "Cache edge, đo CWV thật."
+        }
+      ]
+    },
+    {
+      "name": "AI Search Readiness",
+      "score": 60,
+      "what_works": [
+        "robots phân tách bot tìm kiếm và bot huấn luyện AI"
+      ],
+      "findings": [
+        {
+          "title": "Không có llms.txt, nội dung ít để trích dẫn",
+          "severity": "Low",
+          "description": "",
+          "recommendation": "Thêm nội dung có cấu trúc, cân nhắc llms.txt."
+        }
+      ]
+    },
+    {
+      "name": "Images",
+      "score": 65,
+      "what_works": [
+        "Có alt"
+      ],
+      "findings": [
+        {
+          "title": "Ảnh banner PNG, alt ngắn",
+          "severity": "Medium",
+          "description": "Chưa đo dung lượng.",
+          "recommendation": "WebP/AVIF, alt mô tả."
+        }
+      ]
+    }
+  ],
+  "action_plan": {
+    "phases": [
+      {
+        "name": "Phase 1: Critical Fixes",
+        "timeframe": "Week 1",
+        "items": [
+          "Sửa site URL sang flowxis.app",
+          "Gửi lại sitemap lên GSC"
+        ]
+      },
+      {
+        "name": "Phase 2: High-Impact Improvements",
+        "timeframe": "Weeks 2-3",
+        "items": [
+          "301 www",
+          "Thêm nội dung/FAQ",
+          "Rà soát chính sách nội dung"
+        ]
+      },
+      {
+        "name": "Phase 3: Content & Authority",
+        "timeframe": "Month 2",
+        "items": [
+          "Tối ưu ảnh, schema, header bảo mật"
+        ]
+      },
+      {
+        "name": "Phase 4: Monitoring & Iteration",
+        "timeframe": "Ongoing",
+        "items": [
+          "Đo CWV, chạy lại audit"
+        ]
+      }
+    ]
+  },
+  "artifacts": {
+    "findings_dir": "findings/",
+    "screenshots_dir": "screenshots/"
+  }
+}

@@ -47,7 +47,7 @@ export default defineNuxtConfig({
   },
   runtimeConfig: {
     public: {
-      siteUrl: process.env.NUXT_PUBLIC_SITE_URL || 'https://flowxis.adasweep.xyz',
+      siteUrl: process.env.NUXT_PUBLIC_SITE_URL || 'https://flowxis.app',
       apiBaseUrl: process.env.NUXT_PUBLIC_API_BASE_URL || 'http://localhost:8000',
       reportEmail: process.env.NUXT_PUBLIC_REPORT_EMAIL || '',
       zaloUrl: process.env.NUXT_PUBLIC_ZALO_URL || '',
