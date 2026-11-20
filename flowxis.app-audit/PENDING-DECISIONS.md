@@ -12,8 +12,13 @@ Chưa triển khai. Chi tiết nằm trong `FULL-AUDIT-REPORT.md` và `ACTION-PL
 
 ## Việc liên quan cần nhớ
 
-- Đã sửa trong code, chưa commit/deploy: `siteUrl` mặc định đổi sang `https://flowxis.app` (`apps/web/nuxt.config.ts:50`) và rút title trang chủ (`apps/web/pages/index.vue:15`).
-- Cần kiểm tra biến `NUXT_PUBLIC_SITE_URL` trên Coolify. Nếu đang đặt là domain adasweep.xyz thì sẽ ghi đè giá trị mặc định mới.
+- Đã sửa trong code, chưa commit: `siteUrl` mặc định `https://flowxis.app`, title trang chủ, ghim `nuxt-gtag` 5.1.0, cookie `Secure`, ảnh banner WebP, alt ảnh card, `public/llms.txt`. Trên production, canonical/sitemap/og/JSON-LD đã đúng domain; dòng `Sitemap:` trong robots.txt còn sai do Cloudflare cache 4 giờ, cần purge `/robots.txt`.
 - Sau khi deploy: kiểm tra lại canonical, sitemap, og, JSON-LD và gửi lại sitemap trong Google Search Console.
-- Test có sẵn bị fail từ trước: smoke test Story 1.4 yêu cầu ghim cố định `nuxt-gtag` (hiện `^5.1.0`, bản cài là 5.1.0).
-- Chưa làm: tối ưu ảnh banner, cache edge giảm TTFB, mở rộng schema (`offers`, `sameAs`, `BreadcrumbList`), `llms.txt`, đo Core Web Vitals thật.
+- Chưa làm: mở rộng schema (`offers`, `sameAs` cần dữ liệu thật; `BreadcrumbList`), đo Core Web Vitals thật, xoá ảnh PNG/JPG gốc trong `public/banner/`.
+
+## Đã quyết định (2026-11-21)
+
+| Hạng mục | Quyết định | Lý do |
+|---|---|---|
+| Cache trang SSR ở Cloudflare để giảm TTFB | Không cache lúc này (phương án C) | Trang chủ render khác nhau theo cookie `flowxis-session-hint`, cache sai có thể lộ khung đã đăng nhập cho người khác. Xem lại khi có nhu cầu cụ thể về TTFB. |
+| `HttpOnly` cho cookie `flowxis-session-hint` | Giữ nguyên, không thêm | Client cần đọc cookie này để dựng giao diện. Cookie chỉ là gợi ý giao diện, không chứa token. Đã thêm `Secure`. |

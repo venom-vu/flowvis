@@ -9,6 +9,7 @@ export function useSessionHint() {
   const hint = useCookie<boolean>('flowxis-session-hint', {
     maxAge: 60 * 60 * 24 * 30,
     sameSite: 'lax',
+    secure: !import.meta.dev,
     path: '/',
     default: () => false,
   });

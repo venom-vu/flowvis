@@ -1,0 +1,18 @@
+# flowxis
+
+> Nền tảng tạo ảnh và video AI trả theo credit: hoán đổi khuôn mặt, đổi trang phục, điều khiển chuyển động video, Veo 3 và Muse Video.
+
+## Công cụ
+
+- [Hoán đổi khuôn mặt](https://flowxis.app/face-swap)
+- [Đổi trang phục](https://flowxis.app/outfit-change)
+- [Điều khiển chuyển động](https://flowxis.app/motion-control)
+- [Điều khiển chuyển động v2](https://flowxis.app/motion-control-v2)
+- [Veo 3](https://flowxis.app/veo-3)
+- [Muse Video](https://flowxis.app/muse-video)
+
+## Thông tin
+
+- [Bảng giá](https://flowxis.app/pricing)
+- [Điều khoản dịch vụ](https://flowxis.app/terms)
+- [Chính sách quyền riêng tư](https://flowxis.app/privacy)

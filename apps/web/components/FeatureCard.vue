@@ -47,7 +47,7 @@ function handleOpenWorkspace(): void {
         <img
           v-else
           :src="feature.bannerUrl"
-          :alt="feature.titleVi"
+          :alt="`Ảnh minh họa ${feature.titleVi}`"
           class="absolute inset-0 h-full w-full object-cover"
           loading="lazy"
         />
