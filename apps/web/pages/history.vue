@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import { computed, ref, watch } from 'vue';
 import { clearNuxtData, useAsyncData } from '#imports';
-import type { LedgerEntryType, WalletLedgerResponse } from '@flowvis/contracts';
+import type { LedgerEntryType, WalletLedgerResponse } from '@flowxis/contracts';
 import { useApiClient } from '~/composables/useApiClient';
 import { useAuth } from '~/composables/useAuth';
 import { useAuthDialog } from '~/composables/useAuthDialog';
@@ -19,9 +19,9 @@ import { LEDGER_FILTER_FIELDS, compactFilters, emptyFilters } from '~/utils/hist
 import { usePageSeo } from '~/composables/usePageSeo';
 
 usePageSeo({
-  title: 'Lịch Sử Credit — flowvis',
+  title: 'Lịch Sử Credit — flowxis',
   description:
-    'Lịch sử giao dịch credit của tài khoản flowvis.',
+    'Lịch sử giao dịch credit của tài khoản flowxis.',
   noindex: true,
 });
 
@@ -39,7 +39,7 @@ const appliedFilters = computed(() => compactFilters(filterModel.value) as {
 const hasFilter = computed(() => Object.keys(appliedFilters.value).length > 0);
 
 const ledgerAsync = useAsyncData<WalletLedgerResponse>(
-  'flowvis-wallet-ledger',
+  'flowxis-wallet-ledger',
   () => client.getWalletLedger({ pageSize: 20, ...appliedFilters.value }),
   { watch: [appliedFilters] },
 );
@@ -86,7 +86,7 @@ watch(accessToken, (newToken, oldToken) => {
   // Chỉ làm mới khi trạng thái đăng nhập đổi; xoay vòng token không được xóa các trang đã cuộn.
   if (Boolean(newToken) !== Boolean(oldToken)) {
     if (!newToken) {
-      clearNuxtData('flowvis-wallet-ledger');
+      clearNuxtData('flowxis-wallet-ledger');
       pagination.reset();
     }
     if (ledgerAsync.pending.value) {

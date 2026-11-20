@@ -4,7 +4,7 @@ import {
   ApiErrorCode,
   type Topup,
   type TopupPackId,
-} from '@flowvis/contracts';
+} from '@flowxis/contracts';
 import { ME_KEY, useApiClient } from '~/composables/useApiClient';
 import { resolveApiErrorMessageVi } from '~/utils/api-client';
 import { compactFilters } from '~/utils/compact-filters';

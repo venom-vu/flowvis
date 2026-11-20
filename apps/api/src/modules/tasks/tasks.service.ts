@@ -50,7 +50,7 @@ import {
   MUSE_VIDEO_RESOLUTION,
   type MuseVideoCreateRequest,
   type MuseVideoCreateResponse,
-} from '@flowvis/contracts';
+} from '@flowxis/contracts';
 import type { Queue } from 'bullmq';
 import { PrismaService, type PrismaTransactionClient } from '../../infra/prisma.service.js';
 import type { RunningHubInstanceType } from '../../ports/index.js';

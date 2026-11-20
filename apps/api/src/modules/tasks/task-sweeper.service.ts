@@ -1,7 +1,7 @@
 import { Inject, Injectable, Logger } from '@nestjs/common';
 import { InjectQueue } from '@nestjs/bullmq';
 import { Interval } from '@nestjs/schedule';
-import type { ReasonCode } from '@flowvis/contracts';
+import type { ReasonCode } from '@flowxis/contracts';
 import type { Job, Queue } from 'bullmq';
 import { NOTIFIER_PORT, type NotifierPort } from '../../ports/index.js';
 import { AlertService } from '../ops/alert.service.js';

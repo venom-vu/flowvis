@@ -5,7 +5,7 @@ import {
   Veo3CreateRequestSchema,
   VEO3_PRICING,
   veo3Price,
-} from '@flowvis/contracts';
+} from '@flowxis/contracts';
 import { PIPELINE_CONFIGS } from '../dist/modules/pipelines/pipeline-config.js';
 import { buildVeo3Request, veo3InputKeys } from '../dist/modules/pipelines/veo3.js';
 import { RunningHubOpenApiAdapter } from '../dist/modules/tasks/runninghub-openapi.adapter.js';

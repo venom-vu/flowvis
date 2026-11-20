@@ -4,7 +4,7 @@ import { useAuthDialog } from '~/composables/useAuthDialog';
 import { useVeo3 } from '~/composables/useVeo3';
 
 usePageSeo({
-  title: 'Veo 3 Tạo Video AI (Text, Ảnh, Khung hình) — flowvis',
+  title: 'Veo 3 Tạo Video AI (Text, Ảnh, Khung hình) — flowxis',
   description:
     'Tạo video 8 giây có âm thanh bằng Veo 3 từ mô tả văn bản, một ảnh hoặc khung hình đầu và cuối. Chọn tỉ lệ khung và độ phân giải, xem giá credit ngay.',
 });

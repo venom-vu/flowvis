@@ -6,7 +6,7 @@ import {
   getApiErrorMessageVi,
   type AdminAuditResponse,
   type AdminStatsResponse,
-} from '@flowvis/contracts';
+} from '@flowxis/contracts';
 import { Roles } from '../auth/decorators/roles.decorator.js';
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard.js';
 import { RolesGuard } from '../auth/guards/roles.guard.js';

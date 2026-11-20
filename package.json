@@ -1,5 +1,5 @@
 {
-  "name": "flowvis",
+  "name": "flowxis",
   "version": "0.1.0",
   "private": true,
   "type": "module",
@@ -8,8 +8,8 @@
   },
   "scripts": {
     "lint": "eslint eslint.config.mjs scripts && pnpm -r run lint",
-    "typecheck": "pnpm --filter @flowvis/contracts run build && pnpm -r run typecheck",
-    "build": "pnpm --filter @flowvis/contracts run build && pnpm --filter @flowvis/api run build && pnpm --filter @flowvis/web run build",
+    "typecheck": "pnpm --filter @flowxis/contracts run build && pnpm -r run typecheck",
+    "build": "pnpm --filter @flowxis/contracts run build && pnpm --filter @flowxis/api run build && pnpm --filter @flowxis/web run build",
     "test": "node --test scripts/check-branch-boundaries.test.mjs scripts/prelaunch/lib.test.mjs && pnpm -r run test",
     "check:boundaries": "node scripts/check-branch-boundaries.mjs"
   },

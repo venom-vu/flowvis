@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import { onBeforeUnmount, onMounted, ref, watch } from 'vue';
-import { TOS_VERSION } from '@flowvis/contracts';
+import { TOS_VERSION } from '@flowxis/contracts';
 import { useApiClient } from '~/composables/useApiClient';
 import { resolveApiErrorMessageVi } from '~/utils/api-client';
 
@@ -32,7 +32,7 @@ watch(acceptedTos, (accepted) => {
   }
 });
 
-const DEVICE_ID_KEY = 'flowvis-device-id';
+const DEVICE_ID_KEY = 'flowxis-device-id';
 
 function getDeviceId(): string {
   try {

@@ -70,7 +70,7 @@ context:
 
 **Acceptance Criteria:**
 - Given 10.000 Task thử, when gọi `GET /admin/stats`, then trả dưới 2 giây và khớp số liệu tính tay.
-- Given `pnpm --filter @flowvis/api test`, `lint`, `typecheck`, `build`, `check:boundaries`, when chạy, then pass (trừ test lỗi có sẵn ở Story 2.14, 5.2 và throttle).
+- Given `pnpm --filter @flowxis/api test`, `lint`, `typecheck`, `build`, `check:boundaries`, when chạy, then pass (trừ test lỗi có sẵn ở Story 2.14, 5.2 và throttle).
 
 ## Implementation Notes
 

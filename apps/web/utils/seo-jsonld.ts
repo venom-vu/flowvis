@@ -1,5 +1,5 @@
 // Tên và logo tạm; đổi tại đây khi chốt thương hiệu/pháp nhân.
-export const BRAND_NAME = 'flowvis';
+export const BRAND_NAME = 'flowxis';
 export const BRAND_LOGO_PATH = '/favicon.svg';
 
 const trim = (origin: string) => origin.replace(/\/$/, '');

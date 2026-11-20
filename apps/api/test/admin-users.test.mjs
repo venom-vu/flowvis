@@ -5,7 +5,7 @@ import net from 'node:net';
 import path from 'node:path';
 import { after, before, describe, it } from 'node:test';
 import { fileURLToPath } from 'node:url';
-import { AdminAdjustResponseSchema, AdminUserSchema, AdminUserStatsResponseSchema, ApiErrorCode } from '@flowvis/contracts';
+import { AdminAdjustResponseSchema, AdminUserSchema, AdminUserStatsResponseSchema, ApiErrorCode } from '@flowxis/contracts';
 import { JwtService } from '@nestjs/jwt';
 import pg from 'pg';
 import { Redis } from 'ioredis';
@@ -19,7 +19,7 @@ const repoRoot = path.resolve(apiRoot, '../..');
 const composePath = path.join(repoRoot, 'deploy', 'compose.yml');
 const DB_URL =
   process.env.DATABASE_URL ||
-  'postgresql://motion_user:change_me_local_password@localhost:5432/flowvis?schema=public';
+  'postgresql://motion_user:change_me_local_password@localhost:5432/flowxis?schema=public';
 const REDIS_URL = process.env.REDIS_URL || 'redis://localhost:6379';
 
 function tcp(host, port) {
@@ -61,7 +61,7 @@ describe('Story 6.4: [BE] Khóa tài khoản và cộng bù credit', () => {
   async function mkUser(role = 'user', balance = 0) {
     const n = userIds.length;
     const u = await prisma.user.create({
-      data: { googleId: `au-${runId}-${n}`, email: `au-${runId}-${n}@flowvis.vn`, tosVersion: 'tos-v7', role },
+      data: { googleId: `au-${runId}-${n}`, email: `au-${runId}-${n}@flowxis.vn`, tosVersion: 'tos-v7', role },
     });
     userIds.push(u.id);
     if (balance) {

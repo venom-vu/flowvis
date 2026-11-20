@@ -2,8 +2,8 @@ import type {
   AccountTier,
   PricingConfigResponse,
   TierConfig,
-} from "@flowvis/contracts";
-import { motionCapSeconds } from "@flowvis/contracts";
+} from "@flowxis/contracts";
+import { motionCapSeconds } from "@flowxis/contracts";
 
 export type FeatureCategoryId = "all" | "image" | "video";
 

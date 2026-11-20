@@ -14,7 +14,7 @@ context:
 
 ## Intent
 
-**Problem:** flowvis chưa có model Meta Muse Video, dù RunningHub đã mở API model chuẩn `POST /openapi/v2/meta/muse-video/economy`. Model này tạo video 720p dài khoảng 10 giây, có âm thanh, từ prompt và ảnh tham chiếu.
+**Problem:** flowxis chưa có model Meta Muse Video, dù RunningHub đã mở API model chuẩn `POST /openapi/v2/meta/muse-video/economy`. Model này tạo video 720p dài khoảng 10 giây, có âm thanh, từ prompt và ảnh tham chiếu.
 
 **Approach:** Tích hợp như một pipeline mới `muse_video` theo đúng khuôn của Veo 3 (commit `3c8671e`): `runMode: 'model'`, upload ảnh qua `uploadMedia`, gửi JSON phẳng qua `submitModel`, rồi nhập kết quả video lên R2. Phía web có card `muse-video` ("Muse Video") trong kho công cụ, form trong `FeatureWorkspaceDialog` và trang riêng `/muse-video`.
 

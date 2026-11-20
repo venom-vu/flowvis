@@ -120,7 +120,7 @@ onBeforeUnmount(() => observer?.disconnect());
         <p
           class="text-xs font-semibold uppercase tracking-widest text-cyber-cyan/90"
         >
-          Pháp lý · flowvis
+          Pháp lý · flowxis
         </p>
         <h1
           class="mt-2 font-display text-3xl font-bold tracking-tight text-cyber-text sm:text-4xl"

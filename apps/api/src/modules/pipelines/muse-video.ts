@@ -3,7 +3,7 @@ import {
   MUSE_VIDEO_DURATION_SECONDS,
   MUSE_VIDEO_MAX_IMAGES,
   MUSE_VIDEO_RESOLUTION,
-} from '@flowvis/contracts';
+} from '@flowxis/contracts';
 
 /** Model RunningHub mặc định của Muse Video; ghi đè bằng RUNNINGHUB_MUSE_VIDEO_MODEL. */
 export const MUSE_VIDEO_DEFAULT_MODEL = 'meta/muse-video/economy';

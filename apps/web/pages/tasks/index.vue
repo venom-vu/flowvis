@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import { computed, onBeforeUnmount, ref, watch } from 'vue';
 import { clearNuxtData, refreshNuxtData, useAsyncData, useHead } from '#imports';
-import type { Task, TaskListQuery, TaskListResponse } from '@flowvis/contracts';
+import type { Task, TaskListQuery, TaskListResponse } from '@flowxis/contracts';
 import { ME_KEY, useApiClient } from '~/composables/useApiClient';
 import { useAuth } from '~/composables/useAuth';
 import { useAuthDialog } from '~/composables/useAuthDialog';
@@ -12,7 +12,7 @@ import { TASK_FILTER_FIELDS, compactFilters, emptyFilters } from '~/utils/histor
 import { USER_TABLE_PAGE_SIZE, userTable } from '~/utils/user-table';
 
 useHead({
-  title: 'Lịch Sử Tác Vụ — flowvis',
+  title: 'Lịch Sử Tác Vụ — flowxis',
   meta: [
     {
       name: 'description',
@@ -34,7 +34,7 @@ const appliedFilters = computed(
 const hasFilter = computed(() => Object.keys(appliedFilters.value).length > 0);
 
 const tasksAsync = useAsyncData<TaskListResponse>(
-  'flowvis-tasks-list',
+  'flowxis-tasks-list',
   () => client.listTasks({ pageSize: PAGE_SIZE, ...appliedFilters.value }),
   { watch: [appliedFilters] },
 );
@@ -80,7 +80,7 @@ watch(
 watch(accessToken, (newToken, oldToken) => {
   if (Boolean(newToken) !== Boolean(oldToken)) {
     if (!newToken) {
-      clearNuxtData('flowvis-tasks-list');
+      clearNuxtData('flowxis-tasks-list');
       items.value = [];
       nextCursor.value = null;
       hasMore.value = false;

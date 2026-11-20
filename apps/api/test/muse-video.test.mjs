@@ -9,7 +9,7 @@ import {
   MUSE_VIDEO_PRICE,
   MUSE_VIDEO_PROMPT_MAX_LENGTH,
   TASK_PIPELINES,
-} from '@flowvis/contracts';
+} from '@flowxis/contracts';
 import { PIPELINE_CONFIGS } from '../dist/modules/pipelines/pipeline-config.js';
 import { buildMuseVideoRequest, museVideoInputKeys } from '../dist/modules/pipelines/muse-video.js';
 import { PRICING_CONFIG } from '../dist/modules/wallet/tier.js';

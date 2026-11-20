@@ -5,7 +5,7 @@ import {
   OnModuleDestroy,
   OnModuleInit,
 } from "@nestjs/common";
-import type { ReasonCode } from "@flowvis/contracts";
+import type { ReasonCode } from "@flowxis/contracts";
 import { Worker } from "bullmq";
 import { RedisService } from "../../infra/redis.service.js";
 import {

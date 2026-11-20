@@ -13,7 +13,7 @@ context: []
 
 ## Intent
 
-**Problem:** flowvis chưa có tính năng tạo ảnh sản phẩm đa góc, dù RunningHub đã có AI app `2030848699949125633`. App nhận 3 ảnh: node `27`, `28`, `7`, cùng field `image`.
+**Problem:** flowxis chưa có tính năng tạo ảnh sản phẩm đa góc, dù RunningHub đã có AI app `2030848699949125633`. App nhận 3 ảnh: node `27`, `28`, `7`, cùng field `image`.
 
 **Approach:** Thêm pipeline `multi_angle_product` theo khuôn ai-app của `person_replace`. Adapter hiện có đã gửi `instanceType` và `usePersonalQueue: 'false'`, nên không cần adapter mới. Kết quả là **một ảnh**: đi qua nhánh ảnh sẵn có của `result-ingestor` (EXIF, R2). Phía web thêm card `multi-angle-product` ("Tạo sản phẩm đa góc") với form 3 ô ảnh trong `FeatureWorkspaceDialog`, cùng trang riêng `/multi-angle-product`.
 

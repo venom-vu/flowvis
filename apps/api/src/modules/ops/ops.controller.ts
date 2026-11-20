@@ -1,5 +1,5 @@
 import { Controller, Get, HttpCode, Post, UseGuards } from '@nestjs/common';
-import type { OpsStatusResponse, SystemStatusResponse } from '@flowvis/contracts';
+import type { OpsStatusResponse, SystemStatusResponse } from '@flowxis/contracts';
 import { PrismaService } from '../../infra/prisma.service.js';
 import { AuditService } from '../audit/audit.service.js';
 import { CurrentUser } from '../auth/decorators/current-user.decorator.js';

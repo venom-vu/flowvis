@@ -25,7 +25,7 @@ import {
   type TopupPackId,
   type TopupStatus,
   vnDateRange,
-} from '@flowvis/contracts';
+} from '@flowxis/contracts';
 import { PrismaService, type PrismaTransactionClient } from '../../infra/prisma.service.js';
 import { AuditService } from '../audit/audit.service.js';
 import { WalletService } from '../wallet/wallet.service.js';

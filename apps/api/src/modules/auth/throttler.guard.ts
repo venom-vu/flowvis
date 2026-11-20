@@ -1,6 +1,6 @@
 import { HttpException, HttpStatus, Injectable } from '@nestjs/common';
 import { ThrottlerGuard, type ThrottlerRequest } from '@nestjs/throttler';
-import { ApiErrorCode, getApiErrorMessageVi } from '@flowvis/contracts';
+import { ApiErrorCode, getApiErrorMessageVi } from '@flowxis/contracts';
 import { resolveClientIp, type ClientIpRequest } from './client-ip.js';
 
 export function getAuthThrottleOptions(): { limit: number; ttl: number } {

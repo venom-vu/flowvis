@@ -7,7 +7,7 @@ import {
   motionCapSeconds,
   type MotionAspectRatio,
   type Task,
-} from '@flowvis/contracts';
+} from '@flowxis/contracts';
 import { useApiClient } from '~/composables/useApiClient';
 import { usePricingConfig } from '~/composables/usePricingConfig';
 import {

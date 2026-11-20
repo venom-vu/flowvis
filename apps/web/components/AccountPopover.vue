@@ -4,7 +4,7 @@ import { navigateTo, useRoute } from "#imports";
 import { useAuth } from "~/composables/useAuth";
 // import { useAuthDialog } from "~/composables/useAuthDialog";
 
-import type { UserRole } from "@flowvis/contracts";
+import type { UserRole } from "@flowxis/contracts";
 
 withDefaults(
   defineProps<{

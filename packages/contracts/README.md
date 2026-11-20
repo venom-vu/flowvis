@@ -1,6 +1,6 @@
-# `@flowvis/contracts`
+# `@flowxis/contracts`
 
-Gói hợp đồng dùng chung (Shared Contracts) giữa Backend (`@flowvis/api`) và Frontend (`@flowvis/web`) trong monorepo flowvis.
+Gói hợp đồng dùng chung (Shared Contracts) giữa Backend (`@flowxis/api`) và Frontend (`@flowxis/web`) trong monorepo flowxis.
 
 ## Thư viện Schema & Phiên bản
 

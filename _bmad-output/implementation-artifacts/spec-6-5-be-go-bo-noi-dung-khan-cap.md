@@ -68,7 +68,7 @@ context:
 
 **Acceptance Criteria:**
 - Given Task đã gỡ, when gọi ba route `/s/<token>*` và URL ký cũ, then 404 (đối tượng R2 đã mất) và không lộ thông tin Task.
-- Given `pnpm --filter @flowvis/api test`, `lint`, `typecheck`, `build`, `check:boundaries`, when chạy, then pass (trừ các test lỗi có sẵn ở Story 2.14 và 5.2).
+- Given `pnpm --filter @flowxis/api test`, `lint`, `typecheck`, `build`, `check:boundaries`, when chạy, then pass (trừ các test lỗi có sẵn ở Story 2.14 và 5.2).
 
 ## Implementation Notes
 
@@ -101,6 +101,6 @@ context:
 ## Verification
 
 **Commands:**
-- `pnpm --filter @flowvis/api test` -- expected: pass (cần Docker; chạy với `node --env-file=.env`)
+- `pnpm --filter @flowxis/api test` -- expected: pass (cần Docker; chạy với `node --env-file=.env`)
 - `pnpm run lint && pnpm run typecheck && pnpm run build` -- expected: pass
 - `pnpm run check:boundaries` -- expected: chỉ `apps/api/`, `deploy/`, `_bmad-output/`

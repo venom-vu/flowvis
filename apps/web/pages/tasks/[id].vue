@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import { computed, ref, watch } from 'vue';
 import { useAsyncData, useHead, useRoute, useRouter } from '#imports';
-import type { Task, TaskResultResponse } from '@flowvis/contracts';
+import type { Task, TaskResultResponse } from '@flowxis/contracts';
 import TaskResultViewer from '~/components/TaskResultViewer.vue';
 import { useApiClient } from '~/composables/useApiClient';
 import { useAuth } from '~/composables/useAuth';
@@ -27,7 +27,7 @@ const taskId = computed<string>(() => {
 });
 
 useHead({
-  title: 'Chi Tiết Tác Vụ — flowvis',
+  title: 'Chi Tiết Tác Vụ — flowxis',
   meta: [
     {
       name: 'description',
@@ -37,7 +37,7 @@ useHead({
 });
 
 const taskAsync = useAsyncData<Task>(
-  `flowvis-task-${taskId.value}`,
+  `flowxis-task-${taskId.value}`,
   () => client.getTask(taskId.value),
 );
 

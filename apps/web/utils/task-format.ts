@@ -1,4 +1,4 @@
-import type { Task, TaskPipeline } from '@flowvis/contracts';
+import type { Task, TaskPipeline } from '@flowxis/contracts';
 
 const VI_DATE_FORMAT = new Intl.DateTimeFormat('vi-VN', {
   dateStyle: 'short',

@@ -1,4 +1,4 @@
-import type { LedgerEntryType, Task, TopupPackId, TopupStatus } from '@flowvis/contracts';
+import type { LedgerEntryType, Task, TopupPackId, TopupStatus } from '@flowxis/contracts';
 
 /**
  * Badge dùng chung cho bảng phía người dùng: cùng khung, cỡ chữ và bo góc;

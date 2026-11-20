@@ -70,7 +70,7 @@ async function main(): Promise<number> {
 
   const fsStat = await fs.promises.statfs(os.tmpdir());
   const freeBytesBefore = fsStat.bavail * fsStat.bsize;
-  const dir = await fs.promises.mkdtemp(path.join(os.tmpdir(), 'flowvis-prelaunch-trim-'));
+  const dir = await fs.promises.mkdtemp(path.join(os.tmpdir(), 'flowxis-prelaunch-trim-'));
   const signal = AbortSignal.timeout(TIMEOUT_MS);
   let maxTmpBytes = 0;
   let sampling = true;

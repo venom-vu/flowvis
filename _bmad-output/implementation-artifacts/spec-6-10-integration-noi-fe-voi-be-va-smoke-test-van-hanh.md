@@ -20,7 +20,7 @@ context:
 
 ## Boundaries & Constraints
 
-**Always:** Theo mẫu smoke 5.9 (project/cổng compose riêng, `compose.smoke.yml`); breaker thật bật trong stack (không truyền `OPS_BREAKER_DISABLED`); dùng schema `@flowvis/contracts` để parse phản hồi; `reconcile.js` thoát 0 cuối kịch bản.
+**Always:** Theo mẫu smoke 5.9 (project/cổng compose riêng, `compose.smoke.yml`); breaker thật bật trong stack (không truyền `OPS_BREAKER_DISABLED`); dùng schema `@flowxis/contracts` để parse phản hồi; `reconcile.js` thoát 0 cuối kịch bản.
 
 **Never:** Không thêm dependency trình duyệt (Playwright); chân trang kiểm bằng HTML SSR của bản Nuxt đã build (3 liên kết, `mailto:`). Không thêm giá trị `ApiErrorCode`; không sửa luật nghiệp vụ Epic 6 (chỉ sửa mã khi smoke lộ lỗi thật, ghi vào Implementation Notes); không refactor các smoke cũ.
 
@@ -64,12 +64,12 @@ context:
 - [x] `README.md` -- cách chạy smoke và runbook Admin (ngắt mạch, hết ngân sách, sao lưu lỗi, đơn nạp quá hạn)
 
 **Acceptance Criteria:**
-- Given `RUN_COMPOSE_E2E=1 pnpm --filter @flowvis/api test`, when chạy, then smoke vận hành xanh và `reconcile.js` thoát 0
+- Given `RUN_COMPOSE_E2E=1 pnpm --filter @flowxis/api test`, when chạy, then smoke vận hành xanh và `reconcile.js` thoát 0
 - Given `pnpm run lint && pnpm run typecheck && pnpm test`, when chạy ở gốc, then pass
 
 ## Implementation Notes
 
-- Smoke `smoke-ops.test.mjs` (9 kịch bản Docker + 1 test hợp đồng không cần Docker) chạy trực tiếp với `ops-preload.mjs`: 10 pass. Chưa chạy trọn `RUN_COMPOSE_E2E=1 pnpm --filter @flowvis/api test`.
+- Smoke `smoke-ops.test.mjs` (9 kịch bản Docker + 1 test hợp đồng không cần Docker) chạy trực tiếp với `ops-preload.mjs`: 10 pass. Chưa chạy trọn `RUN_COMPOSE_E2E=1 pnpm --filter @flowxis/api test`.
 - Không có thay đổi mã ứng dụng; smoke không lộ lỗi thật.
 - Chân trang kiểm bằng `apps/web/test/footer-ssr.test.mjs` (5 trang, parse HTML SSR từ `.output`, skip nếu chưa build).
 - Rủi ro đã biết: cổng cố định (PG 15438, Redis 16385, API 3107, giả 3196-3199) đụng khi chạy song song smoke khác; chưa kiểm viewport 360 px và biểu ngữ bảo trì trong trình duyệt; `pnpm test` gốc fail ở test cần DB local (P1000 xác thực `motion_user`), chưa xác nhận nguyên nhân.
@@ -93,5 +93,5 @@ context:
 ## Verification
 
 **Commands:**
-- `RUN_COMPOSE_E2E=1 pnpm --filter @flowvis/api test` -- expected: smoke-ops pass
+- `RUN_COMPOSE_E2E=1 pnpm --filter @flowxis/api test` -- expected: smoke-ops pass
 - `pnpm run lint && pnpm run typecheck && pnpm test` -- expected: exit 0

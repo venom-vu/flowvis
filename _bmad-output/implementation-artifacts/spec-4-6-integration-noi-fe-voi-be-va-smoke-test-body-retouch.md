@@ -98,5 +98,5 @@ context:
 **Commands:**
 - `pnpm run typecheck` -- expected: không lỗi
 - `pnpm run lint` -- expected: không lỗi
-- `RUN_COMPOSE_E2E=1 pnpm --filter @flowvis/api test` -- expected: smoke Body Retouch và các smoke khác pass (Docker có sẵn)
+- `RUN_COMPOSE_E2E=1 pnpm --filter @flowxis/api test` -- expected: smoke Body Retouch và các smoke khác pass (Docker có sẵn)
 - `pnpm test` -- expected: pass, smoke Docker bị bỏ qua

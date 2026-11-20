@@ -14,7 +14,7 @@ import {
   MOCK_OPS_STATUS_BUDGET_EXHAUSTED,
   MOCK_OPS_STATUS_NORMAL,
   MOCK_OPS_STATUS_PAUSED,
-} from '@flowvis/contracts';
+} from '@flowxis/contracts';
 import {
   MotionApiClientError,
   createMotionApiClient,
@@ -106,7 +106,7 @@ describe('Story 6.8: api-client admin ops', () => {
   it('lookup đúng một tham số, takedown, audit', async () => {
     const t = recorder(MOCK_ADMIN_TASK_LOOKUP_RESPONSE);
     await t.client.lookupAdminTask({ taskId: MOCK_ADMIN_TASK_LOOKUP_RESPONSE.id });
-    await t.client.lookupAdminTask({ shareUrl: 'https://flowvis.example/s/abc' });
+    await t.client.lookupAdminTask({ shareUrl: 'https://flowxis.example/s/abc' });
     assert.match(t.calls[0].url, /\?taskId=/);
     assert.doesNotMatch(t.calls[0].url, /shareUrl/);
     assert.match(t.calls[1].url, /\?shareUrl=/);

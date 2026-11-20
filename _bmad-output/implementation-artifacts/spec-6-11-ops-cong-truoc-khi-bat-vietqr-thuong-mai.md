@@ -102,7 +102,7 @@ context:
 | README "mã thoát 0/1/2 mọi script" nhưng `--sensitive` luôn thoát 0 | low → patch | Ghi rõ trong README/checklist. |
 | `.env.example` liệt kê `RH_DEADLINE_MS` nhưng chỉ có tác dụng khi `NODE_ENV=test` | low → patch | `task-worker.service.ts:30-34`; xóa dòng. |
 | Báo cáo cố định "coins/0,4", thiếu dòng đơn giá coin/giây thật trong ghi chú RH | low → patch | Thêm dòng vào `runninghub-api-notes.md`. |
-| Ổn định hợp đồng `/admin/stats` (fixture không gắn `@flowvis/contracts`) | low → defer | Thất bại kiểu fail-closed (FAIL giả, không PASS giả). |
+| Ổn định hợp đồng `/admin/stats` (fixture không gắn `@flowxis/contracts`) | low → defer | Thất bại kiểu fail-closed (FAIL giả, không PASS giả). |
 | `manualReviewPending` không chặn exit 0 | low → reject | Đã liệt kê trong JSON và bảng điều kiện của báo cáo; người vận hành điền tay. |
 | Cửa sổ `/admin/stats` có thể lẫn Task khác của tài khoản benchmark | low → reject | Tài khoản chỉ dùng cho benchmark; cửa sổ bắt đầu từ lượt chạy này. |
 | `backup-now` có thể đụng job 03:00; drill có thể khôi phục bản khác | low → reject | Drill lấy key mới nhất = bản vừa tạo; chạy tay ngoài 03:00. |

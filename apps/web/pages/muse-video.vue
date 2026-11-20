@@ -4,7 +4,7 @@ import { useAuthDialog } from '~/composables/useAuthDialog';
 import { useMuseVideo } from '~/composables/useMuseVideo';
 
 usePageSeo({
-  title: 'Muse Video Tạo Video AI Từ Ảnh — flowvis',
+  title: 'Muse Video Tạo Video AI Từ Ảnh — flowxis',
   description:
     'Tạo video khoảng 10 giây, 720p, có âm thanh bằng Muse Video từ 1 đến 9 ảnh tham chiếu và mô tả. Chọn tỉ lệ khung, giá cố định theo credit.',
 });

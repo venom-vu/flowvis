@@ -91,7 +91,7 @@ context:
 ## Verification
 
 **Commands:**
-- `pnpm --filter @flowvis/api test` -- expected: pass (cần `RUNNINGHUB_WORKFLOW_BODY_RESHAPE` và Redis riêng nếu có dev worker đang chạy)
+- `pnpm --filter @flowxis/api test` -- expected: pass (cần `RUNNINGHUB_WORKFLOW_BODY_RESHAPE` và Redis riêng nếu có dev worker đang chạy)
 - `pnpm run lint && pnpm run typecheck && pnpm run build` -- expected: pass
 - `pnpm run check:boundaries` -- expected: chỉ báo các file `_bmad-output/**` chưa commit (ngoài mã story)
 

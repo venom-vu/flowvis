@@ -26,7 +26,7 @@ import {
   WalletLedgerResponseSchema,
   getReasonCodeMessageVi,
   motionPrice,
-} from '@flowvis/contracts';
+} from '@flowxis/contracts';
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const repoRoot = path.resolve(__dirname, '../../..');
@@ -236,7 +236,7 @@ describe('Smoke Motion Control FE-BE trên stack Compose (Story 5.9)', () => {
       timeout: 1_800_000,
     },
     async () => {
-      const project = 'flowvis-smoke-mt';
+      const project = 'flowxis-smoke-mt';
       const apiPort = '3106';
       const base = `http://127.0.0.1:${apiPort}`;
       const env = {
@@ -261,7 +261,7 @@ describe('Smoke Motion Control FE-BE trên stack Compose (Story 5.9)', () => {
           { cwd: repoRoot, env, encoding: 'utf8', stdio: 'pipe' },
         );
 
-      const tmp = fs.mkdtempSync(path.join(os.tmpdir(), 'flowvis-smoke-mt-'));
+      const tmp = fs.mkdtempSync(path.join(os.tmpdir(), 'flowxis-smoke-mt-'));
       const png = await makePng();
       const sample = makeVideo(path.join(tmp, 'sample.mp4'), 14);
       const sample5 = makeVideo(path.join(tmp, 'sample5.mp4'), 6);
@@ -533,7 +533,7 @@ describe('Smoke Motion Control FE-BE trên stack Compose (Story 5.9)', () => {
         const listTmp = () =>
           compose([
             'exec', '-T', 'nestjs-worker', 'sh', '-c',
-            'r="${TMPDIR:-/tmp}/flowvis-trim"; find "$r" -mindepth 1 -not -path "$r/ingest" 2>/dev/null; find "$r/ingest" -mindepth 1 2>/dev/null; true',
+            'r="${TMPDIR:-/tmp}/flowxis-trim"; find "$r" -mindepth 1 -not -path "$r/ingest" 2>/dev/null; find "$r/ingest" -mindepth 1 2>/dev/null; true',
           ]).trim();
         const end = Date.now() + 20_000;
         let left = listTmp();

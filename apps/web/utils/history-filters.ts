@@ -5,7 +5,7 @@ import {
   TASK_STATUSES,
   TOPUP_PACK_IDS,
   TOPUP_STATUSES,
-} from '@flowvis/contracts';
+} from '@flowxis/contracts';
 export { compactFilters } from '~/utils/compact-filters';
 import type { HistoryFilterField } from '~/components/HistoryFilterBar.vue';
 import { getPipelineLabelVi } from '~/utils/task-format';

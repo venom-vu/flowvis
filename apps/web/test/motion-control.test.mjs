@@ -21,7 +21,7 @@ import {
   MOCK_SHARE_INFO_VIDEO_RESPONSE,
   getReasonCodeMessageVi,
   motionPrice,
-} from '@flowvis/contracts';
+} from '@flowxis/contracts';
 import {
   MotionApiClientError,
   createMotionApiClient,
@@ -94,7 +94,7 @@ function fillValid(mc, { start = 0, end = 5 } = {}) {
   });
 }
 
-describe('@flowvis/web — Story 5.8 Motion Control', () => {
+describe('@flowxis/web — Story 5.8 Motion Control', () => {
   let mod;
   before(async () => {
     mod = await loadComposable();
@@ -640,7 +640,7 @@ describe('@flowvis/web — Story 5.8 Motion Control', () => {
           export const useAsyncData = async (_k, fn, opts) => { let v; try { v = await fn(); } catch (e) { return { data: { value: opts.default() }, error: { value: e } }; } return { data: { value: v }, error: { value: null } }; };
           export const useHead = () => {};
           export const useRequestEvent = () => null;
-          export const useRequestURL = () => ({ origin: 'https://flowvis.test' });
+          export const useRequestURL = () => ({ origin: 'https://flowxis.test' });
           export const useRoute = () => ({ params: { token: 'A'.repeat(43) } });
           export const useRuntimeConfig = () => ({ public: { apiBaseUrl: 'http://api.test' } });`,
         '~/composables/useApiClient': 'export const useApiClient = () => ({ client: globalThis.__sp.client });',

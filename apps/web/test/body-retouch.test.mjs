@@ -19,7 +19,7 @@ import {
   MOCK_BODY_RETOUCH_TASK_TIMED_OUT,
   MOCK_ME_RESPONSE,
   MOCK_PRICING_CONFIG_RESPONSE,
-} from '@flowvis/contracts';
+} from '@flowxis/contracts';
 import {
   BodyRetouchCreateRequestSchema,
   BodyRetouchCreateResponseSchema,
@@ -74,7 +74,7 @@ async function loadSetup(rel, stubs, dir) {
   }
 }
 
-describe('@flowvis/web — Story 4.4 Trang Body Retouch và thanh mức điều chỉnh', () => {
+describe('@flowxis/web — Story 4.4 Trang Body Retouch và thanh mức điều chỉnh', () => {
   describe('1. Hợp đồng API client (createBodyRetouchTask & intensity helpers)', () => {
     it('re-export đầy đủ hằng số, schema intensity và ánh xạ đúng nhãn 3 vùng tiếng Việt', () => {
       assert.equal(INTENSITY_MIN, 1);

@@ -295,11 +295,11 @@ describe('Base Form UI & sửa lỗi vỡ giao diện', () => {
     assert.match(mainCss, /html:root,\s*:root\.dark\s*\{[\s\S]*--vis-tooltip-background-color:\s*transparent/);
     assert.match(mainCss, /--vis-tooltip-text-color:\s*hsl\(var\(--popover-foreground\)\)/);
     assert.match(mainCss, /--vis-tooltip-padding:\s*0/);
-    assert.match(mainCss, /html\s+\[data-flowvis-chart-tooltip\]/);
+    assert.match(mainCss, /html\s+\[data-flowxis-chart-tooltip\]/);
     assert.match(mainCss, /\[data-testid='chart-tooltip'\]/);
 
     const crosshair = fs.readFileSync(path.join(webRoot, 'components/ui/chart/ChartCrosshair.vue'), 'utf8');
-    assert.match(crosshair, /data-flowvis-chart-tooltip/);
+    assert.match(crosshair, /data-flowxis-chart-tooltip/);
 
     const chartTooltip = fs.readFileSync(path.join(webRoot, 'components/ui/chart/ChartTooltip.vue'), 'utf8');
     assert.match(chartTooltip, /data-testid="chart-tooltip"/);

@@ -67,7 +67,7 @@ const adminNavItems = [
           class="touch-target flex min-h-[48px] items-center gap-2 font-semibold tracking-tight text-[#EDEDED]"
         >
           <Icon name="lucide:triangle" class="h-4 w-4 fill-current" />
-          <span>flowvis</span>
+          <span>flowxis</span>
         </NuxtLink>
         <span class="text-muted-foreground/50">/</span>
         <NuxtLink to="/admin" class="truncate text-muted-foreground transition hover:text-foreground">

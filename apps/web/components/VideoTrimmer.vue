@@ -5,7 +5,7 @@ import {
   MAX_VIDEO_BYTES,
   MOTION_MIN_TRIM_SECONDS,
   type VideoMimeType,
-} from '@flowvis/contracts';
+} from '@flowxis/contracts';
 import { useApiClient } from '~/composables/useApiClient';
 import { useUploadFlow } from '~/composables/useUploadFlow';
 import { formatFileSizeVi, validateVideoFile } from '~/utils/image-upload';

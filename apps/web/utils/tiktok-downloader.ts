@@ -1,4 +1,4 @@
-// Tải video TikTok hoàn toàn ở trình duyệt qua API công khai của tikwm.com (không qua backend flowvis).
+// Tải video TikTok hoàn toàn ở trình duyệt qua API công khai của tikwm.com (không qua backend flowxis).
 export const TIKWM_API_URL = 'https://www.tikwm.com/api/';
 
 // Ngưỡng dung lượng để tránh tràn RAM khi gom Blob (đặc biệt trên điện thoại).

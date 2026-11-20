@@ -4,7 +4,7 @@ import path from 'node:path';
 import { Readable, Transform } from 'node:stream';
 import { pipeline as streamPipeline } from 'node:stream/promises';
 import { Inject, Injectable, Logger } from '@nestjs/common';
-import type { ReasonCode } from '@flowvis/contracts';
+import type { ReasonCode } from '@flowxis/contracts';
 import sharp, { type ChannelStats, type Metadata } from 'sharp';
 import {
   STORAGE_PORT,

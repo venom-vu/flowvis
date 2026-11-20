@@ -66,7 +66,7 @@ export function buildDiscordEmbed(event: NotifierEvent): Record<string, unknown>
     description: truncate(event.message, MAX_DESCRIPTION),
     color: COLORS[severity],
     ...(fields.length > 0 ? { fields } : {}),
-    footer: { text: `flowvis · ${event.kind}` },
+    footer: { text: `flowxis · ${event.kind}` },
     timestamp: new Date().toISOString(),
   };
 }

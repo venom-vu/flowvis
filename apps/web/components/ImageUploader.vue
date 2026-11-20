@@ -3,7 +3,7 @@ import { computed, nextTick, onBeforeUnmount, ref, watch } from 'vue';
 import {
   type ImageMeta,
   type UploadConfirmResponse,
-} from '@flowvis/contracts';
+} from '@flowxis/contracts';
 import { useApiClient } from '~/composables/useApiClient';
 import { useUploadFlow } from '~/composables/useUploadFlow';
 import {
@@ -285,7 +285,7 @@ async function handleFileSelect(file: File): Promise<void> {
   });
   errorMessageVi.value = null;
 
-  // 1. Kiểm tra tính hợp lệ phía client bằng schema @flowvis/contracts
+  // 1. Kiểm tra tính hợp lệ phía client bằng schema @flowxis/contracts
   status.value = 'validating';
   const validation = await validateImageFile(file);
   if (!validation.valid) {

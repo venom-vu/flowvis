@@ -3,9 +3,9 @@ import { useState } from '#imports';
 export type AuthDialogMode = 'login' | 'account';
 
 export function useAuthDialog() {
-  const mode = useState<AuthDialogMode | null>('flowvis-auth-dialog', () => null);
+  const mode = useState<AuthDialogMode | null>('flowxis-auth-dialog', () => null);
   const errorVi = useState<string | null>(
-    'flowvis-auth-dialog-error',
+    'flowxis-auth-dialog-error',
     () => null,
   );
 

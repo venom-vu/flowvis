@@ -108,10 +108,10 @@ describe('docker', () => {
   });
   it('tóm tắt CPU/RAM cao nhất', () => {
     const s = summarizeDockerStats([
-      [{ Name: 'flowvis-nestjs-worker-1', CPUPerc: '20%', MemUsage: '100MiB / 2GiB' }],
-      [{ Name: 'flowvis-nestjs-worker-1', CPUPerc: '180.5%', MemUsage: '50MiB / 2GiB' }],
+      [{ Name: 'flowxis-nestjs-worker-1', CPUPerc: '20%', MemUsage: '100MiB / 2GiB' }],
+      [{ Name: 'flowxis-nestjs-worker-1', CPUPerc: '180.5%', MemUsage: '50MiB / 2GiB' }],
     ]);
-    assert.deepEqual(s['flowvis-nestjs-worker-1'], { maxCpuPercent: 180.5, maxMemBytes: 100 * 1024 ** 2 });
+    assert.deepEqual(s['flowxis-nestjs-worker-1'], { maxCpuPercent: 180.5, maxMemBytes: 100 * 1024 ** 2 });
   });
   it('restart và OOM giữa hai lần inspect', () => {
     const before = parseInspectLines('/a 0 false T1\n/b 2 false T1\n');
@@ -318,7 +318,7 @@ describe('script và bí mật', () => {
     assert.equal(spawnSync(process.execPath, [path.join(here, 'step2-ffmpeg.mjs'), '/khong/ton/tai.mp4'], { env }).status, 2);
   });
   it('step4 manifest hợp lệ: thiếu PRELAUNCH_ADMIN_JWT thoát 2; --sensitive không đòi ADMIN_JWT', () => {
-    const dir = fs.mkdtempSync(path.join(os.tmpdir(), 'flowvis-prelaunch-test-'));
+    const dir = fs.mkdtempSync(path.join(os.tmpdir(), 'flowxis-prelaunch-test-'));
     try {
       const example = JSON.parse(fs.readFileSync(path.join(here, 'benchmark-manifest.example.json'), 'utf8'));
       const samples = example.samples.map((s) => {

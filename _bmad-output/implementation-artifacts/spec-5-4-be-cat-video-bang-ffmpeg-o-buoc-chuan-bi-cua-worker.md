@@ -106,5 +106,5 @@ context:
 ## Verification
 
 **Commands:**
-- `pnpm --filter @flowvis/api test` -- expected: pass (cần `ffmpeg` và `ffprobe` trên máy chạy test)
+- `pnpm --filter @flowxis/api test` -- expected: pass (cần `ffmpeg` và `ffprobe` trên máy chạy test)
 - `pnpm run lint && pnpm run typecheck && pnpm run build` -- expected: pass

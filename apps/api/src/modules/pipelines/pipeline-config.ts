@@ -1,4 +1,4 @@
-import type { ReasonCode } from '@flowvis/contracts';
+import type { ReasonCode } from '@flowxis/contracts';
 import type { RunningHubRunMode } from '../../ports/index.js';
 import { VEO3_DEFAULT_MODEL, buildVeo3Request, veo3InputKeys } from './veo3.js';
 import { MUSE_VIDEO_DEFAULT_MODEL, buildMuseVideoRequest, museVideoInputKeys } from './muse-video.js';

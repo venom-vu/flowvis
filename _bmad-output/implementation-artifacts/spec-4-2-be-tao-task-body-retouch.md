@@ -21,7 +21,7 @@ context:
 ## Boundaries & Constraints
 
 **Always:**
-- Chỉ sửa `apps/api/**` và `deploy/` (nhánh `be/*`); dùng hợp đồng 4.1 (`BodyRetouchCreateRequestSchema`, `BodyRetouchCreateResponse`) từ `@flowvis/contracts`, không định nghĩa lại.
+- Chỉ sửa `apps/api/**` và `deploy/` (nhánh `be/*`); dùng hợp đồng 4.1 (`BodyRetouchCreateRequestSchema`, `BodyRetouchCreateResponse`) từ `@flowxis/contracts`, không định nghĩa lại.
 - Giá lấy từ `PRICING_CONFIG.pipelines.bodyRetouchCredits` (100), không nhận từ client. Chuyển trạng thái và bút toán chỉ qua `tasks.transition`/`wallet` (HOLD trong cùng transaction, enqueue sau commit, `jobId = taskId`).
 - `intensity` lưu `params: { intensity }`; thiếu thì 5 theo schema; ngoài 1–10 hoặc không nguyên thì `VALIDATION_FAILED`, không HOLD, không tạo Task.
 - Lỗi giống Face Swap: `ACCOUNT_LOCKED`, `INSUFFICIENT_CREDIT`, `TASK_LIMIT` (3 Task `queued`/`running`), khóa ảnh không thuộc người dùng thì `VALIDATION_FAILED` như hiện có. `consent` không có trong body (ToS đồng ý một lần khi đăng nhập, theo hợp đồng 4.1).
@@ -69,7 +69,7 @@ context:
 **Acceptance Criteria:**
 - Given người dùng đủ điều kiện, when gọi `POST /tasks/body-retouch`, then phản hồi trong 2 giây là Task `queued` cùng hình dạng Face Swap và sổ cái có đúng một HOLD 100.
 - Given Face Swap và Body Retouch cùng trong hàng đợi, when worker chạy, then dùng chung hàng đợi, không quá 2 Task đồng thời.
-- Given test BE, when chạy `pnpm --filter @flowvis/api test`, then toàn bộ test cũ và mới đều qua.
+- Given test BE, when chạy `pnpm --filter @flowxis/api test`, then toàn bộ test cũ và mới đều qua.
 
 ## Implementation Notes
 
@@ -97,7 +97,7 @@ context:
 ## Verification
 
 **Commands:**
-- `pnpm --filter @flowvis/api test` -- expected: pass
+- `pnpm --filter @flowxis/api test` -- expected: pass
 - `pnpm run lint && pnpm run typecheck && pnpm run build` -- expected: pass
 - `pnpm run check:boundaries` -- expected: chỉ báo các file `_bmad-output/**` chưa commit (ngoài mã story)
 

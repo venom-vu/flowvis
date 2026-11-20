@@ -3,7 +3,7 @@ import type {
   PricingConfigResponse,
   TierSnapshot,
   TopupPackId,
-} from '@flowvis/contracts';
+} from '@flowxis/contracts';
 
 /** Ngưỡng tổng credit sở hữu (balance + held) để giữ Tier trả phí. */
 export const TIER_FLOOR_CREDITS = 100;

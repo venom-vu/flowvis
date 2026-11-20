@@ -3,7 +3,7 @@ import {
   type MuseVideoAspectRatio,
   type MuseVideoCreateRequest,
   type Task,
-} from '@flowvis/contracts';
+} from '@flowxis/contracts';
 import { useApiClient } from '~/composables/useApiClient';
 import { usePricingConfig } from '~/composables/usePricingConfig';
 import { useSystemStatus } from '~/composables/useSystemStatus';

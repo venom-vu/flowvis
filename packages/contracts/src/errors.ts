@@ -1,7 +1,7 @@
 import { z } from 'zod';
 
 /**
- * Mã lỗi API chuẩn cho toàn bộ hệ thống flowvis (Epic 1).
+ * Mã lỗi API chuẩn cho toàn bộ hệ thống flowxis (Epic 1).
  */
 export enum ApiErrorCode {
   PAUSED = 'PAUSED',

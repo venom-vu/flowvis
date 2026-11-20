@@ -11,7 +11,7 @@ import {
   MOCK_BODY_RETOUCH_TASK_QUEUED,
   MOCK_BODY_RETOUCH_TASK_RUNNING,
   MOCK_BODY_RETOUCH_TASK_SUCCEEDED,
-} from '@flowvis/contracts';
+} from '@flowxis/contracts';
 import {
   formatTaskTimestampVi,
   getPipelineLabelVi,
@@ -57,7 +57,7 @@ async function loadSetup(rel, stubs = {}, dir = null) {
   }
 }
 
-describe('@flowvis/web — Story 4.5: [FE] So sánh trước/sau (BeforeAfterSplitSlider & tasks/[id].vue)', () => {
+describe('@flowxis/web — Story 4.5: [FE] So sánh trước/sau (BeforeAfterSplitSlider & tasks/[id].vue)', () => {
   describe('1. Component BeforeAfterSplitSlider — Script setup reactive & sự kiện bàn phím/pointer', () => {
     let sliderComp;
 
@@ -667,7 +667,7 @@ describe('@flowvis/web — Story 4.5: [FE] So sánh trước/sau (BeforeAfterSpl
           },
           shareTask: async () => ({
             token: 'share_abc123',
-            shareUrl: 'https://flowvis.ai/share/share_abc123',
+            shareUrl: 'https://flowxis.ai/share/share_abc123',
             expiresAt: '2026-11-16T12:00:00.000Z',
           }),
           revokeTaskShare: async () => ({ revoked: true }),
@@ -709,9 +709,9 @@ describe('@flowvis/web — Story 4.5: [FE] So sánh trước/sau (BeforeAfterSpl
       assert.equal(instance.shareData.value, null);
     });
 
-    it('mã nguồn: tải về đặt tên flowvis-<pipeline>-<id>, MP4 cho video', () => {
+    it('mã nguồn: tải về đặt tên flowxis-<pipeline>-<id>, MP4 cho video', () => {
       const raw = read('components/TaskResultViewer.vue');
-      assert.match(raw, /flowvis-\$\{localTask\.value\.pipeline\}-\$\{localTask\.value\.id\.slice\(0, 8\)\}\$\{ext\}/);
+      assert.match(raw, /flowxis-\$\{localTask\.value\.pipeline\}-\$\{localTask\.value\.id\.slice\(0, 8\)\}\$\{ext\}/);
       assert.match(raw, /'\.mp4'/);
     });
 

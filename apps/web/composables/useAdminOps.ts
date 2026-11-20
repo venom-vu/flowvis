@@ -8,7 +8,7 @@ import type {
   AdminUserStatsResponse,
   LedgerEntry,
   OpsStatusResponse,
-} from '@flowvis/contracts';
+} from '@flowxis/contracts';
 import { useApiClient } from '~/composables/useApiClient';
 import { resolveAdminErrorMessageVi } from '~/utils/api-client';
 

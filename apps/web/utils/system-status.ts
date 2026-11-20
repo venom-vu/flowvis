@@ -1,9 +1,9 @@
-import { ApiErrorCode } from '@flowvis/contracts';
+import { ApiErrorCode } from '@flowxis/contracts';
 
 export const MAINTENANCE_MESSAGE_VI =
   'Hệ thống đang bảo trì, tạm dừng nhận tác vụ mới';
 
-export const REPORT_MAILTO_SUBJECT = 'Báo cáo vi phạm flowvis';
+export const REPORT_MAILTO_SUBJECT = 'Báo cáo vi phạm flowxis';
 export const REPORT_MAILTO_BODY =
   'Vui lòng nêu mã tác vụ hoặc liên kết chia sẻ và mô tả vi phạm.';
 

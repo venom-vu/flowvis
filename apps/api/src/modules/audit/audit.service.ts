@@ -1,6 +1,6 @@
 import crypto from 'node:crypto';
 import { BadRequestException, Injectable } from '@nestjs/common';
-import { ApiErrorCode, getApiErrorMessageVi, type AdminAuditQuery, type AdminAuditResponse } from '@flowvis/contracts';
+import { ApiErrorCode, getApiErrorMessageVi, type AdminAuditQuery, type AdminAuditResponse } from '@flowxis/contracts';
 import type { Prisma } from '../../generated/prisma/client.js';
 import { PrismaService, type PrismaTransactionClient } from '../../infra/prisma.service.js';
 

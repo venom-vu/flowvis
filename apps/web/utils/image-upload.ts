@@ -12,7 +12,7 @@ import {
   MIN_IMAGE_SHORT_SIDE_PX,
   type ImageMeta,
   type ImageMimeType,
-} from '@flowvis/contracts';
+} from '@flowxis/contracts';
 
 export {
   IMAGE_MIME_TYPES,
@@ -187,7 +187,7 @@ export function computeCameraCaptureDimensions(
 }
 
 /**
- * Kiểm tra file ảnh phía client bằng ImageFileDeclarationSchema và ImageMetaSchema từ @flowvis/contracts.
+ * Kiểm tra file ảnh phía client bằng ImageFileDeclarationSchema và ImageMetaSchema từ @flowxis/contracts.
  */
 export async function validateImageFile(
   file: File | (Blob & { name?: string; width?: number; height?: number }),

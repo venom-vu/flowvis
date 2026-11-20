@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import { computed, onBeforeUnmount, onMounted, ref, watch } from 'vue';
-import { MOTION_MIN_TRIM_SECONDS, MUSE_VIDEO_DURATION_SECONDS, type AccountTier, type Task } from '@flowvis/contracts';
+import { MOTION_MIN_TRIM_SECONDS, MUSE_VIDEO_DURATION_SECONDS, type AccountTier, type Task } from '@flowxis/contracts';
 import ImageUploader from '~/components/ImageUploader.vue';
 import TaskResultViewer from '~/components/TaskResultViewer.vue';
 import { useApiClient } from '~/composables/useApiClient';

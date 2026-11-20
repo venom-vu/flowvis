@@ -23,7 +23,7 @@ const repoRoot = path.resolve(apiRoot, '../..');
 const composePath = path.join(repoRoot, 'deploy', 'compose.yml');
 const DB_URL =
   process.env.DATABASE_URL ||
-  'postgresql://motion_user:change_me_local_password@localhost:5432/flowvis?schema=public';
+  'postgresql://motion_user:change_me_local_password@localhost:5432/flowxis?schema=public';
 const REDIS_URL = process.env.REDIS_URL || 'redis://localhost:6379';
 
 function tcp(host, port) {
@@ -98,7 +98,7 @@ describe('Story 4.3: [BE] Kết quả Body Retouch', () => {
 
   async function newUser() {
     const n = users.length;
-    const u = await prisma.user.create({ data: { googleId: `brr-${runId}-${n}`, email: `brr-${runId}-${n}@flowvis.vn`, tosVersion: 'tos-v7' } });
+    const u = await prisma.user.create({ data: { googleId: `brr-${runId}-${n}`, email: `brr-${runId}-${n}@flowxis.vn`, tosVersion: 'tos-v7' } });
     users.push(u.id);
     await prisma.$transaction((t) => new WalletService().grant(t, u.id, 5000));
     return { id: u.id, token: jwt.sign({ sub: u.id, email: u.email, role: 'user' }) };

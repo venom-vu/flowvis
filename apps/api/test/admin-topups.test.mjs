@@ -5,7 +5,7 @@ import net from 'node:net';
 import path from 'node:path';
 import { after, before, describe, it } from 'node:test';
 import { fileURLToPath } from 'node:url';
-import { AdminTopupListResponseSchema, AdminTopupSchema, ApiErrorCode } from '@flowvis/contracts';
+import { AdminTopupListResponseSchema, AdminTopupSchema, ApiErrorCode } from '@flowxis/contracts';
 import { JwtService } from '@nestjs/jwt';
 import pg from 'pg';
 import { Redis } from 'ioredis';
@@ -19,7 +19,7 @@ const repoRoot = path.resolve(apiRoot, '../..');
 const composePath = path.join(repoRoot, 'deploy', 'compose.yml');
 const DB_URL =
   process.env.DATABASE_URL ||
-  'postgresql://motion_user:change_me_local_password@localhost:5432/flowvis?schema=public';
+  'postgresql://motion_user:change_me_local_password@localhost:5432/flowxis?schema=public';
 const REDIS_URL = process.env.REDIS_URL || 'redis://localhost:6379';
 
 function tcp(host, port) {
@@ -61,7 +61,7 @@ describe('Story 3.5: [BE] Duyệt và từ chối đơn, nhật ký Admin', () =
   async function mkUser(role = 'user') {
     const n = userIds.length;
     const u = await prisma.user.create({
-      data: { googleId: `at-${runId}-${n}`, email: `at-${runId}-${n}@flowvis.vn`, tosVersion: 'tos-v7', role },
+      data: { googleId: `at-${runId}-${n}`, email: `at-${runId}-${n}@flowxis.vn`, tosVersion: 'tos-v7', role },
     });
     userIds.push(u.id);
     return { id: u.id, token: jwt.sign({ sub: u.id, email: u.email, role }) };
@@ -98,7 +98,7 @@ describe('Story 3.5: [BE] Duyệt và từ chối đơn, nhật ký Admin', () =
     process.env.FRONTEND_URL = 'http://localhost:3000';
     process.env.TOPUP_BANK_BIN = '970422';
     process.env.TOPUP_BANK_ACCOUNT_NO = '0123456789';
-    process.env.TOPUP_BANK_ACCOUNT_NAME = 'CONG TY FLOWVIS';
+    process.env.TOPUP_BANK_ACCOUNT_NAME = 'CONG TY FLOWXIS';
     await ensureInfra();
     const rd0 = new Redis(REDIS_URL);
     const stale = await rd0.keys('throttle:*');
@@ -379,7 +379,7 @@ describe('Story 3.5: [BE] Duyệt và từ chối đơn, nhật ký Admin', () =
     assert.equal(page.items.length, 1);
     assert.equal(page.hasMore, true);
     assert.ok(page.total >= 2); // tổng khớp bộ lọc status, không chỉ trang hiện tại
-    assert.ok(!JSON.stringify(page).includes('@flowvis.vn'));
+    assert.ok(!JSON.stringify(page).includes('@flowxis.vn'));
     const all = [];
     let cursor;
     do {

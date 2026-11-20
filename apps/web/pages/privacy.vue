@@ -5,9 +5,9 @@ import { privacy } from '~/content/legal/privacy';
 import { resolveZaloJoinUrl } from '~/utils/system-status';
 
 usePageSeo({
-  title: 'Chính sách quyền riêng tư — flowvis',
+  title: 'Chính sách quyền riêng tư — flowxis',
   description:
-    'Chính sách quyền riêng tư chính thức của flowvis: dữ liệu thu thập, mục đích sử dụng, thời gian lưu trữ tự động xóa và quyền xóa dữ liệu cá nhân.',
+    'Chính sách quyền riêng tư chính thức của flowxis: dữ liệu thu thập, mục đích sử dụng, thời gian lưu trữ tự động xóa và quyền xóa dữ liệu cá nhân.',
 });
 
 const publicConfig = useRuntimeConfig().public;

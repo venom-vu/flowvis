@@ -10,7 +10,7 @@ import {
   MOCK_PRICING_CONFIG_RESPONSE,
   MOCK_UPLOAD_CREATE_RESPONSE,
   MOCK_UPLOAD_VIDEO_CONFIRM_RESPONSE,
-} from '@flowvis/contracts';
+} from '@flowxis/contracts';
 import { createMotionApiClient } from '../utils/api-client.ts';
 import { validateVideoFile } from '../utils/image-upload.ts';
 import {
@@ -34,7 +34,7 @@ function fakeVideo({ type = 'video/mp4', size = 20 * MB, durationSeconds = 12, n
   return blob;
 }
 
-describe('@flowvis/web — Story 5.7 VideoTrimmer', () => {
+describe('@flowxis/web — Story 5.7 VideoTrimmer', () => {
   describe('kiểm tra video phía client', () => {
     it('hợp lệ: MP4 12 s 20 MB', async () => {
       const r = await validateVideoFile(fakeVideo());

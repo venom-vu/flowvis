@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import { computed, onMounted, ref, watch } from 'vue';
 import { definePageMeta } from '#imports';
-import { ApiErrorCode, type AdminTopup } from '@flowvis/contracts';
+import { ApiErrorCode, type AdminTopup } from '@flowxis/contracts';
 import { useAdminAccess } from '~/composables/useAdminAccess';
 import { useCursorPager } from '~/composables/useCursorPager';
 import {

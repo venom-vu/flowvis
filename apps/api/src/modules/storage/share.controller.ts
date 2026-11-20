@@ -1,5 +1,5 @@
 import { Controller, Get, Header, Param, Redirect, UseGuards } from '@nestjs/common';
-import type { ShareInfoResponse } from '@flowvis/contracts';
+import type { ShareInfoResponse } from '@flowxis/contracts';
 import { ShareThrottlerGuard } from '../auth/throttler.guard.js';
 import { ShareService } from './share.service.js';
 

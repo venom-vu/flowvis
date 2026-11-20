@@ -1,4 +1,4 @@
-import { VEO3_DURATION_SECONDS } from '@flowvis/contracts';
+import { VEO3_DURATION_SECONDS } from '@flowxis/contracts';
 
 /** Model RunningHub mặc định của Veo 3; ghi đè bằng RUNNINGHUB_VEO3_MODEL. */
 export const VEO3_DEFAULT_MODEL = 'rhart-video-v3.1-pro';

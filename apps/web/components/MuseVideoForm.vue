@@ -8,7 +8,7 @@ import {
   MUSE_VIDEO_PROMPT_MAX_LENGTH,
   type ImageMeta,
   type MuseVideoAspectRatio,
-} from '@flowvis/contracts';
+} from '@flowxis/contracts';
 import { useApiClient } from '~/composables/useApiClient';
 import { useUploadFlow } from '~/composables/useUploadFlow';
 import { formatFileSizeVi, validateImageFile } from '~/utils/image-upload';

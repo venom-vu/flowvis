@@ -46,7 +46,7 @@ const ORIGINAL_REDIS_URL = process.env.REDIS_URL;
 
 const DEFAULT_DATABASE_URL =
   process.env.DATABASE_URL ||
-  'postgresql://motion_user:change_me_local_password@localhost:5432/flowvis?schema=public';
+  'postgresql://motion_user:change_me_local_password@localhost:5432/flowxis?schema=public';
 const DEFAULT_REDIS_URL = process.env.REDIS_URL || 'redis://localhost:6379';
 
 function checkTcpPort(host, port, timeoutMs = 1000) {
@@ -109,7 +109,7 @@ async function ensureInfraServicesRunning() {
 process.env.RUNNINGHUB_WORKFLOW_BODY_RESHAPE ??= 'wf-body';
 process.env.RUNNINGHUB_WORKFLOW_MOTION ??= 'wf-motion';
 
-describe('@flowvis/api infrastructure, worker, PostgreSQL 16 & Redis 7', () => {
+describe('@flowxis/api infrastructure, worker, PostgreSQL 16 & Redis 7', () => {
   before(async () => {
     process.env.DATABASE_URL = DEFAULT_DATABASE_URL;
     process.env.REDIS_URL = DEFAULT_REDIS_URL;
@@ -151,7 +151,7 @@ describe('@flowvis/api infrastructure, worker, PostgreSQL 16 & Redis 7', () => {
       ...pkg.dependencies,
       ...pkg.devDependencies,
     })) {
-      if (name === '@flowvis/contracts') continue;
+      if (name === '@flowxis/contracts') continue;
       assert.equal(
         /^[0-9]+\.[0-9]+\.[0-9]+$/.test(String(version)),
         true,
@@ -190,7 +190,7 @@ describe('@flowvis/api infrastructure, worker, PostgreSQL 16 & Redis 7', () => {
     }
   });
 
-  it('defines 4 services in deploy/compose.yml with Redis AD-15 flags and worker without HTTP ports', () => {
+  it('defines 5 services in deploy/compose.yml with Redis AD-15 flags and worker without HTTP ports', () => {
     const composeContent = fs.readFileSync(composePath, 'utf8');
 
     const serviceMatches = [
@@ -198,7 +198,7 @@ describe('@flowvis/api infrastructure, worker, PostgreSQL 16 & Redis 7', () => {
     ].map((m) => m[1]);
     assert.deepEqual(
       serviceMatches.sort(),
-      ['nestjs-api', 'nestjs-worker', 'postgres-16', 'redis-7'].sort(),
+      ['nestjs-api', 'nestjs-worker', 'nuxt-web', 'postgres-16', 'redis-7'].sort(),
     );
 
     assert.ok(composeContent.includes('image: postgres:16-alpine'));
@@ -210,7 +210,7 @@ describe('@flowvis/api infrastructure, worker, PostgreSQL 16 & Redis 7', () => {
     assert.ok(composeContent.includes('noeviction'));
 
     const workerSection = composeContent.split('nestjs-worker:')[1] || '';
-    const workerBlock = workerSection.split(/^\S/m)[0] || '';
+    const workerBlock = workerSection.split(/^ {0,2}\S/m)[0] || '';
     assert.equal(
       workerBlock.includes('ports:'),
       false,
@@ -240,7 +240,7 @@ describe('@flowvis/api infrastructure, worker, PostgreSQL 16 & Redis 7', () => {
 
     execFileSync(
       'docker',
-      ['build', '-f', dockerfilePath, '-t', 'flowvis-api:test', '.'],
+      ['build', '-f', dockerfilePath, '-t', 'flowxis-api:test', '.'],
       {
         cwd: repoRoot,
         stdio: 'pipe',
@@ -375,7 +375,7 @@ describe('@flowvis/api infrastructure, worker, PostgreSQL 16 & Redis 7', () => {
 
   it('serves GET /health returning 200 and reporting down service when PostgreSQL or Redis is unreachable', async () => {
     process.env.DATABASE_URL =
-      'postgresql://motion_user:wrong@127.0.0.1:59999/flowvis?schema=public';
+      'postgresql://motion_user:wrong@127.0.0.1:59999/flowxis?schema=public';
     process.env.REDIS_URL = DEFAULT_REDIS_URL;
     process.env.PORT = '0';
 
@@ -462,7 +462,7 @@ describe('@flowvis/api infrastructure, worker, PostgreSQL 16 & Redis 7', () => {
 
   it('fails prisma migrate deploy with non-zero exit code when a raw SQL migration contains invalid SQL', async () => {
     const tempDir = fs.mkdtempSync(
-      path.join(os.tmpdir(), 'flowvis-bad-migration-'),
+      path.join(os.tmpdir(), 'flowxis-bad-migration-'),
     );
     const tempSchema = `test_bad_mig_${crypto.randomUUID().replace(/-/g, '')}`;
     const baseDbUrl = new URL(DEFAULT_DATABASE_URL);
@@ -669,7 +669,7 @@ describe('@flowvis/api infrastructure, worker, PostgreSQL 16 & Redis 7', () => {
       timeout: 900_000,
     },
     async () => {
-      const project = 'flowvis-e2e';
+      const project = 'flowxis-e2e';
       const apiPort = '3101';
       const env = {
         ...process.env,
@@ -705,7 +705,7 @@ describe('@flowvis/api infrastructure, worker, PostgreSQL 16 & Redis 7', () => {
           '-U',
           'motion_user',
           '-d',
-          'flowvis',
+          'flowxis',
           '-tAc',
           "select to_regclass('public.infra_probes')",
         ]).trim();

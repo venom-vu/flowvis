@@ -75,7 +75,7 @@ describe('DiscordNotifierAdapter: cắt nội dung và timeout', () => {
       embed.fields.map((f) => [f.name, f.value]),
       [['Quy tắc', 'R'], ['Tỉ lệ lỗi', '0.5'], ['nested', '{"a":1}']],
     );
-    assert.equal(embed.footer.text, 'flowvis · ops.breaker_triggered');
+    assert.equal(embed.footer.text, 'flowxis · ops.breaker_triggered');
   });
 
   it('máy chủ nhận kết nối nhưng không trả lời: notify bị từ chối nhanh, lỗi không lộ URL webhook', { timeout: 6000 }, async () => {

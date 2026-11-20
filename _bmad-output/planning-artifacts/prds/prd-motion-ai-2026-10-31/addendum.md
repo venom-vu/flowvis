@@ -1,4 +1,4 @@
-# Addendum: flowvis
+# Addendum: flowxis
 
 Tài liệu này giữ chi tiết kỹ thuật và dữ liệu chi phí không đủ chỗ trong PRD. Mọi con số dưới đây do người dùng cung cấp và chưa được đo thực tế; việc đo nằm ở PRD §12.
 

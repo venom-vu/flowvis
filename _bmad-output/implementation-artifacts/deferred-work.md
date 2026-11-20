@@ -217,8 +217,8 @@
   summary: Chạy `confirm` song song hai request trên một khóa có thể xóa `in-raw/` hoặc để mồ côi `in/` (cả ảnh lẫn video).
   evidence: `reconcile-script.test` đã xác nhận pass khi đặt `RUNNINGHUB_WORKFLOW_BODY_RESHAPE` (chỉ thiếu biến môi trường khi chạy tay); mẫu `confirm` đua có từ Story 2.2.
 - source_spec: `_bmad-output/implementation-artifacts/spec-5-2-be-tai-video-len-va-kiem-tra-bang-ffprobe.md`
-  summary: Thống nhất `DATABASE_URL` mặc định của test và `.env.example` (`motion_user`) với user Postgres của container local (`flowvis_user`).
-  evidence: Chạy test phải truyền `DATABASE_URL` tay vì container local dùng `flowvis_user`; chưa rõ bên nào là cấu hình chuẩn nên chưa sửa.
+  summary: Thống nhất `DATABASE_URL` mặc định của test và `.env.example` (`motion_user`) với user Postgres của container local (`flowxis_user`).
+  evidence: Chạy test phải truyền `DATABASE_URL` tay vì container local dùng `flowxis_user`; chưa rõ bên nào là cấu hình chuẩn nên chưa sửa.
 - source_spec: `_bmad-output/implementation-artifacts/spec-5-3-be-tao-task-motion-control-va-tinh-gia-phia-server.md`
   summary: Trước khi triển khai thật, gỡ nhánh chặn tạm `motion_control` → `failed`/`INTERNAL_ERROR` ở `task-worker.service.ts` (Story 5.5) và cân nhắc cờ chặn route `POST /tasks/motion` nếu có triển khai trước 5.5.
   evidence: Giữa 5.3 và 5.5 mọi Task Motion được tạo rồi luôn `failed`, người dùng sẽ thấy lỗi; chủ ý theo quyết định 3A.
@@ -351,7 +351,7 @@
   evidence: Reviewer verification-gap và edge-case nêu; ngoài các AC của Story 6.10 nên không sửa ở đây.
 
 - source_spec: `_bmad-output/implementation-artifacts/spec-6-11-ops-cong-truoc-khi-bat-vietqr-thuong-mai.md`
-  summary: Gắn fixture `/admin/stats` trong `scripts/prelaunch/lib.test.mjs` với `AdminStatsResponseSchema` của `@flowvis/contracts` để đổi tên `pack`/`scenario` không làm cổng benchmark fail âm thầm.
+  summary: Gắn fixture `/admin/stats` trong `scripts/prelaunch/lib.test.mjs` với `AdminStatsResponseSchema` của `@flowxis/contracts` để đổi tên `pack`/`scenario` không làm cổng benchmark fail âm thầm.
   evidence: `evaluateBenchmark` lọc chuỗi `'creator'`/`'retail'` cố định; fixture viết tay, không parse qua contracts. Thất bại kiểu fail-closed nên chưa chặn.
 
 - source_spec: `_bmad-output/implementation-artifacts/spec-video-character-replacement.md`

@@ -7,7 +7,7 @@ import { fileURLToPath, pathToFileURL } from 'node:url';
 import { compileTemplate, parse } from '@vue/compiler-sfc';
 import { createSSRApp } from 'vue';
 import { renderToString } from 'vue/server-renderer';
-import { TOS_VERSION } from '@flowvis/contracts';
+import { TOS_VERSION } from '@flowxis/contracts';
 import { terms } from '../content/legal/terms.ts';
 import { privacy } from '../content/legal/privacy.ts';
 import {
@@ -146,7 +146,7 @@ describe('Story 6.9 - văn bản pháp lý', () => {
   });
 
   it('mailto cố định: đúng tiêu đề và hướng dẫn, không chứa dữ liệu người dùng', () => {
-    assert.equal(REPORT_MAILTO_SUBJECT, 'Báo cáo vi phạm flowvis');
+    assert.equal(REPORT_MAILTO_SUBJECT, 'Báo cáo vi phạm flowxis');
     assert.equal(
       REPORT_MAILTO_BODY,
       'Vui lòng nêu mã tác vụ hoặc liên kết chia sẻ và mô tả vi phạm.',
@@ -154,7 +154,7 @@ describe('Story 6.9 - văn bản pháp lý', () => {
     assert.equal(
       buildReportMailto('abuse@example.com'),
       'mailto:abuse@example.com?subject=' +
-        encodeURIComponent('Báo cáo vi phạm flowvis') +
+        encodeURIComponent('Báo cáo vi phạm flowxis') +
         '&body=' +
         encodeURIComponent('Vui lòng nêu mã tác vụ hoặc liên kết chia sẻ và mô tả vi phạm.'),
     );

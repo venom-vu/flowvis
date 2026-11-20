@@ -9,7 +9,7 @@ import {
   type AdminStatsQuery,
   type AdminStatsResponse,
   type TaskPipeline,
-} from "@flowvis/contracts";
+} from "@flowxis/contracts";
 import { AuthService } from "../auth/auth.service.js";
 import {
   TasksService,

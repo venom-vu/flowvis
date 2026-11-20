@@ -11,7 +11,7 @@ import {
   MOCK_ADMIN_TOPUPS_BY_STATUS,
   MOCK_ADMIN_TOPUP_LIST_RESPONSE,
   getTopupStatusLabelVi,
-} from '@flowvis/contracts';
+} from '@flowxis/contracts';
 import {
   MotionApiClientError,
   createMotionApiClient,

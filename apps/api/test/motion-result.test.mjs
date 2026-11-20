@@ -24,7 +24,7 @@ const repoRoot = path.resolve(apiRoot, '../..');
 const composePath = path.join(repoRoot, 'deploy', 'compose.yml');
 const DB_URL =
   process.env.DATABASE_URL ||
-  'postgresql://motion_user:change_me_local_password@localhost:5432/flowvis?schema=public';
+  'postgresql://motion_user:change_me_local_password@localhost:5432/flowxis?schema=public';
 const REDIS_URL = process.env.REDIS_URL || 'redis://localhost:6379';
 
 function tcp(host, port) {
@@ -61,7 +61,7 @@ Queue.prototype.getJob = async function () { return null; };
 
 const OUT_MP4 = /^out\/[0-9a-f-]{36}\/[0-9a-f-]{36}\.mp4$/;
 const RH_URL = 'https://rh.example.test/out/result.mp4';
-const TMP_ROOT = path.join(os.tmpdir(), 'flowvis-trim', 'ingest');
+const TMP_ROOT = path.join(os.tmpdir(), 'flowxis-trim', 'ingest');
 const vdir = fs.mkdtempSync(path.join(os.tmpdir(), 'mres-'));
 
 function makeVideo(name, { w = 720, h = 1280, fps = 24, dur = 5.2, codec = 'libx264' } = {}) {
@@ -95,7 +95,7 @@ describe('Story 5.6: [BE] Nhập kết quả video, ảnh bìa và chia sẻ', (
 
   async function newUser() {
     const n = users.length;
-    const u = await prisma.user.create({ data: { googleId: `mres-${runId}-${n}`, email: `mres-${runId}-${n}@flowvis.vn`, tosVersion: 'tos-v7' } });
+    const u = await prisma.user.create({ data: { googleId: `mres-${runId}-${n}`, email: `mres-${runId}-${n}@flowxis.vn`, tosVersion: 'tos-v7' } });
     users.push(u.id);
     await prisma.$transaction((t) => new WalletService().grant(t, u.id, 5000));
     return { id: u.id, token: jwt.sign({ sub: u.id, email: u.email, role: 'user' }) };

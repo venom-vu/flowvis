@@ -15,7 +15,7 @@ import {
   type UploadConfirmResponse,
   type UploadConfirmVideoResponse,
   type UploadCreateResponse,
-} from '@flowvis/contracts';
+} from '@flowxis/contracts';
 import { CurrentUser } from '../auth/decorators/current-user.decorator.js';
 import { AccountLockedGuard } from '../auth/guards/account-locked.guard.js';
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard.js';

@@ -18,7 +18,7 @@ import {
   type UploadCreateRequest,
   type ValidationReason,
   type UploadCreateResponse,
-} from '@flowvis/contracts';
+} from '@flowxis/contracts';
 import sharp, { type Metadata, type OutputInfo } from 'sharp';
 import { FORMAT_TO_MIME, displaySize } from './image-utils.js';
 import { MIN_VIDEO_SECONDS, VideoProbeService } from './video-probe.service.js';

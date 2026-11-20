@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import { computed, onBeforeUnmount, onMounted, ref, watch } from 'vue';
-import type { Task, TaskResultResponse } from '@flowvis/contracts';
+import type { Task, TaskResultResponse } from '@flowxis/contracts';
 import { useApiClient } from '~/composables/useApiClient';
 import { badgeClass, getTaskStatusBadge } from '~/utils/status-badge';
 import {

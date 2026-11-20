@@ -4,7 +4,7 @@ import type {
   Task,
   TaskResultResponse,
   TaskShareResponse,
-} from '@flowvis/contracts';
+} from '@flowxis/contracts';
 import BeforeAfterSplitSlider from '~/components/BeforeAfterSplitSlider.vue';
 import { useApiClient } from '~/composables/useApiClient';
 import {
@@ -274,7 +274,7 @@ async function handleDownload(): Promise<void> {
     const blobUrl = URL.createObjectURL(blob);
     const a = document.createElement('a');
     a.href = blobUrl;
-    a.download = `flowvis-${localTask.value.pipeline}-${localTask.value.id.slice(0, 8)}${ext}`;
+    a.download = `flowxis-${localTask.value.pipeline}-${localTask.value.id.slice(0, 8)}${ext}`;
     document.body.appendChild(a);
     a.click();
     document.body.removeChild(a);

@@ -8,8 +8,8 @@ Job trong container `nestjs-worker` chạy 03:00 giờ Việt Nam (`Asia/Ho_Chi_
 2. Tải bản mới nhất trong `db-backup/` từ R2 (dashboard Cloudflare hoặc `aws s3 cp --endpoint-url`).
 3. Tạo CSDL trống rồi khôi phục:
    ```bash
-   createdb -h <host> -U <user> flowvis_restored
-   pg_restore -h <host> -U <user> --no-owner --no-privileges -d flowvis_restored <file>.dump
+   createdb -h <host> -U <user> flowxis_restored
+   pg_restore -h <host> -U <user> --no-owner --no-privileges -d flowxis_restored <file>.dump
    ```
 4. Trỏ `DATABASE_URL` sang CSDL đã khôi phục (hoặc đổi tên CSDL), rồi khởi động lại `nestjs-api` và `nestjs-worker`.
 5. Chạy đối soát: `node apps/api/dist/scripts/reconcile.js` (thoát 0 nếu không lệch).

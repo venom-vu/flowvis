@@ -20,7 +20,7 @@ export function usePageSeo({ title, description, noindex = false }: PageSeoOptio
     ogTitle: title,
     ogDescription: description,
     ogType: 'website',
-    ogSiteName: 'flowvis',
+    ogSiteName: 'flowxis',
     ogLocale: 'vi_VN',
     ogUrl: url,
     ogImage: `${origin.replace(/\/$/, '')}/og-image.png`,
