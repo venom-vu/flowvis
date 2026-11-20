@@ -41,7 +41,7 @@ export function buildSoftwareApplicationJsonLd(origin: string) {
     operatingSystem: 'Web',
     inLanguage: 'vi',
     description:
-      'Nền tảng tạo ảnh và video AI: hoán đổi khuôn mặt, đổi trang phục, nâng ngực, đổi người và điều khiển chuyển động.',
+      'Nền tảng tạo ảnh và video AI: hoán đổi khuôn mặt, đổi trang phục, nâng ngực và điều khiển chuyển động.',
     publisher: { '@id': `${base}/#organization` },
   };
 }

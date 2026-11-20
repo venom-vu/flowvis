@@ -72,7 +72,6 @@ const isVideoPipeline = computed<boolean>(
   () =>
     currentTask.value?.pipeline === 'motion_control' ||
     currentTask.value?.pipeline === 'motion_control_v2' ||
-    currentTask.value?.pipeline === 'motion_background' ||
     currentTask.value?.pipeline === 'veo3' ||
     currentTask.value?.pipeline === 'muse_video',
 );
@@ -146,13 +145,10 @@ async function copyTaskId(): Promise<void> {
 function getPipelineRoute(pipeline?: string): string {
   if (pipeline === 'body_retouch') return '/body-retouch';
   if (pipeline === 'outfit_change') return '/outfit-change';
-  if (pipeline === 'person_replace') return '/person-replace';
   if (pipeline === 'motion_control') return '/motion-control';
   if (pipeline === 'motion_control_v2') return '/motion-control-v2';
-  if (pipeline === 'motion_background') return '/motion-background';
   if (pipeline === 'veo3') return '/veo-3';
   if (pipeline === 'muse_video') return '/muse-video';
-  if (pipeline === 'multi_angle_product') return '/multi-angle-product';
   return '/face-swap';
 }
 

@@ -331,12 +331,9 @@ describe('Story 6.2: [BE] Ngắt mạch và chặn tạo Task khi tạm dừng',
       'createBodyRetouch',
       'createFaceSwap',
       'createMotion',
-      'createMotionBackground',
       'createMotionV2',
-      'createMultiAngleProduct',
       'createMuseVideo',
       'createOutfitChange',
-      'createPersonReplace',
       'createVeo3',
     ]);
     for (const n of marked) {

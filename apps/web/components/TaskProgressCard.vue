@@ -33,7 +33,7 @@ const { client } = useApiClient();
 
 const localTask = ref<Task | null>(props.task);
 const isVideoPipeline = computed<boolean>(
-  () => localTask.value?.pipeline === 'motion_control' || localTask.value?.pipeline === 'motion_control_v2' || localTask.value?.pipeline === 'motion_background' || localTask.value?.pipeline === 'veo3' || localTask.value?.pipeline === 'muse_video',
+  () => localTask.value?.pipeline === 'motion_control' || localTask.value?.pipeline === 'motion_control_v2' || localTask.value?.pipeline === 'veo3' || localTask.value?.pipeline === 'muse_video',
 );
 const isCancelling = ref<boolean>(false);
 const isFetching = ref<boolean>(false);
@@ -315,9 +315,7 @@ onBeforeUnmount(() => {
         {{
           localTask?.pipeline === 'body_retouch'
             ? 'AI đang phân tích tỷ lệ cơ thể và tinh chỉnh vóc dáng theo mức độ đã chọn. Quá trình này thường diễn ra trong khoảng 10–25 giây.'
-            : localTask?.pipeline === 'multi_angle_product'
-              ? 'AI đang dựng ảnh sản phẩm từ nhiều góc nhìn. Quá trình này thường diễn ra trong khoảng 30–90 giây.'
-              : 'AI đang phân tích khuôn mặt, căn chỉnh góc xoay và tái tạo biểu cảm chi tiết. Quá trình này thường diễn ra trong khoảng 10–25 giây.'
+            : 'AI đang phân tích khuôn mặt, căn chỉnh góc xoay và tái tạo biểu cảm chi tiết. Quá trình này thường diễn ra trong khoảng 10–25 giây.'
         }}
       </p>
 

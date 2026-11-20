@@ -35,20 +35,6 @@ export const TOOL_SEO_CONTENT = {
       'Ảnh trang phục nên rõ nét, nền đơn giản.',
     ],
   },
-  'person-replace': {
-    heading: 'Đổi người trong ảnh bằng AI, giữ nguyên bối cảnh',
-    intro:
-      'Thay nhân vật trong ảnh gốc bằng một nhân vật khác, giữ nguyên bối cảnh và bố cục của ảnh. Dùng khi bạn muốn giữ khung cảnh nhưng đổi người xuất hiện trong đó.',
-    steps: [
-      'Tải ảnh gốc cần thay người.',
-      'Tải ảnh nhân vật mới rõ nét.',
-      'Bấm tạo và tải ảnh kết quả khi hoàn tất.',
-    ],
-    tips: [
-      'Nhân vật mới nên có tư thế gần với người cần thay.',
-      'Ảnh nhân vật mới cần đủ sáng và không bị cắt mất phần thân.',
-    ],
-  },
   'body-retouch': {
     heading: 'Nâng ngực AI tự nhiên theo 10 mức điều chỉnh',
     intro:
@@ -91,20 +77,6 @@ export const TOOL_SEO_CONTENT = {
       'Chỉ cắt đúng đoạn cần dùng để tiết kiệm credit.',
     ],
   },
-  'motion-background': {
-    heading: 'Motion control nền video: tạo video chuyển động từ ảnh và video mẫu',
-    intro:
-      'Ánh xạ chuyển động từ video mẫu sang ảnh nhân vật kèm nền, cắt thời lượng theo giây và tính phí theo độ dài.',
-    steps: [
-      'Tải ảnh nhân vật rõ dáng.',
-      'Tải video chuyển động mẫu rồi cắt đoạn cần dùng.',
-      'Bấm tạo và tải video kết quả khi hoàn tất.',
-    ],
-    tips: [
-      'Chọn video mẫu có một người chuyển động rõ ràng.',
-      'Chỉ cắt đúng đoạn cần dùng để tiết kiệm credit.',
-    ],
-  },
   'veo-3': {
     heading: 'Veo 3: tạo video AI từ văn bản, ảnh hoặc khung hình',
     intro:
@@ -131,20 +103,6 @@ export const TOOL_SEO_CONTENT = {
     tips: [
       'Mô tả rõ chủ thể, hành động và chuyển động camera mong muốn.',
       'Sắp xếp ảnh theo thứ tự quan trọng; ảnh được gửi đúng thứ tự bạn chọn.',
-    ],
-  },
-  'multi-angle-product': {
-    heading: 'Tạo ảnh sản phẩm đa góc bằng AI',
-    intro:
-      'Tải 3 ảnh của cùng một sản phẩm, AI dựng một ảnh thể hiện sản phẩm từ nhiều góc nhìn. Phù hợp làm ảnh bán hàng, ảnh giới thiệu sản phẩm trên sàn thương mại điện tử.',
-    steps: [
-      'Tải 3 ảnh sản phẩm rõ nét, mỗi ô một ảnh.',
-      'Kiểm tra lại ba ảnh rồi bấm tạo.',
-      'Theo dõi tiến trình và tải ảnh kết quả khi hoàn tất.',
-    ],
-    tips: [
-      'Chụp sản phẩm ở các góc khác nhau để AI có đủ chi tiết.',
-      'Dùng nền đơn giản, đủ sáng và không bị che khuất sản phẩm.',
     ],
   },
 } as const satisfies Record<string, ToolSeoContent>;

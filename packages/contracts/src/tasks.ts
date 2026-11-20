@@ -9,18 +9,15 @@ export const MOTION_MIN_TRIM_SECONDS = 5;
 export const MOTION_MAX_SECONDS = {
   motion_control: 20,
   motion_control_v2: 10,
-  motion_background: 20,
 } as const;
 export type MotionPipeline = keyof typeof MOTION_MAX_SECONDS;
 
 /**
  * Giá Motion theo chức năng: phí cố định + đơn giá mỗi giây (credit); nơi duy nhất giữ các hằng này phía mã nguồn.
- * `motion_background` đang ẩn và chưa có giá chốt nên giữ nguyên giá cũ (50 credit/giây, không phí cố định).
  */
 export const MOTION_PRICING = {
   motion_control: { baseCredits: 150, creditsPerSecond: 20 },
   motion_control_v2: { baseCredits: 150, creditsPerSecond: 65 },
-  motion_background: { baseCredits: 0, creditsPerSecond: 50 },
 } as const;
 
 /** Giá một Task Motion = phí cố định + đơn giá mỗi giây × số giây (mặc định tính theo `motion_control`). */
@@ -37,7 +34,7 @@ export function motionCapSeconds(pipeline: MotionPipeline, tierCapSeconds: numbe
   return Math.min(MOTION_MAX_SECONDS[pipeline], tierCapSeconds);
 }
 
-export const TASK_PIPELINES = ['face_swap', 'body_retouch', 'motion_control', 'outfit_change', 'person_replace', 'motion_control_v2', 'motion_background', 'veo3', 'muse_video', 'multi_angle_product'] as const;
+export const TASK_PIPELINES = ['face_swap', 'body_retouch', 'motion_control', 'outfit_change', 'motion_control_v2', 'veo3', 'muse_video'] as const;
 export type TaskPipeline = (typeof TASK_PIPELINES)[number];
 export const TaskPipelineSchema = z.enum(TASK_PIPELINES);
 
@@ -250,38 +247,6 @@ export const OutfitChangeCreateRequestSchema = z
 export type OutfitChangeCreateRequest = z.infer<typeof OutfitChangeCreateRequestSchema>;
 export const OutfitChangeCreateResponseSchema = TaskSchema;
 export type OutfitChangeCreateResponse = Task;
-
-/** POST /tasks/person-replace — đổi người trong ảnh: ảnh gốc + ảnh nhân vật mới; giá do server quyết định. */
-export const PersonReplaceCreateRequestSchema = z
-  .object({
-    sceneKey: ConfirmedUploadKeySchema,
-    personKey: ConfirmedUploadKeySchema,
-  })
-  .strict();
-export type PersonReplaceCreateRequest = z.infer<typeof PersonReplaceCreateRequestSchema>;
-export const PersonReplaceCreateResponseSchema = TaskSchema;
-export type PersonReplaceCreateResponse = Task;
-
-/** Tạo sản phẩm đa góc (AI App 2030848699949125633): giá cố định mỗi lần chạy (credit). */
-export const MULTI_ANGLE_PRODUCT_PRICE = 200;
-
-/** POST /tasks/multi-angle-product — 3 ảnh sản phẩm (bắt buộc đủ, không trùng); giá do server quyết định. */
-export const MultiAngleProductCreateRequestSchema = z
-  .object({
-    productKey1: ConfirmedUploadKeySchema,
-    productKey2: ConfirmedUploadKeySchema,
-    productKey3: ConfirmedUploadKeySchema,
-  })
-  .strict()
-  .superRefine((v, ctx) => {
-    const keys = [v.productKey1, v.productKey2, v.productKey3];
-    if (new Set(keys).size !== keys.length) {
-      ctx.addIssue({ code: z.ZodIssueCode.custom, message: 'Ba ảnh sản phẩm không được trùng nhau.' });
-    }
-  });
-export type MultiAngleProductCreateRequest = z.infer<typeof MultiAngleProductCreateRequestSchema>;
-export const MultiAngleProductCreateResponseSchema = TaskSchema;
-export type MultiAngleProductCreateResponse = Task;
 
 /** Ba vùng nhãn của thanh mức điều chỉnh (min/max gồm cả hai đầu). */
 export const INTENSITY_LABEL_ZONES = [
@@ -509,15 +474,6 @@ export const MotionV2CreateResponseSchema = TaskBaseSchema.extend({
   price: z.number().int().positive(),
 }).superRefine(refineMotionTask);
 export type MotionV2CreateResponse = z.infer<typeof MotionV2CreateResponseSchema>;
-
-/** POST /tasks/motion-background — Motion control nền video: ảnh nền/nhân vật + đoạn video đã cắt; giá theo giây như v1. */
-export const MotionBackgroundCreateRequestSchema = MotionV2CreateRequestSchema;
-export type MotionBackgroundCreateRequest = z.input<typeof MotionBackgroundCreateRequestSchema>;
-export const MotionBackgroundCreateResponseSchema = TaskBaseSchema.extend({
-  pipeline: z.literal('motion_background'),
-  price: z.number().int().positive(),
-}).superRefine(refineMotionTask);
-export type MotionBackgroundCreateResponse = z.infer<typeof MotionBackgroundCreateResponseSchema>;
 
 /** `details.reason` của VALIDATION_FAILED cho video/Trim. */
 export const VALIDATION_REASONS = [

@@ -52,11 +52,6 @@ const emit = defineEmits<{
       targetKey?: string | null;
       modelKey?: string | null;
       clothingKey?: string | null;
-      sceneKey?: string | null;
-      personKey?: string | null;
-      productKey1?: string | null;
-      productKey2?: string | null;
-      productKey3?: string | null;
       intensity?: number;
     },
   ];
@@ -110,11 +105,6 @@ const sourceKey = ref<string | null>(null);
 const targetKey = ref<string | null>(null);
 const modelKey = ref<string | null>(null);
 const clothingKey = ref<string | null>(null);
-const sceneKey = ref<string | null>(null);
-const personKey = ref<string | null>(null);
-const productKey1 = ref<string | null>(null);
-const productKey2 = ref<string | null>(null);
-const productKey3 = ref<string | null>(null);
 const activeTask = ref<Task | null>(null);
 const isSubmitting = ref<boolean>(false);
 const submitErrorVi = ref<string | null>(null);
@@ -137,11 +127,6 @@ watch(
     targetKey.value = null;
     modelKey.value = null;
     clothingKey.value = null;
-    sceneKey.value = null;
-    personKey.value = null;
-    productKey1.value = null;
-    productKey2.value = null;
-    productKey3.value = null;
     activeTask.value = null;
     submitErrorVi.value = null;
     resetMotionState();
@@ -169,11 +154,6 @@ watch(
       targetKey.value = null;
       modelKey.value = null;
       clothingKey.value = null;
-      sceneKey.value = null;
-      personKey.value = null;
-      productKey1.value = null;
-      productKey2.value = null;
-      productKey3.value = null;
       activeTask.value = null;
       submitErrorVi.value = null;
       resetMotionState();
@@ -186,7 +166,7 @@ watch(
 
 // Xóa lỗi cũ khi người dùng thay đổi dữ liệu đầu vào hoặc mức intensity
 watch(
-  [uploadedKey, sourceKey, targetKey, modelKey, clothingKey, sceneKey, personKey, productKey1, productKey2, productKey3, intensity],
+  [uploadedKey, sourceKey, targetKey, modelKey, clothingKey, intensity],
   () => {
     submitErrorVi.value = null;
   },
@@ -208,17 +188,15 @@ const isAuthenticated = computed<boolean>(() => {
 
 const isMotion = computed<boolean>(
   () => props.feature?.id === 'motion-control' ||
-    props.feature?.id === 'motion-control-v2' ||
-    props.feature?.id === 'motion-background',
+    props.feature?.id === 'motion-control-v2',
 );
 const isVeo3 = computed<boolean>(() => props.feature?.id === 'veo-3');
 const isMuseVideo = computed<boolean>(() => props.feature?.id === 'muse-video');
 const isMotionV2 = computed<boolean>(() => props.feature?.id === 'motion-control-v2');
-const isMotionBackground = computed<boolean>(() => props.feature?.id === 'motion-background');
 watch(
-  [isMotionV2, isMotionBackground],
-  ([v2, bg]) => {
-    motion.variant.value = bg ? 'bg' : v2 ? 'v2' : 'v1';
+  isMotionV2,
+  (v2) => {
+    motion.variant.value = v2 ? 'v2' : 'v1';
   },
   { immediate: true, flush: 'sync' },
 );
@@ -280,12 +258,6 @@ const canSubmit = computed<boolean>(() => {
   }
   if (props.feature?.id === 'outfit-change') {
     return Boolean(modelKey.value && clothingKey.value);
-  }
-  if (props.feature?.id === 'person-replace') {
-    return Boolean(sceneKey.value && personKey.value);
-  }
-  if (props.feature?.id === 'multi-angle-product') {
-    return Boolean(productKey1.value && productKey2.value && productKey3.value);
   }
   if (props.feature?.id === 'body-retouch') {
     return Boolean(uploadedKey.value && isValidIntensity.value);
@@ -399,52 +371,6 @@ async function handleSubmit(): Promise<void> {
     } finally {
       isSubmitting.value = false;
     }
-  } else if (props.feature.id === 'person-replace') {
-    isSubmitting.value = true;
-    submitErrorVi.value = null;
-    try {
-      const task = await client.createPersonReplaceTask({
-        sceneKey: sceneKey.value!,
-        personKey: personKey.value!,
-      });
-      activeTask.value = task;
-      void refreshAll();
-      emit('submit', {
-        featureId: props.feature.id,
-        seconds: selectedSeconds.value,
-        estimatedCredits: estimatedCredits.value,
-        sceneKey: sceneKey.value,
-        personKey: personKey.value,
-      });
-    } catch (error: unknown) {
-      submitErrorVi.value = resolveApiErrorMessageVi(error);
-    } finally {
-      isSubmitting.value = false;
-    }
-  } else if (props.feature.id === 'multi-angle-product') {
-    isSubmitting.value = true;
-    submitErrorVi.value = null;
-    try {
-      const task = await client.createMultiAngleProductTask({
-        productKey1: productKey1.value!,
-        productKey2: productKey2.value!,
-        productKey3: productKey3.value!,
-      });
-      activeTask.value = task;
-      void refreshAll();
-      emit('submit', {
-        featureId: props.feature.id,
-        seconds: selectedSeconds.value,
-        estimatedCredits: estimatedCredits.value,
-        productKey1: productKey1.value,
-        productKey2: productKey2.value,
-        productKey3: productKey3.value,
-      });
-    } catch (error: unknown) {
-      submitErrorVi.value = resolveApiErrorMessageVi(error);
-    } finally {
-      isSubmitting.value = false;
-    }
   } else if (props.feature.id === 'body-retouch') {
     isSubmitting.value = true;
     submitErrorVi.value = null;
@@ -549,8 +475,8 @@ onBeforeUnmount(() => {
 
         <div class="flex items-center gap-2">
           <NuxtLink
-            v-if="feature.id === 'face-swap' || feature.id === 'veo-3' || feature.id === 'muse-video' || feature.id === 'outfit-change' || feature.id === 'person-replace' || feature.id === 'multi-angle-product' || feature.id === 'body-retouch' || isMotion"
-            :to="feature.id === 'veo-3' ? '/veo-3' : feature.id === 'muse-video' ? '/muse-video' : feature.id === 'body-retouch' ? '/body-retouch' : feature.id === 'motion-control' ? '/motion-control' : feature.id === 'motion-control-v2' ? '/motion-control-v2' : feature.id === 'motion-background' ? '/motion-background' : feature.id === 'outfit-change' ? '/outfit-change' : feature.id === 'person-replace' ? '/person-replace' : feature.id === 'multi-angle-product' ? '/multi-angle-product' : '/face-swap'"
+            v-if="feature.id === 'face-swap' || feature.id === 'veo-3' || feature.id === 'muse-video' || feature.id === 'outfit-change' || feature.id === 'body-retouch' || isMotion"
+            :to="feature.id === 'veo-3' ? '/veo-3' : feature.id === 'muse-video' ? '/muse-video' : feature.id === 'body-retouch' ? '/body-retouch' : feature.id === 'motion-control' ? '/motion-control' : feature.id === 'motion-control-v2' ? '/motion-control-v2' : feature.id === 'outfit-change' ? '/outfit-change' : '/face-swap'"
             data-testid="workspace-open-standalone-link"
             class="touch-target inline-flex min-h-[48px] items-center gap-1.5 rounded-xl border border-cyber-border bg-cyber-bg px-3 py-2 text-xs font-semibold text-cyber-muted transition hover:border-cyber-cyan hover:text-cyber-cyan"
             @click="emit('close')"
@@ -689,114 +615,6 @@ onBeforeUnmount(() => {
                 id-prefix="workspace-outfit-clothing"
                 label-vi="Chọn ảnh trang phục"
                 description-vi="Ảnh quần áo rõ nét, JPG/PNG/WebP ≤ 10 MB"
-              />
-            </div>
-          </div>
-
-          <div
-            v-else-if="feature.id === 'person-replace'"
-            class="space-y-3"
-            data-testid="workspace-person-replace-inputs"
-          >
-            <div class="space-y-2.5 rounded-xl border border-cyber-border bg-cyber-bg/60 p-3 sm:p-3.5">
-              <div class="flex items-center gap-2">
-                <span
-                  class="flex h-5 w-5 items-center justify-center rounded-md border border-cyber-cyan/40 bg-cyber-cyan/15 font-mono text-[11px] font-bold text-cyber-cyan"
-                >
-                  1
-                </span>
-                <p class="text-xs font-semibold text-cyber-text sm:text-sm">
-                  Ảnh gốc (Ảnh có người cần thay)
-                </p>
-              </div>
-              <ImageUploader
-                v-model="sceneKey"
-                id-prefix="workspace-person-scene"
-                label-vi="Chọn ảnh gốc"
-                description-vi="Ảnh giữ nguyên bối cảnh, JPG/PNG/WebP ≤ 10 MB"
-              />
-            </div>
-
-            <div class="space-y-2.5 rounded-xl border border-cyber-border bg-cyber-bg/60 p-3 sm:p-3.5">
-              <div class="flex items-center gap-2">
-                <span
-                  class="flex h-5 w-5 items-center justify-center rounded-md border border-cyber-violet/40 bg-cyber-violet/15 font-mono text-[11px] font-bold text-cyber-violet"
-                >
-                  2
-                </span>
-                <p class="text-xs font-semibold text-cyber-text sm:text-sm">
-                  Ảnh nhân vật mới (Người sẽ thay vào)
-                </p>
-              </div>
-              <ImageUploader
-                v-model="personKey"
-                id-prefix="workspace-person-new"
-                label-vi="Chọn ảnh nhân vật mới"
-                description-vi="Ảnh nhân vật rõ nét, JPG/PNG/WebP ≤ 10 MB"
-              />
-            </div>
-          </div>
-
-          <!-- Tạo sản phẩm đa góc: 3 ảnh sản phẩm (node 27/28/7) -->
-          <div
-            v-else-if="feature.id === 'multi-angle-product'"
-            class="space-y-3"
-            data-testid="workspace-multi-angle-product-inputs"
-          >
-            <div class="space-y-2.5 rounded-xl border border-cyber-border bg-cyber-bg/60 p-3 sm:p-3.5">
-              <div class="flex items-center gap-2">
-                <span
-                  class="flex h-5 w-5 items-center justify-center rounded-md border border-cyber-cyan/40 bg-cyber-cyan/15 font-mono text-[11px] font-bold text-cyber-cyan"
-                >
-                  1
-                </span>
-                <p class="text-xs font-semibold text-cyber-text sm:text-sm">
-                  Ảnh sản phẩm 1
-                </p>
-              </div>
-              <ImageUploader
-                v-model="productKey1"
-                id-prefix="workspace-multi-angle-product-1"
-                label-vi="Chọn ảnh sản phẩm 1"
-                description-vi="Ảnh sản phẩm rõ nét, JPG/PNG/WebP ≤ 10 MB"
-              />
-            </div>
-
-            <div class="space-y-2.5 rounded-xl border border-cyber-border bg-cyber-bg/60 p-3 sm:p-3.5">
-              <div class="flex items-center gap-2">
-                <span
-                  class="flex h-5 w-5 items-center justify-center rounded-md border border-cyber-cyan/40 bg-cyber-cyan/15 font-mono text-[11px] font-bold text-cyber-cyan"
-                >
-                  2
-                </span>
-                <p class="text-xs font-semibold text-cyber-text sm:text-sm">
-                  Ảnh sản phẩm 2
-                </p>
-              </div>
-              <ImageUploader
-                v-model="productKey2"
-                id-prefix="workspace-multi-angle-product-2"
-                label-vi="Chọn ảnh sản phẩm 2"
-                description-vi="Ảnh sản phẩm rõ nét, JPG/PNG/WebP ≤ 10 MB"
-              />
-            </div>
-
-            <div class="space-y-2.5 rounded-xl border border-cyber-border bg-cyber-bg/60 p-3 sm:p-3.5">
-              <div class="flex items-center gap-2">
-                <span
-                  class="flex h-5 w-5 items-center justify-center rounded-md border border-cyber-cyan/40 bg-cyber-cyan/15 font-mono text-[11px] font-bold text-cyber-cyan"
-                >
-                  3
-                </span>
-                <p class="text-xs font-semibold text-cyber-text sm:text-sm">
-                  Ảnh sản phẩm 3
-                </p>
-              </div>
-              <ImageUploader
-                v-model="productKey3"
-                id-prefix="workspace-multi-angle-product-3"
-                label-vi="Chọn ảnh sản phẩm 3"
-                description-vi="Ảnh sản phẩm rõ nét, JPG/PNG/WebP ≤ 10 MB"
               />
             </div>
           </div>

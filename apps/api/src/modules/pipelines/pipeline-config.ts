@@ -88,34 +88,6 @@ export const PIPELINE_CONFIGS: Readonly<Record<string, PipelineConfig>> = {
     fixedNodes: [{ nodeId: '223', fieldName: 'value', fieldValue: '让图一的人物穿上图二的衣服' }],
     referenceInputKey: 'modelKey',
   },
-  person_replace: {
-    pipeline: 'person_replace',
-    workflowEnvVar: 'RUNNINGHUB_WORKFLOW_PERSON_REPLACE',
-    instanceEnvVar: 'RUNNINGHUB_INSTANCE_PERSON_REPLACE',
-    runMode: 'ai-app',
-    // Không requiredAtStartup: môi trường chưa cấu hình vẫn khởi động; adapter unconfigured ném GPU_ERROR.
-    // AI App Đổi người trong ảnh (1977229030422388737): 22 = ảnh gốc, 35 = nhân vật mới thay vào ảnh gốc, 49 = độ phân giải tối đa.
-    // Không đặt referenceInputKey: workflow giới hạn cạnh dài 1280 nên kích thước kết quả có thể khác ảnh gốc.
-    inputs: [
-      { inputKey: 'sceneKey', nodeId: '22', fieldName: 'image' },
-      { inputKey: 'personKey', nodeId: '35', fieldName: 'image' },
-    ],
-    fixedNodes: [{ nodeId: '49', fieldName: 'value', fieldValue: '1280' }],
-  },
-  multi_angle_product: {
-    pipeline: 'multi_angle_product',
-    workflowEnvVar: 'RUNNINGHUB_WORKFLOW_MULTI_ANGLE_PRODUCT',
-    instanceEnvVar: 'RUNNINGHUB_INSTANCE_MULTI_ANGLE_PRODUCT',
-    runMode: 'ai-app',
-    // AI App Tạo sản phẩm đa góc (2030848699949125633): 27 = ảnh sản phẩm 1, 28 = ảnh sản phẩm 2, 7 = ảnh sản phẩm 3.
-    // Không đặt referenceInputKey: ảnh kết quả là bố cục mới, kích thước không theo ảnh đầu vào nào.
-    inputs: [
-      { inputKey: 'productKey1', nodeId: '27', fieldName: 'image' },
-      { inputKey: 'productKey2', nodeId: '28', fieldName: 'image' },
-      { inputKey: 'productKey3', nodeId: '7', fieldName: 'image' },
-    ],
-    defaultWorkflowId: '2030848699949125633',
-  },
   body_retouch: {
     pipeline: 'body_retouch',
     workflowEnvVar: 'RUNNINGHUB_WORKFLOW_BODY_RESHAPE',
@@ -200,20 +172,6 @@ export const PIPELINE_CONFIGS: Readonly<Record<string, PipelineConfig>> = {
     defaultWorkflowId: MUSE_VIDEO_DEFAULT_MODEL,
     model: { inputKeys: museVideoInputKeys, buildRequest: buildMuseVideoRequest },
     deadlineMs: 600_000,
-  },
-  motion_background: {
-    pipeline: 'motion_background',
-    workflowEnvVar: 'RUNNINGHUB_WORKFLOW_MOTION_BACKGROUND',
-    instanceEnvVar: 'RUNNINGHUB_INSTANCE_MOTION_BACKGROUND',
-    runMode: 'ai-app',
-    // Không requiredAtStartup: môi trường chưa cấu hình vẫn khởi động; adapter unconfigured ném GPU_ERROR.
-    // AI App Motion control nền video (2097276664149921793): 286 = ảnh, 274 = video (đã cắt). Không có tham số/node cố định.
-    inputs: [
-      { inputKey: 'characterKey', nodeId: '286', fieldName: 'image' },
-      { inputKey: 'videoKey', nodeId: '274', fieldName: 'video' },
-    ],
-    deadlineMs: 360_000,
-    prepare: (ctx) => videoTrim.prepare(ctx),
   },
 };
 

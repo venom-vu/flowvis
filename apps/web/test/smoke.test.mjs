@@ -252,7 +252,7 @@ describe('@flowvis/web — Story 1.4 Nuxt 4 mobile-first & API client', () => {
     assert.equal(getTierCapSeconds(pricing, 'Creator'), 20);
 
     const freeCatalog = buildAiFeatureCatalog(pricing, 'FREE');
-    assert.equal(freeCatalog.length, 8);
+    assert.equal(freeCatalog.length, 7);
 
     const faceSwap = freeCatalog.find((f) => f.id === 'face-swap');
     const bodyRetouch = freeCatalog.find((f) => f.id === 'body-retouch');
@@ -518,9 +518,9 @@ describe('@flowvis/web — Story 1.4 Nuxt 4 mobile-first & API client', () => {
           'data-testid="page-catalog"',
           'data-testid="app-top-header"',
           'data-testid="app-bottom-nav"',
-          '100 credit / lượt',
-          '150 + 20 credit / giây',
-          'Tối đa 5 giây',
+          '100 CR / lượt',
+          '150 + 20 CR / giây',
+          '5 giây',
         ],
       },
       {

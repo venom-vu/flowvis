@@ -65,7 +65,6 @@ export const DEFAULT_PRICING_CONFIG: PricingConfigResponse = {
   pipelines: {
     faceSwapCredits: 100,
   outfitChangeCredits: 100,
-    personReplaceCredits: 100,
     bodyRetouchCredits: 100,
     motionControlBaseCredits: 150,
     motionControlCreditsPerSecond: 20,
@@ -75,7 +74,6 @@ export const DEFAULT_PRICING_CONFIG: PricingConfigResponse = {
     veo3Credits1080p: 700,
     veo3Credits4k: 950,
     museVideoCredits: 200,
-    multiAngleProductCredits: 200,
     motionControlMinSeconds: 5,
   },
   tiers: [
