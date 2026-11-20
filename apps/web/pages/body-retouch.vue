@@ -3,7 +3,7 @@ import { usePageSeo } from '~/composables/usePageSeo';
 import { useSystemStatus } from '~/composables/useSystemStatus';
 import { isPausedError } from '~/utils/system-status';
 import { computed, ref, watch } from 'vue';
-import type { Task } from '@flowvis/contracts';
+import type { Task } from '@flowxis/contracts';
 import { usePricingConfig } from '~/composables/usePricingConfig';
 import { useApiClient } from '~/composables/useApiClient';
 import { useAuthDialog } from '~/composables/useAuthDialog';
@@ -19,7 +19,7 @@ import {
 } from '~/utils/api-client';
 
 usePageSeo({
-  title: 'Nâng Ngực AI (Body Retouch) — flowvis',
+  title: 'Nâng Ngực AI (Body Retouch) — flowxis',
   description:
     'Tăng kích cỡ và tôn dáng vòng một đầy đặn tự nhiên theo 10 mức độ chỉ bằng một lần bấm. Bảo toàn chi tiết trang phục, hậu cảnh và độ phân giải gốc.',
 });

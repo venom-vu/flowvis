@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import { computed, onMounted, ref, watch } from 'vue';
-import type { Topup, TopupPackId } from '@flowvis/contracts';
+import type { Topup, TopupPackId } from '@flowxis/contracts';
 import { useAuth } from '~/composables/useAuth';
 import { useAuthDialog } from '~/composables/useAuthDialog';
 import { useCursorPager } from '~/composables/useCursorPager';
@@ -18,9 +18,9 @@ import { USER_TABLE_PAGE_SIZE, userTable } from '~/utils/user-table';
 import { usePageSeo } from '~/composables/usePageSeo';
 
 usePageSeo({
-  title: 'Bảng Giá Gói Nạp Credit — flowvis',
+  title: 'Bảng Giá Gói Nạp Credit — flowxis',
   description:
-    'Bảng giá gói nạp credit và quyền lợi hạng tài khoản flowvis. Thanh toán nhanh qua VietQR.',
+    'Bảng giá gói nạp credit và quyền lợi hạng tài khoản flowxis. Thanh toán nhanh qua VietQR.',
 });
 
 

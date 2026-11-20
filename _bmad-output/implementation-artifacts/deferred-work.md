@@ -217,8 +217,8 @@
   summary: Chạy `confirm` song song hai request trên một khóa có thể xóa `in-raw/` hoặc để mồ côi `in/` (cả ảnh lẫn video).
   evidence: `reconcile-script.test` đã xác nhận pass khi đặt `RUNNINGHUB_WORKFLOW_BODY_RESHAPE` (chỉ thiếu biến môi trường khi chạy tay); mẫu `confirm` đua có từ Story 2.2.
 - source_spec: `_bmad-output/implementation-artifacts/spec-5-2-be-tai-video-len-va-kiem-tra-bang-ffprobe.md`
-  summary: Thống nhất `DATABASE_URL` mặc định của test và `.env.example` (`motion_user`) với user Postgres của container local (`flowvis_user`).
-  evidence: Chạy test phải truyền `DATABASE_URL` tay vì container local dùng `flowvis_user`; chưa rõ bên nào là cấu hình chuẩn nên chưa sửa.
+  summary: Thống nhất `DATABASE_URL` mặc định của test và `.env.example` (`motion_user`) với user Postgres của container local (`flowxis_user`).
+  evidence: Chạy test phải truyền `DATABASE_URL` tay vì container local dùng `flowxis_user`; chưa rõ bên nào là cấu hình chuẩn nên chưa sửa.
 - source_spec: `_bmad-output/implementation-artifacts/spec-5-3-be-tao-task-motion-control-va-tinh-gia-phia-server.md`
   summary: Trước khi triển khai thật, gỡ nhánh chặn tạm `motion_control` → `failed`/`INTERNAL_ERROR` ở `task-worker.service.ts` (Story 5.5) và cân nhắc cờ chặn route `POST /tasks/motion` nếu có triển khai trước 5.5.
   evidence: Giữa 5.3 và 5.5 mọi Task Motion được tạo rồi luôn `failed`, người dùng sẽ thấy lỗi; chủ ý theo quyết định 3A.
@@ -351,7 +351,7 @@
   evidence: Reviewer verification-gap và edge-case nêu; ngoài các AC của Story 6.10 nên không sửa ở đây.
 
 - source_spec: `_bmad-output/implementation-artifacts/spec-6-11-ops-cong-truoc-khi-bat-vietqr-thuong-mai.md`
-  summary: Gắn fixture `/admin/stats` trong `scripts/prelaunch/lib.test.mjs` với `AdminStatsResponseSchema` của `@flowvis/contracts` để đổi tên `pack`/`scenario` không làm cổng benchmark fail âm thầm.
+  summary: Gắn fixture `/admin/stats` trong `scripts/prelaunch/lib.test.mjs` với `AdminStatsResponseSchema` của `@flowxis/contracts` để đổi tên `pack`/`scenario` không làm cổng benchmark fail âm thầm.
   evidence: `evaluateBenchmark` lọc chuỗi `'creator'`/`'retail'` cố định; fixture viết tay, không parse qua contracts. Thất bại kiểu fail-closed nên chưa chặn.
 
 - source_spec: `_bmad-output/implementation-artifacts/spec-video-character-replacement.md`
@@ -363,3 +363,16 @@
 - source_spec: không có (review chế độ no-spec)
   summary: Khóa ffmpeg dùng chung (`FifoLock`, `video-trim.service.ts`) và `prep_deadline_at` 120 giây có thể gây `PREP_TIMEOUT` khi nhiều Task video vào bước chuẩn bị cùng lúc; `PREP_TIMEOUT` tính vào ngắt mạch (`SYSTEM_FAILURE_REASONS`), 5 lần liên tiếp sẽ tạm dừng nhận Task.
   evidence: Chưa xác minh trên production (mức low đến medium, hạ từ medium). Đo trên máy dev 8 nhân, video 1280x720: clip 3 giây cắt 0,35 giây, 10 giây 1,08 giây, 20 giây 1,65 giây, nên 85 task video vào cùng lúc chờ tối đa khoảng 140 giây so với hạn 120 giây. Cần đo ffmpeg trên máy production và theo dõi số `PREP_TIMEOUT` khi nâng `WORKER_CONCURRENCY` lên 85. Nếu xảy ra, hướng sửa là nâng hạn chuẩn bị (`tasks.service.ts` dòng 179) hoặc tính hạn từ lúc lấy được khóa.
+
+- source_spec: `_bmad-output/implementation-artifacts/spec-muse-video-image-to-video.md`
+  summary: Kiểm tra RunningHub Muse Video có trả errorCode kiểm duyệt nội dung (do gửi nsfwCheck=false) và adapter model có ánh xạ nó sang reason CONTENT_BLOCKED hay không.
+  evidence: Tài liệu muse-video ghi "submit thành công không bảo đảm video qua kiểm duyệt sau đó"; cần mã lỗi thật từ một task bị chặn để kết luận (review vòng 1, mục 7, maybe-false/medium chưa xác minh).
+- source_spec: `_bmad-output/implementation-artifacts/spec-muse-video-image-to-video.md`
+  summary: Thêm test thực thi cho frontend Muse Video (useMuseVideo canSubmit/pending/hasHole, MuseVideoForm quản lý ô và tổng dung lượng, nhánh muse trong FeatureWorkspaceDialog).
+  evidence: Test web hiện chỉ stub useMuseVideo/MuseVideoForm; Veo 3 cũng chưa có test tương ứng, nên dùng harness compile SFC trong motion-control.test.mjs (review vòng 1, mục 20).
+- source_spec: `_bmad-output/implementation-artifacts/spec-multi-angle-product.md`
+  summary: Hỗ trợ nhiều ảnh kết quả mỗi Task cho "Tạo sản phẩm đa góc". Cột `extra_result_keys`, `RunningHubOutputs.fileUrls`, vòng lặp ingest có EXIF và dọn R2 khi lỗi, `transition` ghi khóa phụ, `TaskResultResponse.resultUrls`, gỡ nội dung xóa cả ảnh phụ, thư viện ảnh trong `TaskResultViewer`. Ảnh đầu vẫn giữ ở `result_key`.
+  evidence: Người dùng chọn hỗ trợ nhiều ảnh, nhưng spec gộp dài khoảng 3.000 token nên được tách theo lựa chọn của người dùng (2026-11-20). Phần đầu chỉ lưu một ảnh: adapter `outputs()` lấy URL media đầu tiên. Thiết kế chi tiết đã khảo sát gồm `tasks.service.ts` transition :173-225, `result-ingestor.ts` :134-218, `admin-tasks.service.ts` :83-86, `ports/index.ts` :38/:83.
+- source_spec: `_bmad-output/implementation-artifacts/spec-multi-angle-product.md`
+  summary: Thêm test thực thi cho luồng submit phía web của các pipeline ảnh (createMultiAngleProductTask, nhánh multi-angle-product trong FeatureWorkspaceDialog, getPipelineRoute).
+  evidence: Đổi path API hoặc bỏ nhánh submit thì mọi test web vẫn xanh. Outfit Change và Muse Video cũng thiếu test tương tự (review vòng 1, mục 19).

@@ -3,7 +3,7 @@ import {
   MOTION_ASPECT_RATIOS,
   MOTION_PROMPT_MAX_LENGTH,
   type MotionAspectRatio,
-} from '@flowvis/contracts';
+} from '@flowxis/contracts';
 
 defineProps<{ idPrefix?: string; disabled?: boolean }>();
 const aspectRatio = defineModel<MotionAspectRatio>('aspectRatio', { required: true });

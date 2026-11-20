@@ -3,7 +3,7 @@ import {
   ApiErrorCode,
   type AdminTopup,
   type TopupStatus,
-} from '@flowvis/contracts';
+} from '@flowxis/contracts';
 import { useApiClient } from '~/composables/useApiClient';
 import { MotionApiClientError, resolveApiErrorMessageVi } from '~/utils/api-client';
 

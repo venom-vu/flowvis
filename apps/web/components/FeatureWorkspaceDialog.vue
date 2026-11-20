@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import { computed, onBeforeUnmount, onMounted, ref, watch } from 'vue';
-import { MOTION_MIN_TRIM_SECONDS, type AccountTier, type Task } from '@flowvis/contracts';
+import { MOTION_MIN_TRIM_SECONDS, MUSE_VIDEO_DURATION_SECONDS, type AccountTier, type Task } from '@flowxis/contracts';
 import ImageUploader from '~/components/ImageUploader.vue';
 import TaskResultViewer from '~/components/TaskResultViewer.vue';
 import { useApiClient } from '~/composables/useApiClient';
@@ -8,6 +8,8 @@ import { useAuthDialog } from '~/composables/useAuthDialog';
 import { useMotionControl } from '~/composables/useMotionControl';
 import { useVeo3 } from '~/composables/useVeo3';
 import Veo3Form from '~/components/Veo3Form.vue';
+import { useMuseVideo } from '~/composables/useMuseVideo';
+import MuseVideoForm from '~/components/MuseVideoForm.vue';
 import { usePricingConfig } from '~/composables/usePricingConfig';
 import {
   ApiErrorCode,
@@ -50,8 +52,6 @@ const emit = defineEmits<{
       targetKey?: string | null;
       modelKey?: string | null;
       clothingKey?: string | null;
-      sceneKey?: string | null;
-      personKey?: string | null;
       intensity?: number;
     },
   ];
@@ -79,6 +79,15 @@ const veoLastFrameKey = veo.lastFrameKey;
 const veoSubmitErrorVi = veo.submitErrorVi;
 const veoIsSubmitting = veo.isSubmitting;
 const veoInsufficientNoteVi = veo.insufficientNoteVi;
+const muse = useMuseVideo();
+const musePrompt = muse.prompt;
+const museAspectRatio = muse.aspectRatio;
+const museImageKeys = muse.imageKeys;
+const museTotalBytes = muse.totalBytes;
+const musePending = muse.pending;
+const museSubmitErrorVi = muse.submitErrorVi;
+const museIsSubmitting = muse.isSubmitting;
+const museInsufficientNoteVi = muse.insufficientNoteVi;
 const motionKey = ref<number>(0);
 
 // Dọn sạch trạng thái Motion và buộc VideoTrimmer/ImageUploader remount.
@@ -96,8 +105,6 @@ const sourceKey = ref<string | null>(null);
 const targetKey = ref<string | null>(null);
 const modelKey = ref<string | null>(null);
 const clothingKey = ref<string | null>(null);
-const sceneKey = ref<string | null>(null);
-const personKey = ref<string | null>(null);
 const activeTask = ref<Task | null>(null);
 const isSubmitting = ref<boolean>(false);
 const submitErrorVi = ref<string | null>(null);
@@ -120,12 +127,11 @@ watch(
     targetKey.value = null;
     modelKey.value = null;
     clothingKey.value = null;
-    sceneKey.value = null;
-    personKey.value = null;
     activeTask.value = null;
     submitErrorVi.value = null;
     resetMotionState();
     veo.clearState();
+    muse.clearState();
     if (nextFeature?.tierCapSeconds) {
       selectedSeconds.value = Math.min(MOTION_MIN_TRIM_SECONDS, nextFeature.tierCapSeconds);
     } else {
@@ -148,16 +154,11 @@ watch(
       targetKey.value = null;
       modelKey.value = null;
       clothingKey.value = null;
-      sceneKey.value = null;
-      personKey.value = null;
-    modelKey.value = null;
-    clothingKey.value = null;
-    sceneKey.value = null;
-    personKey.value = null;
       activeTask.value = null;
       submitErrorVi.value = null;
       resetMotionState();
       veo.clearState();
+      muse.clearState();
       }
   },
   { immediate: true },
@@ -165,7 +166,7 @@ watch(
 
 // Xóa lỗi cũ khi người dùng thay đổi dữ liệu đầu vào hoặc mức intensity
 watch(
-  [uploadedKey, sourceKey, targetKey, modelKey, clothingKey, sceneKey, personKey, intensity],
+  [uploadedKey, sourceKey, targetKey, modelKey, clothingKey, intensity],
   () => {
     submitErrorVi.value = null;
   },
@@ -173,7 +174,7 @@ watch(
 );
 
 const anySubmitting = computed<boolean>(
-  () => isSubmitting.value || motionIsSubmitting.value || veoIsSubmitting.value,
+  () => isSubmitting.value || motionIsSubmitting.value || veoIsSubmitting.value || museIsSubmitting.value,
 );
 
 // Task đang xếp hàng/chạy: khóa nút tạo để tránh tạo trùng.
@@ -187,16 +188,15 @@ const isAuthenticated = computed<boolean>(() => {
 
 const isMotion = computed<boolean>(
   () => props.feature?.id === 'motion-control' ||
-    props.feature?.id === 'motion-control-v2' ||
-    props.feature?.id === 'motion-background',
+    props.feature?.id === 'motion-control-v2',
 );
 const isVeo3 = computed<boolean>(() => props.feature?.id === 'veo-3');
+const isMuseVideo = computed<boolean>(() => props.feature?.id === 'muse-video');
 const isMotionV2 = computed<boolean>(() => props.feature?.id === 'motion-control-v2');
-const isMotionBackground = computed<boolean>(() => props.feature?.id === 'motion-background');
 watch(
-  [isMotionV2, isMotionBackground],
-  ([v2, bg]) => {
-    motion.variant.value = bg ? 'bg' : v2 ? 'v2' : 'v1';
+  isMotionV2,
+  (v2) => {
+    motion.variant.value = v2 ? 'v2' : 'v1';
   },
   { immediate: true, flush: 'sync' },
 );
@@ -209,6 +209,7 @@ const estimatedCredits = computed<number>(() => {
     return motion.price.value ?? 0;
   }
   if (isVeo3.value) return veo.price.value;
+  if (isMuseVideo.value) return muse.price.value;
   return calculateFeatureEstimatedCredits(
     props.feature,
     selectedSeconds.value,
@@ -217,6 +218,7 @@ const estimatedCredits = computed<number>(() => {
 
 const hasEnoughBalance = computed<boolean>(() => {
   if (isVeo3.value) return isAuthenticated.value && veo.hasEnoughBalance.value;
+  if (isMuseVideo.value) return isAuthenticated.value && muse.hasEnoughBalance.value;
   if (isMotion.value) {
     return (
       isAuthenticated.value &&
@@ -237,6 +239,9 @@ const canSubmit = computed<boolean>(() => {
   if (isVeo3.value) {
     return isAuthenticated.value && veo.canSubmit.value;
   }
+  if (isMuseVideo.value) {
+    return isAuthenticated.value && muse.canSubmit.value;
+  }
   if (isMotion.value) {
     return (
       isAuthenticated.value &&
@@ -253,9 +258,6 @@ const canSubmit = computed<boolean>(() => {
   }
   if (props.feature?.id === 'outfit-change') {
     return Boolean(modelKey.value && clothingKey.value);
-  }
-  if (props.feature?.id === 'person-replace') {
-    return Boolean(sceneKey.value && personKey.value);
   }
   if (props.feature?.id === 'body-retouch') {
     return Boolean(uploadedKey.value && isValidIntensity.value);
@@ -288,6 +290,20 @@ async function handleSubmit(): Promise<void> {
       emit('submit', {
         featureId: props.feature.id,
         seconds: 8,
+        estimatedCredits: credits,
+      });
+    }
+    return;
+  }
+
+  if (isMuseVideo.value) {
+    const credits = muse.price.value;
+    const task = await muse.submit();
+    if (task) {
+      activeTask.value = task;
+      emit('submit', {
+        featureId: props.feature.id,
+        seconds: MUSE_VIDEO_DURATION_SECONDS,
         estimatedCredits: credits,
       });
     }
@@ -355,28 +371,6 @@ async function handleSubmit(): Promise<void> {
     } finally {
       isSubmitting.value = false;
     }
-  } else if (props.feature.id === 'person-replace') {
-    isSubmitting.value = true;
-    submitErrorVi.value = null;
-    try {
-      const task = await client.createPersonReplaceTask({
-        sceneKey: sceneKey.value!,
-        personKey: personKey.value!,
-      });
-      activeTask.value = task;
-      void refreshAll();
-      emit('submit', {
-        featureId: props.feature.id,
-        seconds: selectedSeconds.value,
-        estimatedCredits: estimatedCredits.value,
-        sceneKey: sceneKey.value,
-        personKey: personKey.value,
-      });
-    } catch (error: unknown) {
-      submitErrorVi.value = resolveApiErrorMessageVi(error);
-    } finally {
-      isSubmitting.value = false;
-    }
   } else if (props.feature.id === 'body-retouch') {
     isSubmitting.value = true;
     submitErrorVi.value = null;
@@ -415,6 +409,7 @@ function handleRetry(): void {
   submitErrorVi.value = null;
   if (isMotion.value) resetMotionState();
   if (isVeo3.value) veo.clearState();
+  if (isMuseVideo.value) muse.clearState();
 }
 
 function handleKeydown(event: KeyboardEvent): void {
@@ -480,8 +475,8 @@ onBeforeUnmount(() => {
 
         <div class="flex items-center gap-2">
           <NuxtLink
-            v-if="feature.id === 'face-swap' || feature.id === 'veo-3' || feature.id === 'outfit-change' || feature.id === 'person-replace' || feature.id === 'body-retouch' || isMotion"
-            :to="feature.id === 'veo-3' ? '/veo-3' : feature.id === 'body-retouch' ? '/body-retouch' : feature.id === 'motion-control' ? '/motion-control' : feature.id === 'motion-control-v2' ? '/motion-control-v2' : feature.id === 'motion-background' ? '/motion-background' : feature.id === 'outfit-change' ? '/outfit-change' : feature.id === 'person-replace' ? '/person-replace' : '/face-swap'"
+            v-if="feature.id === 'face-swap' || feature.id === 'veo-3' || feature.id === 'muse-video' || feature.id === 'outfit-change' || feature.id === 'body-retouch' || isMotion"
+            :to="feature.id === 'veo-3' ? '/veo-3' : feature.id === 'muse-video' ? '/muse-video' : feature.id === 'body-retouch' ? '/body-retouch' : feature.id === 'motion-control' ? '/motion-control' : feature.id === 'motion-control-v2' ? '/motion-control-v2' : feature.id === 'outfit-change' ? '/outfit-change' : '/face-swap'"
             data-testid="workspace-open-standalone-link"
             class="touch-target inline-flex min-h-[48px] items-center gap-1.5 rounded-xl border border-cyber-border bg-cyber-bg px-3 py-2 text-xs font-semibold text-cyber-muted transition hover:border-cyber-cyan hover:text-cyber-cyan"
             @click="emit('close')"
@@ -518,6 +513,18 @@ onBeforeUnmount(() => {
             v-model:last-frame-key="veoLastFrameKey"
             id-prefix="workspace-veo3"
             :maintenance-note="veo.intakePaused.value"
+          />
+
+          <!-- Muse Video: 1-9 ảnh tham chiếu + mô tả + tỉ lệ khung -->
+          <MuseVideoForm
+            v-else-if="isMuseVideo"
+            v-model:prompt="musePrompt"
+            v-model:aspect-ratio="museAspectRatio"
+            v-model:image-keys="museImageKeys"
+            v-model:total-bytes="museTotalBytes"
+            v-model:pending="musePending"
+            id-prefix="workspace-muse-video"
+            :maintenance-note="muse.intakePaused.value"
           />
 
           <!-- Trường hợp Face Swap: Yêu cầu 2 ảnh (mặt nguồn + đích) theo Story 2.11 -->
@@ -608,50 +615,6 @@ onBeforeUnmount(() => {
                 id-prefix="workspace-outfit-clothing"
                 label-vi="Chọn ảnh trang phục"
                 description-vi="Ảnh quần áo rõ nét, JPG/PNG/WebP ≤ 10 MB"
-              />
-            </div>
-          </div>
-
-          <div
-            v-else-if="feature.id === 'person-replace'"
-            class="space-y-3"
-            data-testid="workspace-person-replace-inputs"
-          >
-            <div class="space-y-2.5 rounded-xl border border-cyber-border bg-cyber-bg/60 p-3 sm:p-3.5">
-              <div class="flex items-center gap-2">
-                <span
-                  class="flex h-5 w-5 items-center justify-center rounded-md border border-cyber-cyan/40 bg-cyber-cyan/15 font-mono text-[11px] font-bold text-cyber-cyan"
-                >
-                  1
-                </span>
-                <p class="text-xs font-semibold text-cyber-text sm:text-sm">
-                  Ảnh gốc (Ảnh có người cần thay)
-                </p>
-              </div>
-              <ImageUploader
-                v-model="sceneKey"
-                id-prefix="workspace-person-scene"
-                label-vi="Chọn ảnh gốc"
-                description-vi="Ảnh giữ nguyên bối cảnh, JPG/PNG/WebP ≤ 10 MB"
-              />
-            </div>
-
-            <div class="space-y-2.5 rounded-xl border border-cyber-border bg-cyber-bg/60 p-3 sm:p-3.5">
-              <div class="flex items-center gap-2">
-                <span
-                  class="flex h-5 w-5 items-center justify-center rounded-md border border-cyber-violet/40 bg-cyber-violet/15 font-mono text-[11px] font-bold text-cyber-violet"
-                >
-                  2
-                </span>
-                <p class="text-xs font-semibold text-cyber-text sm:text-sm">
-                  Ảnh nhân vật mới (Người sẽ thay vào)
-                </p>
-              </div>
-              <ImageUploader
-                v-model="personKey"
-                id-prefix="workspace-person-new"
-                label-vi="Chọn ảnh nhân vật mới"
-                description-vi="Ảnh nhân vật rõ nét, JPG/PNG/WebP ≤ 10 MB"
               />
             </div>
           </div>
@@ -762,13 +725,13 @@ onBeforeUnmount(() => {
 
           <!-- Banner lỗi nếu có -->
           <div
-            v-if="submitErrorVi || motionSubmitErrorVi || veoSubmitErrorVi"
+            v-if="submitErrorVi || motionSubmitErrorVi || veoSubmitErrorVi || museSubmitErrorVi"
             data-testid="workspace-submit-error-banner"
             role="alert"
             aria-live="assertive"
             class="rounded-xl border border-cyber-danger/40 bg-cyber-danger/10 p-3 text-xs text-cyber-danger"
           >
-            {{ submitErrorVi || motionSubmitErrorVi || veoSubmitErrorVi }}
+            {{ submitErrorVi || motionSubmitErrorVi || veoSubmitErrorVi || museSubmitErrorVi }}
           </div>
 
           <p
@@ -777,6 +740,13 @@ onBeforeUnmount(() => {
             class="text-xs font-semibold text-cyber-warning"
           >
             {{ veoInsufficientNoteVi }}
+          </p>
+          <p
+            v-if="isMuseVideo && museInsufficientNoteVi"
+            data-testid="workspace-insufficient-note"
+            class="text-xs font-semibold text-cyber-warning"
+          >
+            {{ museInsufficientNoteVi }}
           </p>
 
           <!-- Bộ cắt video bước 1 giây (VideoTrimmer, chỉ với Motion Control) -->
@@ -813,11 +783,12 @@ onBeforeUnmount(() => {
           </div>
         </div>
 
-        <!-- Cột phải: So sánh Trước / Sau AI; loading và kết quả hiển thị ngay tại đây -->
+        <!-- Cột phải: Khung kết quả AI; loading và kết quả hiển thị ngay tại đây -->
         <div class="space-y-4 lg:col-span-6">
           <TaskResultViewer
             :task="activeTask"
             :submitting="anySubmitting"
+            :video-output="feature.category === 'video'"
             :before-label-vi="feature.beforeLabelVi"
             :after-label-vi="feature.afterLabelVi"
             :output-format-vi="feature.outputFormatVi"

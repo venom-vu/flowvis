@@ -7,7 +7,7 @@ let latestSeq = 0;
 
 export function useSystemStatus() {
   const { client } = useApiClient();
-  const intakePaused = useState<boolean>('flowvis-intake-paused', () => false);
+  const intakePaused = useState<boolean>('flowxis-intake-paused', () => false);
 
   async function refresh(): Promise<void> {
     const seq = ++latestSeq;

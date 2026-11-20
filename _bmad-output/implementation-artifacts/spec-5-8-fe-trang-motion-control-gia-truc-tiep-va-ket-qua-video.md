@@ -79,7 +79,7 @@ context:
 **Acceptance Criteria:**
 - Given trang Motion ở 360 px, when kéo thanh trượt, then giá và số dư còn lại cập nhật ngay và bằng `motionPrice` của contracts.
 - Given Task video `succeeded`, when mở kết quả, then có trình phát có ảnh bìa và không có thanh so sánh; Task ảnh không đổi.
-- Given `pnpm run lint && pnpm run typecheck && pnpm run build && pnpm --filter @flowvis/web test`, when chạy, then pass.
+- Given `pnpm run lint && pnpm run typecheck && pnpm run build && pnpm --filter @flowxis/web test`, when chạy, then pass.
 
 ## Implementation Notes
 
@@ -111,5 +111,5 @@ Nhánh video của `/tasks/[id]` và thẻ lịch sử cần `posterUrl`/`durati
 ## Verification
 
 **Commands:**
-- `pnpm --filter @flowvis/web test` -- expected: pass
+- `pnpm --filter @flowxis/web test` -- expected: pass
 - `pnpm run lint && pnpm run typecheck && pnpm run build` -- expected: pass

@@ -14,7 +14,7 @@ context:
 
 ## Intent
 
-**Problem:** `@flowvis/contracts` chưa có schema cho trạng thái hệ thống, thống kê, quản lý tài khoản, nhật ký Admin và gỡ bỏ nội dung, nên luồng BE (6.2–6.7) và FE (6.8–6.9) chưa thể chạy song song trên cùng một hình dạng API.
+**Problem:** `@flowxis/contracts` chưa có schema cho trạng thái hệ thống, thống kê, quản lý tài khoản, nhật ký Admin và gỡ bỏ nội dung, nên luồng BE (6.2–6.7) và FE (6.8–6.9) chưa thể chạy song song trên cùng một hình dạng API.
 
 **Approach:** Thêm `ops.ts` (system/ops status, resume, stats, audit) và `admin.ts` (users, lock/unlock/adjust, tasks lookup/takedown); mở rộng `tasks.ts` (`filesRemovedAt`, `details.reason` mới, thông báo), kèm mock, test hợp đồng và README mục 9.
 
@@ -103,6 +103,6 @@ context:
 ## Verification
 
 **Commands:**
-- `pnpm --filter @flowvis/contracts test` -- expected: pass
+- `pnpm --filter @flowxis/contracts test` -- expected: pass
 - `pnpm run lint && pnpm run typecheck && pnpm run build` -- expected: pass
 - `pnpm run check:boundaries` -- expected: pass

@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import { computed, onBeforeUnmount, onMounted, ref, watch } from 'vue';
-import type { Task } from '@flowvis/contracts';
+import type { Task } from '@flowxis/contracts';
 import { useApiClient } from '~/composables/useApiClient';
 import {
   getReasonCodeMessageVi,
@@ -33,7 +33,7 @@ const { client } = useApiClient();
 
 const localTask = ref<Task | null>(props.task);
 const isVideoPipeline = computed<boolean>(
-  () => localTask.value?.pipeline === 'motion_control' || localTask.value?.pipeline === 'motion_control_v2' || localTask.value?.pipeline === 'motion_background' || localTask.value?.pipeline === 'veo3',
+  () => localTask.value?.pipeline === 'motion_control' || localTask.value?.pipeline === 'motion_control_v2' || localTask.value?.pipeline === 'veo3' || localTask.value?.pipeline === 'muse_video',
 );
 const isCancelling = ref<boolean>(false);
 const isFetching = ref<boolean>(false);

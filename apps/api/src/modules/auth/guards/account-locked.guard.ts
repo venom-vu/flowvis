@@ -5,7 +5,7 @@ import {
   Injectable,
   UnauthorizedException,
 } from '@nestjs/common';
-import { ApiErrorCode, getApiErrorMessageVi } from '@flowvis/contracts';
+import { ApiErrorCode, getApiErrorMessageVi } from '@flowxis/contracts';
 import { PrismaService } from '../../../infra/prisma.service.js';
 import type { JwtUserPayload } from '../jwt.strategy.js';
 

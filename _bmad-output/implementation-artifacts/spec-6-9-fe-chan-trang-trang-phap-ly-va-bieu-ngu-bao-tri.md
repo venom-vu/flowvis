@@ -91,5 +91,5 @@ context:
 
 **Commands:**
 - `pnpm run lint && pnpm run typecheck` -- expected: không lỗi
-- `pnpm --filter @flowvis/web test` -- expected: pass
-- `NODE_ENV=production pnpm --filter @flowvis/web build` không có `NUXT_PUBLIC_REPORT_EMAIL` -- expected: fail nêu tên biến
+- `pnpm --filter @flowxis/web test` -- expected: pass
+- `NODE_ENV=production pnpm --filter @flowxis/web build` không có `NUXT_PUBLIC_REPORT_EMAIL` -- expected: fail nêu tên biến

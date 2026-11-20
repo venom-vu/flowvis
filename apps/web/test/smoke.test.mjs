@@ -24,7 +24,7 @@ import {
   MOCK_UPLOAD_CREATE_RESPONSE,
   MOCK_WALLET_LEDGER_ITEMS,
   TOS_VERSION,
-} from '@flowvis/contracts';
+} from '@flowxis/contracts';
 import { SLATE_CYBER_COLORS } from '../tailwind.config.ts';
 import {
   MotionApiClientError,
@@ -89,7 +89,7 @@ function collectFiles(dirPath, extensions) {
   return results;
 }
 
-describe('@flowvis/web — Story 1.4 Nuxt 4 mobile-first & API client', () => {
+describe('@flowxis/web — Story 1.4 Nuxt 4 mobile-first & API client', () => {
   it('AC1: ghim cố định phiên bản trong package.json (Nuxt 4.6.3) và cấu hình preset cloudflare-pages', () => {
     assert.equal(CONTRACTS_PACKAGE_VERSION, '0.1.0');
 
@@ -103,7 +103,7 @@ describe('@flowvis/web — Story 1.4 Nuxt 4 mobile-first & API client', () => {
       ...(pkgJson.devDependencies ?? {}),
     };
     for (const [depName, version] of Object.entries(allDeps)) {
-      if (depName === '@flowvis/contracts') {
+      if (depName === '@flowxis/contracts') {
         assert.equal(version, 'workspace:*');
         continue;
       }
@@ -252,7 +252,7 @@ describe('@flowvis/web — Story 1.4 Nuxt 4 mobile-first & API client', () => {
     assert.equal(getTierCapSeconds(pricing, 'Creator'), 20);
 
     const freeCatalog = buildAiFeatureCatalog(pricing, 'FREE');
-    assert.equal(freeCatalog.length, 6);
+    assert.equal(freeCatalog.length, 7);
 
     const faceSwap = freeCatalog.find((f) => f.id === 'face-swap');
     const bodyRetouch = freeCatalog.find((f) => f.id === 'body-retouch');
@@ -518,9 +518,9 @@ describe('@flowvis/web — Story 1.4 Nuxt 4 mobile-first & API client', () => {
           'data-testid="page-catalog"',
           'data-testid="app-top-header"',
           'data-testid="app-bottom-nav"',
-          '100 credit / lượt',
-          '150 + 20 credit / giây',
-          'Tối đa 5 giây',
+          '100 CR / lượt',
+          '150 + 20 CR / giây',
+          '5 giây',
         ],
       },
       {
@@ -594,7 +594,7 @@ describe('@flowvis/web — Story 1.4 Nuxt 4 mobile-first & API client', () => {
   });
 });
 
-describe('@flowvis/web — Story 1.9 đăng nhập, ToS và phiên', () => {
+describe('@flowxis/web — Story 1.9 đăng nhập, ToS và phiên', () => {
   const json = (body, status = 200) =>
     new Response(JSON.stringify(body), {
       status,
@@ -898,7 +898,7 @@ describe('@flowvis/web — Story 1.9 đăng nhập, ToS và phiên', () => {
   });
 });
 
-describe('@flowvis/web — Story 1.10 Lịch sử credit & phân trang vô tận', () => {
+describe('@flowxis/web — Story 1.10 Lịch sử credit & phân trang vô tận', () => {
   it('isUnauthorizedError: nhận diện đúng status 401, code UNAUTHORIZED, cause 401 và loại trừ 500/mạng', () => {
     assert.equal(isUnauthorizedError({ status: 401 }), true);
     assert.equal(isUnauthorizedError({ statusCode: 401 }), true);
@@ -1454,7 +1454,7 @@ describe('@flowvis/web — Story 1.10 Lịch sử credit & phân trang vô tận
   });
 });
 
-describe('@flowvis/web — Header cố định, popover tài khoản và đăng nhập bằng dialog', () => {
+describe('@flowxis/web — Header cố định, popover tài khoản và đăng nhập bằng dialog', () => {
   const read = (rel) => fs.readFileSync(path.join(webRoot, rel), 'utf8');
   const json = (body, status = 200) =>
     new Response(JSON.stringify(body), {
@@ -1584,7 +1584,7 @@ describe('@flowvis/web — Header cố định, popover tài khoản và đăng 
   });
 });
 
-describe('@flowvis/web — Story 2.10 Thành phần tải ảnh có cam kết ToS', () => {
+describe('@flowxis/web — Story 2.10 Thành phần tải ảnh có cam kết ToS', () => {
   it('kiểm tra tính hợp lệ phía client: từ chối MIME không hỗ trợ, file > 10MB, cạnh ngắn < 512px, tỷ lệ sai', async () => {
     // 1. MIME không hỗ trợ (ví dụ image/gif)
     const gifFile = {
@@ -2271,7 +2271,7 @@ describe('@flowvis/web — Story 2.10 Thành phần tải ảnh có cam kết To
     }
   });
 
-  describe('@flowvis/web — Story 2.11 Trang Face Swap và tiến trình xử lý', () => {
+  describe('@flowxis/web — Story 2.11 Trang Face Swap và tiến trình xử lý', () => {
     it('createMotionApiClient hỗ trợ createFaceSwapTask, getTask và cancelTask đúng schema hợp đồng', async () => {
       const calls = [];
       const mockFetch = async (input, init) => {
@@ -2749,7 +2749,7 @@ describe('@flowvis/web — Story 2.10 Thành phần tải ảnh có cam kết To
     });
   });
 
-  describe('@flowvis/web — Story 2.12 Trang kết quả và lịch sử Task', () => {
+  describe('@flowxis/web — Story 2.12 Trang kết quả và lịch sử Task', () => {
     it('createMotionApiClient hỗ trợ listTasks, getTaskResult, shareTask và revokeTaskShare đúng schema', async () => {
       const calls = [];
       const fakeFetch = async (url, init) => {
@@ -2770,7 +2770,7 @@ describe('@flowvis/web — Story 2.10 Thành phần tải ảnh có cam kết To
           return new Response(
             JSON.stringify({
               token: 'tok-abc',
-              shareUrl: 'https://flowvis.vn/share/tok-abc',
+              shareUrl: 'https://flowxis.vn/share/tok-abc',
             }),
             { status: 200, headers: { 'Content-Type': 'application/json' } },
           );
@@ -2835,7 +2835,7 @@ describe('@flowvis/web — Story 2.10 Thành phần tải ảnh có cam kết To
       // shareTask
       const share = await client.shareTask('12345678-1234-1234-1234-123456789abc');
       assert.equal(share.token, 'tok-abc');
-      assert.equal(share.shareUrl, 'https://flowvis.vn/share/tok-abc');
+      assert.equal(share.shareUrl, 'https://flowxis.vn/share/tok-abc');
 
       // revokeTaskShare
       const revoke = await client.revokeTaskShare('12345678-1234-1234-1234-123456789abc');
@@ -3472,7 +3472,7 @@ describe('@flowvis/web — Story 2.10 Thành phần tải ảnh có cam kết To
         );
         assert.match(successHtml, /data-testid="share-success-view"/);
         assert.match(successHtml, /data-testid="share-result-image"/);
-        assert.match(successHtml, /data-testid="try-flowvis-button"/);
+        assert.match(successHtml, /data-testid="try-flowxis-button"/);
         assert.match(successHtml, /href="\/"/);
         assert.match(successHtml, /data-testid="download-share-image-button"/);
         assert.match(successHtml, /Tải ảnh HD/);
@@ -3498,7 +3498,7 @@ describe('@flowvis/web — Story 2.10 Thành phần tải ảnh có cam kết To
         assert.match(notFoundHtml, /data-testid="share-not-found-view"/);
         assert.match(notFoundHtml, /Liên kết không còn tồn tại/);
         assert.match(notFoundHtml, /data-testid="back-home-button"/);
-        assert.match(sharePageSfc, /Về trang chủ flowvis/);
+        assert.match(sharePageSfc, /Về trang chủ flowxis/);
         assert.doesNotMatch(notFoundHtml, /data-testid="share-success-view"/);
         assert.doesNotMatch(notFoundHtml, /data-testid="share-result-image"/);
 

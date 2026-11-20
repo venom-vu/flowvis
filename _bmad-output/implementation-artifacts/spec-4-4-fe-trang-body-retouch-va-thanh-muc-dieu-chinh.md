@@ -16,7 +16,7 @@ context:
 
 **Problem:** Người dùng chưa có trang riêng `/body-retouch` cũng như thanh trượt chọn mức `intensity` (1–10) và luồng gọi API `POST /tasks/body-retouch` trong hộp thoại `FeatureWorkspaceDialog`, khiến chưa thể tải ảnh lên, điều chỉnh mức độ chỉnh dáng một lần bấm và theo dõi tiến trình xử lý Task `body_retouch`.
 
-**Approach:** Bổ sung `createBodyRetouchTask` và các hằng/hàm `intensity` từ `@flowvis/contracts` vào `apps/web/utils/api-client.ts`; xây dựng trang `/body-retouch` tái sử dụng `ImageUploader.vue` và `TaskProgressCard.vue` kèm thanh trượt `intensity` số nguyên 1–10 (mặc định 5, hiển thị nhãn 3 vùng theo hợp đồng) và nút tạo hiển thị giá 100 credit từ `GET /config/pricing`; đồng thời tích hợp thanh trượt `intensity`, gọi `POST /tasks/body-retouch` và nút mở trang riêng `/body-retouch` vào `FeatureWorkspaceDialog.vue`.
+**Approach:** Bổ sung `createBodyRetouchTask` và các hằng/hàm `intensity` từ `@flowxis/contracts` vào `apps/web/utils/api-client.ts`; xây dựng trang `/body-retouch` tái sử dụng `ImageUploader.vue` và `TaskProgressCard.vue` kèm thanh trượt `intensity` số nguyên 1–10 (mặc định 5, hiển thị nhãn 3 vùng theo hợp đồng) và nút tạo hiển thị giá 100 credit từ `GET /config/pricing`; đồng thời tích hợp thanh trượt `intensity`, gọi `POST /tasks/body-retouch` và nút mở trang riêng `/body-retouch` vào `FeatureWorkspaceDialog.vue`.
 
 ## Boundaries & Constraints
 
@@ -24,7 +24,7 @@ context:
 - Chỉ sửa các tệp trong phạm vi `apps/web/**` (tuân thủ ranh giới nhánh `fe/*`).
 - Tuân thủ thiết kế Slate Cyber (`bg-cyber-*`, `text-cyber-*`, `border-cyber-*`), 100% icon vector Lucide qua `<Icon name="lucide:..." />`, tuyệt đối không dùng emoji Unicode UTF-8 trong giao diện.
 - Đảm bảo vùng chạm tối thiểu 48px (`touch-target`, `min-h-[48px]`) cho mọi nút bấm và thanh trượt `intensity`, hiển thị chuẩn trên khung nhìn di động 360px.
-- Thanh trượt `intensity` dùng số nguyên từ `INTENSITY_MIN` (1) đến `INTENSITY_MAX` (10), bước nhảy `step="1"`, mặc định `INTENSITY_DEFAULT` (5), hiển thị số hiện tại và nhãn vùng từ `getIntensityLabelVi(intensity)` cùng 3 mốc `INTENSITY_LABEL_ZONES` (`1–3`: "Uốn nhẹ dáng", `4–7`: "Tự nhiên", `8–10`: "Đường cong tối đa") từ `@flowvis/contracts`.
+- Thanh trượt `intensity` dùng số nguyên từ `INTENSITY_MIN` (1) đến `INTENSITY_MAX` (10), bước nhảy `step="1"`, mặc định `INTENSITY_DEFAULT` (5), hiển thị số hiện tại và nhãn vùng từ `getIntensityLabelVi(intensity)` cùng 3 mốc `INTENSITY_LABEL_ZONES` (`1–3`: "Uốn nhẹ dáng", `4–7`: "Tự nhiên", `8–10`: "Đường cong tối đa") từ `@flowxis/contracts`.
 - Giá tạo Task lấy từ `pricing.value?.pipelines.bodyRetouchCredits ?? 100` (`GET /config/pricing`).
 - Khi chưa đăng nhập: khóa nút Tạo, hiển thị thông báo yêu cầu đăng nhập kèm nút mở hộp thoại đăng nhập. Khi số dư `< 100` credit: khóa nút Tạo, hiển thị cảnh báo thiếu credit kèm lối dẫn `/pricing`.
 - Khi đủ điều kiện và bấm "Tạo": khóa chống bấm trùng (`isSubmitting`), gọi `POST /tasks/body-retouch` với `{ imageKey, intensity }` đúng một lần (không gửi trường `consent` vì ToS đã đồng ý khi đăng nhập theo hợp đồng Story 4.1), chuyển sang hiển thị `TaskProgressCard.vue` và làm mới thông tin ví (`refreshAll()`).
@@ -54,7 +54,7 @@ context:
 
 ## Code Map
 
-- `apps/web/utils/api-client.ts` -- Re-export `BodyRetouchCreateRequestSchema`, `BodyRetouchCreateResponseSchema`, `INTENSITY_DEFAULT`, `INTENSITY_LABEL_ZONES`, `INTENSITY_MAX`, `INTENSITY_MIN`, `IntensitySchema`, `getIntensityLabelVi`, `type BodyRetouchCreateRequest`, `type BodyRetouchCreateResponse`, `type Intensity` từ `@flowvis/contracts`; thêm phương thức `createBodyRetouchTask` ngay sau `createFaceSwapTask` (~dòng 573).
+- `apps/web/utils/api-client.ts` -- Re-export `BodyRetouchCreateRequestSchema`, `BodyRetouchCreateResponseSchema`, `INTENSITY_DEFAULT`, `INTENSITY_LABEL_ZONES`, `INTENSITY_MAX`, `INTENSITY_MIN`, `IntensitySchema`, `getIntensityLabelVi`, `type BodyRetouchCreateRequest`, `type BodyRetouchCreateResponse`, `type Intensity` từ `@flowxis/contracts`; thêm phương thức `createBodyRetouchTask` ngay sau `createFaceSwapTask` (~dòng 573).
 - `apps/web/components/TaskProgressCard.vue` -- Tại dòng 331–333 (trạng thái `succeeded`), đổi tiêu đề cố định `"Hoán đổi khuôn mặt thành công!"` thành `{{ pipelineLabelVi }} thành công!` để hiển thị đúng cho cả Face Swap và Body Retouch.
 - `apps/web/pages/body-retouch.vue` -- Trang mới `/body-retouch` theo cấu trúc chuẩn của `apps/web/pages/face-swap.vue`: SEO `useHead`, nút quay lại `/`, huy hiệu giá `bodyRetouchCredits`, 1 `ImageUploader`, thanh trượt `intensity` (`1..10`, `step="1"`, mặc định `5`, nhãn vùng `getIntensityLabelVi` và 3 mốc `INTENSITY_LABEL_ZONES`), kiểm tra đăng nhập/số dư, chống bấm trùng, gọi `client.createBodyRetouchTask`, hiển thị `TaskProgressCard` (`pipeline-label-vi="Chỉnh sửa vóc dáng"`).
 - `apps/web/components/FeatureWorkspaceDialog.vue` -- Tích hợp nhánh `feature.id === 'body-retouch'`: thêm state `intensity` (reset về `5` khi đổi feature/mở lại dialog), khối thanh trượt `intensity` dưới `ImageUploader` của nhánh 1 ảnh, gọi `client.createBodyRetouchTask` trong `handleSubmit()`, truyền `pipeline-label-vi` theo feature cho `TaskProgressCard`, và hiển thị nút `"Mở trang riêng"` dẫn tới `/body-retouch`.
@@ -64,7 +64,7 @@ context:
 ## Tasks & Acceptance
 
 **Execution:**
-- [x] `apps/web/utils/api-client.ts` -- Re-export các hằng/schema `intensity` và `BodyRetouchCreate*` từ `@flowvis/contracts`, thêm phương thức `createBodyRetouchTask` gọi `POST /tasks/body-retouch` -- cung cấp client API chuẩn hợp đồng cho FE
+- [x] `apps/web/utils/api-client.ts` -- Re-export các hằng/schema `intensity` và `BodyRetouchCreate*` từ `@flowxis/contracts`, thêm phương thức `createBodyRetouchTask` gọi `POST /tasks/body-retouch` -- cung cấp client API chuẩn hợp đồng cho FE
 - [x] `apps/web/components/TaskProgressCard.vue` -- Cập nhật tiêu đề trạng thái `succeeded` dùng `{{ pipelineLabelVi }} thành công!` -- hiển thị đúng tên pipeline khi hoàn tất
 - [x] `apps/web/pages/body-retouch.vue` -- Xây dựng trang `/body-retouch` với `ImageUploader`, thanh trượt `intensity` 1–10 (mặc định 5, nhãn 3 vùng), hiển thị giá 100 credit từ `/config/pricing`, kiểm tra đăng nhập/số dư, chống bấm trùng và theo dõi tiến trình qua `TaskProgressCard` -- đáp ứng đầy đủ trải nghiệm trang riêng Body Retouch
 - [x] `apps/web/components/FeatureWorkspaceDialog.vue` -- Bổ sung thanh trượt `intensity`, luồng gọi `createBodyRetouchTask`, nhãn pipeline và liên kết `"Mở trang riêng"` (`/body-retouch`) khi `feature.id === 'body-retouch'` -- đồng bộ trải nghiệm từ Kho Công Cụ AI và hộp thoại làm việc
@@ -118,13 +118,13 @@ context:
 | Ba chip nhãn vùng `INTENSITY_LABEL_ZONES` là thẻ `<div>` tĩnh thay vì nút bấm chọn preset | false | - | AC Story 4.4 yêu cầu hiển thị 3 mốc vùng nhãn dưới thanh trượt, không yêu cầu làm nút bấm chọn nhanh |
 | `FeatureWorkspaceDialog.vue`: `handleSubmit()` emit `seconds: selectedSeconds.value` cho body-retouch | false | - | Payload emit là metadata sự kiện dùng chung của dialog cho component cha, không ảnh hưởng logic |
 | `body-retouch.vue`: `handleReset()` không reset `intensity` về 5 | false | - | Giữ lại mức intensity người dùng vừa chọn khi thử lại với ảnh khác là UX tiện lợi, không phải lỗi |
-| `body-retouch.test.mjs`: test chỉ dùng giá tĩnh 100 credit, chưa test giá động khác | false | - | Hợp đồng `@flowvis/contracts` (Story 4.1) quy định cứng `bodyRetouchCredits: z.literal(100)`, không có giá khác |
+| `body-retouch.test.mjs`: test chỉ dùng giá tĩnh 100 credit, chưa test giá động khác | false | - | Hợp đồng `@flowxis/contracts` (Story 4.1) quy định cứng `bodyRetouchCredits: z.literal(100)`, không có giá khác |
 | `api-client.ts`: `createBodyRetouchTask` không kiểm tra khoảng trắng trước khi parse | false | - | Zod schema `BodyRetouchCreateRequestSchema` đã kiểm tra nghiêm ngặt `ConfirmedUploadKeySchema`, loại bỏ mọi chuỗi sai định dạng |
 
 ## Verification
 
 **Commands:**
-- `pnpm --filter @flowvis/web test` -- expected: toàn bộ test cũ và `test/body-retouch.test.mjs` mới đều pass
+- `pnpm --filter @flowxis/web test` -- expected: toàn bộ test cũ và `test/body-retouch.test.mjs` mới đều pass
 - `pnpm run lint && pnpm run typecheck && pnpm run build` -- expected: pass không lỗi trên toàn monorepo
 - `pnpm run check:boundaries --base=be/story-4-3-ket-qua-body-retouch` -- expected: chỉ sửa trong `apps/web/**` (ngoài các file `_bmad-output/**` chưa commit)
 

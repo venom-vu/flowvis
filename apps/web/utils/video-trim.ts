@@ -1,4 +1,4 @@
-import { MOTION_MIN_TRIM_SECONDS } from '@flowvis/contracts';
+import { MOTION_MIN_TRIM_SECONDS } from '@flowxis/contracts';
 
 export interface TrimRange {
   start: number;

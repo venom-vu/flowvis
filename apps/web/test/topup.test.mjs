@@ -12,7 +12,7 @@ import {
   MOCK_TOPUPS_BY_STATUS,
   MOCK_TOPUP_LIST_RESPONSE,
   getTopupStatusLabelVi,
-} from '@flowvis/contracts';
+} from '@flowxis/contracts';
 import {
   MotionApiClientError,
   createMotionApiClient,
@@ -294,7 +294,7 @@ export const refreshNuxtData = async (key: string) => {
   mockRefreshNuxtDataCalls.push(key);
 };
 
-export const ME_KEY = 'flowvis-me-profile';
+export const ME_KEY = 'flowxis-me-profile';
 
 export const useApiClient = () => ({
   client: mockClientInstance,
@@ -431,7 +431,7 @@ export const useApiClient = () => ({
       assert.equal(pollCount, 1, 'Polling phải được kích hoạt sau 4 giây');
       assert.equal(topup.activeTopup.value?.status, 'approved');
       assert.ok(
-        mockContextModule.mockRefreshNuxtDataCalls.includes('flowvis-me-profile'),
+        mockContextModule.mockRefreshNuxtDataCalls.includes('flowxis-me-profile'),
         'Phải kích hoạt refreshNuxtData(ME_KEY) khi đơn nạp approved',
       );
       t.mock.timers.tick(8000);

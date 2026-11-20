@@ -15,7 +15,7 @@ import {
   MeResponseSchema,
   TOS_VERSION,
   TaskSchema,
-} from '@flowvis/contracts';
+} from '@flowxis/contracts';
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 export const repoRoot = path.resolve(__dirname, '../../../..');

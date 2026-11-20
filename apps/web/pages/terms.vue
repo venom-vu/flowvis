@@ -5,9 +5,9 @@ import { terms } from '~/content/legal/terms';
 import { resolveZaloJoinUrl } from '~/utils/system-status';
 
 usePageSeo({
-  title: 'Điều khoản dịch vụ — flowvis',
+  title: 'Điều khoản dịch vụ — flowxis',
   description:
-    'Điều khoản dịch vụ chính thức của nền tảng tạo ảnh và video AI flowvis: điều kiện độ tuổi 18+, quyền sử dụng hình ảnh, cơ chế credit, thanh toán VietQR, hoàn tiền và miễn trừ trách nhiệm.',
+    'Điều khoản dịch vụ chính thức của nền tảng tạo ảnh và video AI flowxis: điều kiện độ tuổi 18+, quyền sử dụng hình ảnh, cơ chế credit, thanh toán VietQR, hoàn tiền và miễn trừ trách nhiệm.',
 });
 
 const publicConfig = useRuntimeConfig().public;

@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import { computed, ref, watch } from 'vue';
 import { useAsyncData, useHead, useRoute, useRouter } from '#imports';
-import type { Task, TaskResultResponse } from '@flowvis/contracts';
+import type { Task, TaskResultResponse } from '@flowxis/contracts';
 import TaskResultViewer from '~/components/TaskResultViewer.vue';
 import { useApiClient } from '~/composables/useApiClient';
 import { useAuth } from '~/composables/useAuth';
@@ -27,7 +27,7 @@ const taskId = computed<string>(() => {
 });
 
 useHead({
-  title: 'Chi Tiết Tác Vụ — flowvis',
+  title: 'Chi Tiết Tác Vụ — flowxis',
   meta: [
     {
       name: 'description',
@@ -37,7 +37,7 @@ useHead({
 });
 
 const taskAsync = useAsyncData<Task>(
-  `flowvis-task-${taskId.value}`,
+  `flowxis-task-${taskId.value}`,
   () => client.getTask(taskId.value),
 );
 
@@ -72,8 +72,8 @@ const isVideoPipeline = computed<boolean>(
   () =>
     currentTask.value?.pipeline === 'motion_control' ||
     currentTask.value?.pipeline === 'motion_control_v2' ||
-    currentTask.value?.pipeline === 'motion_background' ||
-    currentTask.value?.pipeline === 'veo3',
+    currentTask.value?.pipeline === 'veo3' ||
+    currentTask.value?.pipeline === 'muse_video',
 );
 
 const INPUT_LABELS_VI: Readonly<Record<string, string>> = {
@@ -84,9 +84,14 @@ const INPUT_LABELS_VI: Readonly<Record<string, string>> = {
   videoKey: 'Video mẫu',
   firstFrameKey: 'Khung hình đầu',
   lastFrameKey: 'Khung hình cuối',
+  productKey1: 'Ảnh sản phẩm 1',
+  productKey2: 'Ảnh sản phẩm 2',
+  productKey3: 'Ảnh sản phẩm 3',
 };
 
 function inputLabelVi(role: string): string {
+  const refMatch = /^imageKey(\d)$/.exec(role);
+  if (refMatch) return `Ảnh tham chiếu ${Number(refMatch[1]) + 1}`;
   return INPUT_LABELS_VI[role] ?? role;
 }
 
@@ -140,11 +145,10 @@ async function copyTaskId(): Promise<void> {
 function getPipelineRoute(pipeline?: string): string {
   if (pipeline === 'body_retouch') return '/body-retouch';
   if (pipeline === 'outfit_change') return '/outfit-change';
-  if (pipeline === 'person_replace') return '/person-replace';
   if (pipeline === 'motion_control') return '/motion-control';
   if (pipeline === 'motion_control_v2') return '/motion-control-v2';
-  if (pipeline === 'motion_background') return '/motion-background';
   if (pipeline === 'veo3') return '/veo-3';
+  if (pipeline === 'muse_video') return '/muse-video';
   return '/face-swap';
 }
 
@@ -372,11 +376,12 @@ function handleCreateNewTask(): void {
         </section>
       </aside>
 
-      <!-- Cột phải: Kết quả (loading, so sánh Trước/Sau, tải về, sao chép liên kết) -->
+      <!-- Cột phải: Kết quả (loading, kết quả video hoặc so sánh Trước/Sau, tải về, sao chép liên kết) -->
       <section class="space-y-4 lg:col-span-7">
         <div class="rounded-2xl border border-cyber-border bg-cyber-surface p-4 sm:p-5">
           <TaskResultViewer
             :task="currentTask"
+            :video-output="isVideoPipeline"
             embedded
             @update:task="currentTask = $event"
             @result="result = $event"
@@ -385,7 +390,7 @@ function handleCreateNewTask(): void {
             <template #header-title>
               <h2 class="flex items-center gap-2 font-display text-sm font-bold">
                 <Icon name="lucide:sparkles" class="h-4 w-4 text-cyber-violet" />
-                <span>{{ isVideoPipeline && currentTask.status === 'succeeded' ? 'Video kết quả' : 'Kết quả' }}</span>
+                <span>{{ isVideoPipeline ? 'Video kết quả' : 'Kết quả' }}</span>
               </h2>
             </template>
           </TaskResultViewer>

@@ -193,7 +193,7 @@ async function measureOutputSeconds(taskId) {
   const r = await bench('GET', `/tasks/${taskId}/result`);
   const res = await fetch(r.resultUrl, { signal: AbortSignal.timeout(5 * 60_000) });
   if (!res.ok) return null;
-  const dir = fs.mkdtempSync(path.join(os.tmpdir(), 'flowvis-bench-'));
+  const dir = fs.mkdtempSync(path.join(os.tmpdir(), 'flowxis-bench-'));
   const file = path.join(dir, 'out.mp4');
   try {
     fs.writeFileSync(file, Buffer.from(await res.arrayBuffer()));

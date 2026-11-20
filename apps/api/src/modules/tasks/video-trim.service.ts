@@ -3,14 +3,14 @@ import fs from 'node:fs';
 import os from 'node:os';
 import path from 'node:path';
 import crypto from 'node:crypto';
-import type { ReasonCode } from '@flowvis/contracts';
+import type { ReasonCode } from '@flowxis/contracts';
 import type { StoragePort } from '../../ports/index.js';
 
 export const TRIM_FPS = 24;
 export const TRIM_DURATION_TOLERANCE = 0.5;
 export const FETCH_ATTEMPTS = 3;
 export const DISK_FACTOR = 3;
-const TRIM_DIR_PREFIX = 'flowvis-trim';
+const TRIM_DIR_PREFIX = 'flowxis-trim';
 const MAX_OUTPUT_BYTES = 4 * 1024 * 1024;
 
 /** Lỗi bước chuẩn bị mang sẵn reasonCode để worker kết thúc Task. */

@@ -1,4 +1,4 @@
-import type { Task, TaskPipeline } from '@flowvis/contracts';
+import type { Task, TaskPipeline } from '@flowxis/contracts';
 
 const VI_DATE_FORMAT = new Intl.DateTimeFormat('vi-VN', {
   dateStyle: 'short',
@@ -16,12 +16,11 @@ export function formatTaskTimestampVi(isoString?: string | null): string {
 export const PIPELINE_LABELS_VI: Readonly<Record<string, string>> = {
   face_swap: 'Hoán đổi khuôn mặt',
   outfit_change: 'Đổi trang phục',
-  person_replace: 'Đổi người trong ảnh',
   body_retouch: 'Chỉnh sửa vóc dáng',
   motion_control: 'Điều khiển chuyển động',
   motion_control_v2: 'Điều khiển chuyển động v2',
-  motion_background: 'Motion control nền video',
   veo3: 'Veo 3 tạo video',
+  muse_video: 'Muse Video',
 };
 
 export function getPipelineLabelVi(pipeline: TaskPipeline | string): string {

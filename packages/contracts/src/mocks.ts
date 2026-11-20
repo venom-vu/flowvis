@@ -65,7 +65,6 @@ export const DEFAULT_PRICING_CONFIG: PricingConfigResponse = {
   pipelines: {
     faceSwapCredits: 100,
   outfitChangeCredits: 100,
-    personReplaceCredits: 100,
     bodyRetouchCredits: 100,
     motionControlBaseCredits: 150,
     motionControlCreditsPerSecond: 20,
@@ -74,6 +73,7 @@ export const DEFAULT_PRICING_CONFIG: PricingConfigResponse = {
     veo3Credits720p: 500,
     veo3Credits1080p: 700,
     veo3Credits4k: 950,
+    museVideoCredits: 200,
     motionControlMinSeconds: 5,
   },
   tiers: [
@@ -601,7 +601,7 @@ const MOCK_TOPUP_BASE = {
   credits: 12_000,
   bankCode: '970436',
   accountNumber: '0123456789',
-  accountName: 'CONG TY FLOWVIS',
+  accountName: 'CONG TY FLOWXIS',
   qrExpiresAt: '2026-11-07T03:15:00.000Z',
   createdAt: '2026-11-07T03:00:00.000Z',
   updatedAt: '2026-11-07T03:00:00.000Z',

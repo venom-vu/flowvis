@@ -81,7 +81,7 @@ export async function runApiCli(name, args = [], { useCompose = false, service =
   } else {
     const file = path.join(API_DIST, `${name}.js`);
     if (!fs.existsSync(file)) {
-      return { code: EXIT_ERROR, json: null, spawnError: `Chưa build ${path.relative(REPO_ROOT, file)}; chạy "pnpm --filter @flowvis/api run build".` };
+      return { code: EXIT_ERROR, json: null, spawnError: `Chưa build ${path.relative(REPO_ROOT, file)}; chạy "pnpm --filter @flowxis/api run build".` };
     }
     cmd = process.execPath;
     argv = [file, ...args];

@@ -15,7 +15,7 @@ import {
   getApiErrorMessageVi,
   type AuthGoogleCallbackQuery,
   type UserRole,
-} from '@flowvis/contracts';
+} from '@flowxis/contracts';
 import { PrismaService, type PrismaTransactionClient } from '../../infra/prisma.service.js';
 import { RedisService } from '../../infra/redis.service.js';
 import { GoogleOAuthService, type GoogleUserProfile } from './google-oauth.service.js';
@@ -145,7 +145,7 @@ export class AuthService {
   private getJwtSecret(): string {
     return (
       process.env.JWT_SECRET ||
-      'flowvis-jwt-dev-secret-change-me-in-production-min-32-chars'
+      'flowxis-jwt-dev-secret-change-me-in-production-min-32-chars'
     );
   }
 

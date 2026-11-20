@@ -4,7 +4,7 @@ import type {
   AccountTier,
   MeResponse,
   PricingConfigResponse,
-} from '@flowvis/contracts';
+} from '@flowxis/contracts';
 import { useApiClient } from '~/composables/useApiClient';
 import { resolveApiErrorMessageVi } from '~/utils/api-client';
 import { isUnauthorizedError } from '~/utils/auth-session';
@@ -18,16 +18,16 @@ import {
 export function usePricingConfig() {
   const { client } = useApiClient();
   const manualErrorVi = useState<string | null>(
-    'flowvis-manual-error-vi',
+    'flowxis-manual-error-vi',
     () => null,
   );
 
   const pricingAsync = useAsyncData<PricingConfigResponse>(
-    'flowvis-pricing-config',
+    'flowxis-pricing-config',
     () => client.getPricingConfig(),
   );
 
-  const meAsync = useAsyncData<MeResponse>('flowvis-me-profile', () =>
+  const meAsync = useAsyncData<MeResponse>('flowxis-me-profile', () =>
     client.getMe(),
   );
 

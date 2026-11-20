@@ -14,7 +14,7 @@ context:
 
 ## Intent
 
-**Problem:** `@flowvis/contracts` chưa có pipeline `body_retouch`, schema `intensity`, endpoint tạo Task và mock cho Body Retouch, nên luồng BE (4.2–4.3) và FE (4.4–4.5) chưa thể chạy song song trên cùng một hình dạng API. Thông báo `NO_POSE` của `body_retouch` hiện lệch so với yêu cầu.
+**Problem:** `@flowxis/contracts` chưa có pipeline `body_retouch`, schema `intensity`, endpoint tạo Task và mock cho Body Retouch, nên luồng BE (4.2–4.3) và FE (4.4–4.5) chưa thể chạy song song trên cùng một hình dạng API. Thông báo `NO_POSE` của `body_retouch` hiện lệch so với yêu cầu.
 
 **Approach:** Mở rộng `src/tasks.ts` (enum pipeline, `IntensitySchema`, hằng ba vùng nhãn, `BodyRetouchCreateRequest/Response`), sửa thông báo `NO_POSE` theo pipeline, thêm mock `body_retouch` ở mọi trạng thái và mock kết quả có `sourceUrl`, kèm test hợp đồng và README. Giá `bodyRetouchCredits` đã có trong `PipelinePricingSchema`, không sửa.
 
@@ -93,7 +93,7 @@ context:
 ## Verification
 
 **Commands:**
-- `pnpm --filter @flowvis/contracts test` -- expected: pass
+- `pnpm --filter @flowxis/contracts test` -- expected: pass
 - `pnpm run lint && pnpm run typecheck && pnpm run build` -- expected: pass
 - `pnpm run check:boundaries` -- expected: pass
 

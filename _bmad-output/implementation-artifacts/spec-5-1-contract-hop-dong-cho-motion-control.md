@@ -14,7 +14,7 @@ context:
 
 ## Intent
 
-**Problem:** `@flowvis/contracts` chưa có pipeline Motion, hàm tính giá, tải video, schema Trim, kết quả video và thông báo lỗi Motion, nên luồng BE (5.2–5.6) và FE (5.7–5.8) chưa thể chạy song song trên cùng một hình dạng API.
+**Problem:** `@flowxis/contracts` chưa có pipeline Motion, hàm tính giá, tải video, schema Trim, kết quả video và thông báo lỗi Motion, nên luồng BE (5.2–5.6) và FE (5.7–5.8) chưa thể chạy song song trên cùng một hình dạng API.
 
 **Approach:** Mở rộng `uploads.ts` (loại `video`, `VideoMeta`), `tasks.ts` (pipeline, `motionPrice`, `MotionCreateRequest`, kết quả `mediaType`, share info/poster, enum `details.reason`, thông báo theo pipeline), `wallet.ts` (số giây tối thiểu trong `GET /config/pricing`), kèm mock, test hợp đồng và README.
 
@@ -107,6 +107,6 @@ context:
 ## Verification
 
 **Commands:**
-- `pnpm --filter @flowvis/contracts test` -- expected: pass
+- `pnpm --filter @flowxis/contracts test` -- expected: pass
 - `pnpm run lint && pnpm run typecheck && pnpm run build` -- expected: pass
 - `pnpm run check:boundaries` -- expected: pass

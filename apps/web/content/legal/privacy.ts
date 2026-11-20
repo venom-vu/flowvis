@@ -7,13 +7,13 @@ export const privacy: LegalDocument = {
   status: 'final',
   title: 'Chính sách quyền riêng tư',
   subtitle:
-    'flowvis thu thập dữ liệu gì, dùng để làm gì, lưu trong bao lâu và bạn kiểm soát dữ liệu của mình như thế nào.',
+    'flowxis thu thập dữ liệu gì, dùng để làm gì, lưu trong bao lâu và bạn kiểm soát dữ liệu của mình như thế nào.',
   sections: [
     {
       id: 'nguyen-tac-chung',
       heading: '1. Cam kết của chúng tôi',
       paragraphs: [
-        'flowvis chỉ thu thập lượng dữ liệu tối thiểu cần thiết để cung cấp dịch vụ và giữ tài khoản của bạn an toàn.',
+        'flowxis chỉ thu thập lượng dữ liệu tối thiểu cần thiết để cung cấp dịch vụ và giữ tài khoản của bạn an toàn.',
         'Chúng tôi không bán hay chia sẻ dữ liệu cá nhân, ảnh hoặc video của bạn cho mục đích quảng cáo, và không dùng tệp của bạn để huấn luyện mô hình AI.',
       ],
     },
@@ -29,7 +29,7 @@ export const privacy: LegalDocument = {
         'Cookie: dùng để duy trì phiên đăng nhập, chống lạm dụng và bảo mật tài khoản.',
       ],
       outroParagraphs: [
-        'Công cụ Tải video TikTok chạy trên trình duyệt của bạn. flowvis không nhận và không lưu liên kết hay video TikTok.',
+        'Công cụ Tải video TikTok chạy trên trình duyệt của bạn. flowxis không nhận và không lưu liên kết hay video TikTok.',
       ],
     },
     {

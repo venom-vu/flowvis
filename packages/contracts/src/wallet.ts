@@ -392,7 +392,6 @@ export type WalletLedgerResponse = z.infer<typeof WalletLedgerResponseSchema>;
 export const PipelinePricingSchema = z.object({
   faceSwapCredits: z.literal(100),
   outfitChangeCredits: z.literal(100),
-  personReplaceCredits: z.literal(100),
   bodyRetouchCredits: z.literal(100),
   /** Motion Control v1: giá một Task = phí cố định + đơn giá mỗi giây × số giây (`motionPrice`). */
   motionControlBaseCredits: z.literal(150),
@@ -404,6 +403,8 @@ export const PipelinePricingSchema = z.object({
   veo3Credits720p: z.literal(500),
   veo3Credits1080p: z.literal(700),
   veo3Credits4k: z.literal(950),
+  /** Muse Video: giá cố định mỗi video ~10 giây. */
+  museVideoCredits: z.literal(200),
   /** Số giây Trim tối thiểu của Motion Control (tùy chọn để BE Epic 2–4 chưa trả vẫn hợp lệ; BE 5.3 phải trả 5). */
   motionControlMinSeconds: z.literal(5).optional(),
 });

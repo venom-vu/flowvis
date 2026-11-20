@@ -3,7 +3,7 @@ import { computed, inject, type ComputedRef, type InjectionKey } from 'vue';
 export type UiVariant = 'admin' | 'cyber';
 export type FocusAccent = 'default' | 'violet' | 'cyan' | 'rose' | 'orange';
 
-export const UI_VARIANT_KEY = Symbol('flowvis-ui-variant') as InjectionKey<UiVariant>;
+export const UI_VARIANT_KEY = Symbol('flowxis-ui-variant') as InjectionKey<UiVariant>;
 
 export function useUiVariant(explicit?: () => UiVariant | undefined): ComputedRef<UiVariant> {
   const injected = inject(UI_VARIANT_KEY, 'cyber');

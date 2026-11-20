@@ -1,48 +1,40 @@
 <script setup lang="ts">
-// Tạm ẩn: chuyển về trang chủ (bật lại bằng cách xóa dòng này và id khỏi HIDDEN_FEATURE_IDS).
-definePageMeta({ middleware: () => navigateTo('/', { replace: true }) });
 import { usePageSeo } from '~/composables/usePageSeo';
 import { useAuthDialog } from '~/composables/useAuthDialog';
-import { useMotionControl } from '~/composables/useMotionControl';
+import { useMuseVideo } from '~/composables/useMuseVideo';
 
 usePageSeo({
-  title: 'Motion Control Nền Video — flowvis',
+  title: 'Muse Video Tạo Video AI Từ Ảnh — flowxis',
   description:
-    'Cho nhân vật trong ảnh chuyển động theo video mẫu. Cắt đoạn video theo từng giây và xem giá credit ngay khi kéo thanh trượt.',
+    'Tạo video khoảng 10 giây, 720p, có âm thanh bằng Muse Video từ 1 đến 9 ảnh tham chiếu và mô tả. Chọn tỉ lệ khung, giá cố định theo credit.',
 });
 
 const { open: openAuthDialog } = useAuthDialog();
-const motion = useMotionControl();
-motion.variant.value = 'bg';
+const muse = useMuseVideo();
 const {
-  currentTier,
   isAuthenticated,
-  characterKey,
+  prompt,
+  aspectRatio,
+  imageKeys,
+  totalBytes,
+  pending,
   activeTask,
   isSubmitting,
   submitErrorVi,
-  capSeconds,
-  capUsable,
-  seconds,
   price,
   balance,
-  remainingBalance,
   hasEnoughBalance,
   insufficientNoteVi,
   canSubmit,
   intakePaused,
-  onTrimChange,
   submit,
   reset,
   refreshAll,
-} = motion;
+} = muse;
 </script>
 
 <template>
-  <div
-    class="mx-auto max-w-4xl space-y-6 py-2 sm:py-4"
-    data-testid="page-motion-background"
-  >
+  <div class="mx-auto max-w-4xl space-y-6 py-2 sm:py-4" data-testid="page-muse-video">
     <MaintenanceBanner />
     <div class="flex items-center justify-between">
       <NuxtLink
@@ -61,15 +53,12 @@ const {
         <span
           class="flex h-12 w-12 shrink-0 items-center justify-center rounded-2xl border border-cyber-cyan/50 bg-cyber-cyan/20 text-cyber-cyan"
         >
-          <Icon name="lucide:clapperboard" class="h-6 w-6" />
+          <Icon name="lucide:film" class="h-6 w-6" />
         </span>
         <div class="space-y-1">
-          <h1 class="font-display text-lg font-bold sm:text-2xl">
-            Motion Control Nền Video
-          </h1>
+          <h1 class="font-display text-lg font-bold sm:text-2xl">Muse Video Tạo Video AI</h1>
           <p class="text-xs text-cyber-muted sm:text-sm">
-            Tải ảnh nhân vật và video mẫu, cắt đoạn theo từng giây. Giá được
-            tính theo độ dài đoạn đã cắt.
+            Tạo video khoảng 10 giây, 720p, có âm thanh từ 1 đến 9 ảnh tham chiếu và mô tả của bạn.
           </p>
         </div>
       </div>
@@ -85,60 +74,15 @@ const {
     </section>
 
     <section v-else class="space-y-6">
-      <div class="grid grid-cols-1 gap-5 md:grid-cols-2">
-        <div
-          class="min-w-0 space-y-3 rounded-2xl border border-cyber-border bg-cyber-surface/60 p-4 sm:p-5"
-          data-testid="motion-character-section"
-        >
-          <div class="flex items-center gap-2.5">
-            <span
-              class="flex h-7 w-7 items-center justify-center rounded-lg border border-cyber-cyan/40 bg-cyber-cyan/15 font-mono text-xs font-bold text-cyber-cyan"
-            >
-              1
-            </span>
-            <div>
-              <h2 class="text-sm font-bold text-cyber-text">Ảnh nhân vật</h2>
-              <p class="text-[11px] text-cyber-muted">
-                Ảnh toàn thân rõ người
-              </p>
-            </div>
-          </div>
-          <ImageUploader
-            v-model="characterKey"
-            :maintenance-note="intakePaused"
-            id-prefix="motion-bg-character-image"
-            label-vi="Chọn ảnh nhân vật"
-            description-vi="Ảnh toàn thân rõ dáng, JPG/PNG/WebP ≤ 10 MB"
-          />
-        </div>
-
-        <div
-          class="min-w-0 space-y-3 rounded-2xl border border-cyber-border bg-cyber-surface/60 p-4 sm:p-5"
-          data-testid="motion-video-section"
-        >
-          <div class="flex items-center gap-2.5">
-            <span
-              class="flex h-7 w-7 items-center justify-center rounded-lg border border-cyber-violet/40 bg-cyber-violet/15 font-mono text-xs font-bold text-cyber-violet"
-            >
-              2
-            </span>
-            <div>
-              <h2 class="text-sm font-bold text-cyber-text">
-                Video mẫu và đoạn cắt
-              </h2>
-              <p class="text-[11px] text-cyber-muted">
-                MP4 hoặc MOV, tối đa 100 MB
-              </p>
-            </div>
-          </div>
-          <VideoTrimmer
-            id-prefix="motion-bg-video"
-            :cap-seconds="capSeconds"
-            :tier-name="currentTier"
-            @change="onTrimChange"
-          />
-        </div>
-      </div>
+      <MuseVideoForm
+        v-model:prompt="prompt"
+        v-model:aspect-ratio="aspectRatio"
+        v-model:image-keys="imageKeys"
+        v-model:total-bytes="totalBytes"
+        v-model:pending="pending"
+        id-prefix="muse-video-page"
+        :maintenance-note="intakePaused"
+      />
 
       <div
         v-if="submitErrorVi"
@@ -161,12 +105,12 @@ const {
         <div class="flex items-center gap-3">
           <Icon name="lucide:log-in" class="h-5 w-5 shrink-0 text-cyber-cyan" />
           <p class="text-xs text-cyber-cyan sm:text-sm">
-            Vui lòng đăng nhập để tạo tác vụ Motion Control Nền Video và lưu lịch sử.
+            Vui lòng đăng nhập để tạo video Muse Video và lưu lịch sử.
           </p>
         </div>
         <button
           type="button"
-          data-testid="motion-login-button"
+          data-testid="muse-video-login-button"
           class="touch-target inline-flex min-h-[48px] shrink-0 items-center justify-center gap-2 rounded-xl bg-cyber-cyan px-4 py-2 text-xs font-bold text-black transition hover:bg-cyber-cyan/90"
           @click="openAuthDialog('login')"
         >
@@ -176,53 +120,24 @@ const {
       </div>
 
       <div
-        v-if="isAuthenticated && !capUsable && capSeconds != null"
-        data-testid="motion-cap-unusable-note"
-        class="rounded-xl border border-cyber-warning/40 bg-cyber-warning/10 p-4 text-xs text-cyber-warning"
-      >
-        Chỉ cho phép tối đa {{ capSeconds }} giây, chưa đủ để tạo
-        đoạn Motion Control.
-        <NuxtLink to="/pricing" class="font-semibold underline">
-          Xem bảng giá
-        </NuxtLink>
-      </div>
-
-      <div
         class="flex flex-col gap-4 rounded-2xl border border-cyber-border bg-cyber-surface p-4 sm:flex-row sm:items-center sm:justify-between sm:p-5"
       >
         <div class="space-y-1">
           <div class="flex flex-wrap items-center gap-2">
             <Icon name="lucide:zap" class="h-4 w-4 text-cyber-cyan" />
             <span class="text-xs text-cyber-muted">Giá:</span>
-            <span
-              data-testid="motion-price"
-              class="font-mono text-sm font-bold text-cyber-cyan"
-            >
-              {{ price == null ? '—' : `${price} Credit` }}
-            </span>
-            <span
-              v-if="price != null"
-              data-testid="motion-seconds"
-              class="font-mono text-xs text-cyber-muted"
-            >
-              ({{ seconds }} giây)
+            <span data-testid="muse-video-price" class="font-mono text-sm font-bold text-cyber-cyan">
+              {{ price }} Credit
             </span>
           </div>
           <div class="flex flex-wrap items-center gap-2 text-xs">
             <span class="text-cyber-muted">Số dư khả dụng:</span>
             <span
-              data-testid="motion-balance"
+              data-testid="muse-video-balance"
               class="font-mono font-bold"
               :class="[hasEnoughBalance ? 'text-cyber-cyan' : 'text-cyber-warning']"
             >
               {{ balance }} Credit
-            </span>
-            <span
-              v-if="remainingBalance != null && isAuthenticated && hasEnoughBalance"
-              data-testid="motion-remaining"
-              class="font-mono text-cyber-muted"
-            >
-              Còn lại sau khi tạo: {{ remainingBalance }}
             </span>
           </div>
           <p
@@ -244,34 +159,21 @@ const {
             <Icon name="lucide:plus-circle" class="h-4 w-4" />
             <span>Nạp thêm Credit</span>
           </NuxtLink>
-
           <button
             type="button"
-            data-testid="create-motion-button"
+            data-testid="create-muse-video-button"
             :disabled="!canSubmit || intakePaused"
             class="touch-target inline-flex min-h-[48px] min-w-[48px] items-center justify-center gap-2 rounded-xl bg-cyber-violet px-6 py-3 text-sm font-semibold text-cyber-text transition hover:bg-cyber-violet/90 disabled:cursor-not-allowed disabled:opacity-50"
             @click="submit"
           >
-            <Icon
-              v-if="isSubmitting"
-              name="lucide:loader-2"
-              class="h-4 w-4 animate-spin"
-            />
+            <Icon v-if="isSubmitting" name="lucide:loader-2" class="h-4 w-4 animate-spin" />
             <Icon v-else name="lucide:play" class="h-4 w-4" />
-            <span>
-              {{
-                isSubmitting
-                  ? 'Đang tạo tác vụ...'
-                  : price == null
-                    ? 'Tạo Motion Control Nền Video'
-                    : `Tạo Motion Control Nền Video (${price} CR)`
-              }}
-            </span>
+            <span>{{ isSubmitting ? 'Đang tạo tác vụ...' : `Tạo video Muse Video (${price} CR)` }}</span>
           </button>
         </div>
       </div>
     </section>
 
-    <ToolSeoSection tool="motion-background" />
+    <ToolSeoSection tool="muse-video" />
   </div>
 </template>

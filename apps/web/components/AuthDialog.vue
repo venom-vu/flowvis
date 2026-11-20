@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import { onBeforeUnmount, onMounted, watch } from "vue";
 import { useRoute, useRouter } from "#imports";
-// import { TOS_VERSION } from '@flowvis/contracts';
+// import { TOS_VERSION } from '@flowxis/contracts';
 import { useAuthDialog } from "~/composables/useAuthDialog";
 import { usePricingConfig } from "~/composables/usePricingConfig";
 import { resolveApiErrorMessageVi } from "~/utils/api-client";

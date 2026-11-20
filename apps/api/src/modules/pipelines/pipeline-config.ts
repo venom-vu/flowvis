@@ -1,6 +1,7 @@
-import type { ReasonCode } from '@flowvis/contracts';
+import type { ReasonCode } from '@flowxis/contracts';
 import type { RunningHubRunMode } from '../../ports/index.js';
 import { VEO3_DEFAULT_MODEL, buildVeo3Request, veo3InputKeys } from './veo3.js';
+import { MUSE_VIDEO_DEFAULT_MODEL, buildMuseVideoRequest, museVideoInputKeys } from './muse-video.js';
 import { videoTrim, type PrepareContext } from '../tasks/video-trim.service.js';
 
 export interface PipelineInputMapping {
@@ -87,20 +88,6 @@ export const PIPELINE_CONFIGS: Readonly<Record<string, PipelineConfig>> = {
     fixedNodes: [{ nodeId: '223', fieldName: 'value', fieldValue: '让图一的人物穿上图二的衣服' }],
     referenceInputKey: 'modelKey',
   },
-  person_replace: {
-    pipeline: 'person_replace',
-    workflowEnvVar: 'RUNNINGHUB_WORKFLOW_PERSON_REPLACE',
-    instanceEnvVar: 'RUNNINGHUB_INSTANCE_PERSON_REPLACE',
-    runMode: 'ai-app',
-    // Không requiredAtStartup: môi trường chưa cấu hình vẫn khởi động; adapter unconfigured ném GPU_ERROR.
-    // AI App Đổi người trong ảnh (1977229030422388737): 22 = ảnh gốc, 35 = nhân vật mới thay vào ảnh gốc, 49 = độ phân giải tối đa.
-    // Không đặt referenceInputKey: workflow giới hạn cạnh dài 1280 nên kích thước kết quả có thể khác ảnh gốc.
-    inputs: [
-      { inputKey: 'sceneKey', nodeId: '22', fieldName: 'image' },
-      { inputKey: 'personKey', nodeId: '35', fieldName: 'image' },
-    ],
-    fixedNodes: [{ nodeId: '49', fieldName: 'value', fieldValue: '1280' }],
-  },
   body_retouch: {
     pipeline: 'body_retouch',
     workflowEnvVar: 'RUNNINGHUB_WORKFLOW_BODY_RESHAPE',
@@ -175,19 +162,16 @@ export const PIPELINE_CONFIGS: Readonly<Record<string, PipelineConfig>> = {
     model: { inputKeys: veo3InputKeys, buildRequest: buildVeo3Request },
     deadlineMs: 600_000,
   },
-  motion_background: {
-    pipeline: 'motion_background',
-    workflowEnvVar: 'RUNNINGHUB_WORKFLOW_MOTION_BACKGROUND',
-    instanceEnvVar: 'RUNNINGHUB_INSTANCE_MOTION_BACKGROUND',
-    runMode: 'ai-app',
-    // Không requiredAtStartup: môi trường chưa cấu hình vẫn khởi động; adapter unconfigured ném GPU_ERROR.
-    // AI App Motion control nền video (2097276664149921793): 286 = ảnh, 274 = video (đã cắt). Không có tham số/node cố định.
-    inputs: [
-      { inputKey: 'characterKey', nodeId: '286', fieldName: 'image' },
-      { inputKey: 'videoKey', nodeId: '274', fieldName: 'video' },
-    ],
-    deadlineMs: 360_000,
-    prepare: (ctx) => videoTrim.prepare(ctx),
+  muse_video: {
+    pipeline: 'muse_video',
+    workflowEnvVar: 'RUNNINGHUB_MUSE_VIDEO_MODEL',
+    instanceEnvVar: 'RUNNINGHUB_INSTANCE_MUSE_VIDEO',
+    // API model chuẩn: JSON phẳng, 1-9 ảnh tham chiếu truyền bằng URL theo thứ tự imageKey0..8 (xem muse-video.ts).
+    runMode: 'model',
+    inputs: [],
+    defaultWorkflowId: MUSE_VIDEO_DEFAULT_MODEL,
+    model: { inputKeys: museVideoInputKeys, buildRequest: buildMuseVideoRequest },
+    deadlineMs: 600_000,
   },
 };
 

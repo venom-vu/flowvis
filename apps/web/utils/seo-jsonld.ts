@@ -1,5 +1,5 @@
 // Tên và logo tạm; đổi tại đây khi chốt thương hiệu/pháp nhân.
-export const BRAND_NAME = 'flowvis';
+export const BRAND_NAME = 'flowxis';
 export const BRAND_LOGO_PATH = '/favicon.svg';
 
 const trim = (origin: string) => origin.replace(/\/$/, '');
@@ -41,7 +41,7 @@ export function buildSoftwareApplicationJsonLd(origin: string) {
     operatingSystem: 'Web',
     inLanguage: 'vi',
     description:
-      'Nền tảng tạo ảnh và video AI: hoán đổi khuôn mặt, đổi trang phục, nâng ngực, đổi người và điều khiển chuyển động.',
+      'Nền tảng tạo ảnh và video AI: hoán đổi khuôn mặt, đổi trang phục, nâng ngực và điều khiển chuyển động.',
     publisher: { '@id': `${base}/#organization` },
   };
 }

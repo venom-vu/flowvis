@@ -18,7 +18,7 @@ import {
   type TopupPackId,
   type WalletLedgerResponse,
   vnDateRange,
-} from '@flowvis/contracts';
+} from '@flowxis/contracts';
 import { Prisma } from '../../generated/prisma/client.js';
 import {
   PrismaService,

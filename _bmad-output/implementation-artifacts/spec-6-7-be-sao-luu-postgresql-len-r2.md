@@ -74,7 +74,7 @@ context:
 
 **Acceptance Criteria:**
 - Given sao lưu lỗi ở bất kỳ bước nào, when xong, then bản cũ nguyên vẹn, thư mục tạm không còn và cảnh báo không chứa mật khẩu hay chuỗi kết nối.
-- Given `pnpm --filter @flowvis/api test`, `lint`, `typecheck`, `build`, `check:boundaries` (chỉ file của story này), when chạy, then pass (trừ test lỗi có sẵn ở Story 2.14, 5.2 và throttle).
+- Given `pnpm --filter @flowxis/api test`, `lint`, `typecheck`, `build`, `check:boundaries` (chỉ file của story này), when chạy, then pass (trừ test lỗi có sẵn ở Story 2.14, 5.2 và throttle).
 
 ## Implementation Notes
 

@@ -38,7 +38,7 @@ importers:
       '@aws-sdk/s3-request-presigner':
         specifier: 3.1161.0
         version: 3.1161.0
-      '@flowvis/contracts':
+      '@flowxis/contracts':
         specifier: workspace:*
         version: link:../../packages/contracts
       '@nestjs/bullmq':
@@ -114,7 +114,7 @@ importers:
 
   apps/web:
     dependencies:
-      '@flowvis/contracts':
+      '@flowxis/contracts':
         specifier: workspace:*
         version: link:../../packages/contracts
       '@iconify-json/lucide':

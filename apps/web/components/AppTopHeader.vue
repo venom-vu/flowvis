@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import { computed } from "vue";
 import { useRoute } from "#imports";
-import type { AccountTier, UserRole } from "@flowvis/contracts";
+import type { AccountTier, UserRole } from "@flowxis/contracts";
 import { useAuthDialog } from "~/composables/useAuthDialog";
 import { formatNumberVi } from "~/utils/catalog";
 
@@ -75,11 +75,11 @@ function isActiveRoute(targetPath: string): boolean {
     >
       <NuxtLink
         to="/"
-        aria-label="Trang chủ flowvis"
+        aria-label="Trang chủ flowxis"
         class="touch-target inline-flex min-h-[48px] min-w-[48px] items-center gap-2.5 rounded-lg pr-2 text-cyber-text transition hover:text-cyber-violet"
       >
         <span class="font-display text-2xl font-bold tracking-tight">
-          flowvis
+          flowxis
         </span>
       </NuxtLink>
 

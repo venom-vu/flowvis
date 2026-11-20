@@ -19,7 +19,7 @@ import {
   TaskSchema,
   WalletLedgerResponseSchema,
   getReasonCodeMessageVi,
-} from '@flowvis/contracts';
+} from '@flowxis/contracts';
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const repoRoot = path.resolve(__dirname, '../../..');
@@ -211,7 +211,7 @@ describe('Smoke Body Retouch FE-BE trên stack Compose (Story 4.6)', () => {
       timeout: 1_200_000,
     },
     async () => {
-      const project = 'flowvis-smoke-bd';
+      const project = 'flowxis-smoke-bd';
       const apiPort = '3105';
       const base = `http://127.0.0.1:${apiPort}`;
       const env = {

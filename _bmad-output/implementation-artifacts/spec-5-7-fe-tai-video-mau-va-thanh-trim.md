@@ -105,6 +105,6 @@ Thành phần chỉ phát `videoKey`, `trimStart`, `trimEnd`, `durationSeconds`;
 ## Verification
 
 **Commands:**
-- `pnpm --filter @flowvis/web test` -- expected: pass
+- `pnpm --filter @flowxis/web test` -- expected: pass
 - `pnpm run lint && pnpm run typecheck && pnpm run build` -- expected: pass
 - `pnpm run check:boundaries` -- expected: pass (chỉ file trong `apps/web` và artifact BMad của story)

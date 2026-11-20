@@ -4,15 +4,13 @@ import {
   BodyRetouchCreateRequestSchema,
   FaceSwapCreateRequestSchema,
   OutfitChangeCreateRequestSchema,
-  PersonReplaceCreateRequestSchema,
-  type PersonReplaceCreateResponse,
   type OutfitChangeCreateResponse,
   MotionCreateRequestSchema,
   MotionV2CreateRequestSchema,
   Veo3CreateRequestSchema,
   type Veo3CreateResponse,
-  MotionBackgroundCreateRequestSchema,
-  type MotionBackgroundCreateResponse,
+  MuseVideoCreateRequestSchema,
+  type MuseVideoCreateResponse,
   type MotionV2CreateResponse,
   getValidationReasonMessageVi,
   type MotionCreateResponse,
@@ -26,7 +24,7 @@ import {
   type TaskResultResponse,
   type TaskShareResponse,
   type TaskShareRevokeResponse,
-} from '@flowvis/contracts';
+} from '@flowxis/contracts';
 import { CurrentUser } from '../auth/decorators/current-user.decorator.js';
 import { AccountLockedGuard } from '../auth/guards/account-locked.guard.js';
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard.js';
@@ -77,24 +75,6 @@ export class TasksController {
       });
     }
     return this.tasks.createOutfitChange(user.sub, parsed.data);
-  }
-
-  @Post('person-replace')
-  @CreatesTask()
-  @UseGuards(IntakeOpenGuard)
-  async createPersonReplace(
-    @CurrentUser() user: JwtUserPayload,
-    @Body() body: unknown,
-  ): Promise<PersonReplaceCreateResponse> {
-    const parsed = PersonReplaceCreateRequestSchema.safeParse(body);
-    if (!parsed.success) {
-      const code = ApiErrorCode.VALIDATION_FAILED;
-      throw new BadRequestException({
-        code,
-        message: parsed.error.issues[0]?.message ?? getApiErrorMessageVi(code),
-      });
-    }
-    return this.tasks.createPersonReplace(user.sub, parsed.data);
   }
 
   @Post('body-retouch')
@@ -167,6 +147,24 @@ export class TasksController {
     return this.tasks.createVeo3(user.sub, parsed.data);
   }
 
+  @Post('muse-video')
+  @CreatesTask()
+  @UseGuards(IntakeOpenGuard)
+  async createMuseVideo(
+    @CurrentUser() user: JwtUserPayload,
+    @Body() body: unknown,
+  ): Promise<MuseVideoCreateResponse> {
+    const parsed = MuseVideoCreateRequestSchema.safeParse(body);
+    if (!parsed.success) {
+      const code = ApiErrorCode.VALIDATION_FAILED;
+      throw new BadRequestException({
+        code,
+        message: parsed.error.issues[0]?.message ?? getApiErrorMessageVi(code),
+      });
+    }
+    return this.tasks.createMuseVideo(user.sub, parsed.data);
+  }
+
   @Post('motion-v2')
   @CreatesTask()
   @UseGuards(IntakeOpenGuard)
@@ -199,40 +197,6 @@ export class TasksController {
       });
     }
     return this.tasks.createMotionControlV2(user.sub, parsed.data);
-  }
-
-  @Post('motion-background')
-  @CreatesTask()
-  @UseGuards(IntakeOpenGuard)
-  async createMotionBackground(
-    @CurrentUser() user: JwtUserPayload,
-    @Body() body: unknown,
-  ): Promise<MotionBackgroundCreateResponse> {
-    const parsed = MotionBackgroundCreateRequestSchema.safeParse(body);
-    if (!parsed.success) {
-      const code = ApiErrorCode.VALIDATION_FAILED;
-      // Thứ tự xác định: trimStart trước trimEnd.
-      const trimIssue = ['trimStart', 'trimEnd']
-        .map((k) => parsed.error.issues.find((i) => i.path[0] === k))
-        .find((i) => i !== undefined);
-      let reason: 'TRIM_NOT_WHOLE_SECOND' | 'TRIM_OUT_OF_VIDEO' | null = null;
-      if (trimIssue?.code === 'too_small') reason = 'TRIM_OUT_OF_VIDEO';
-      else if (trimIssue?.code === 'invalid_type' && trimIssue.expected === 'integer') {
-        reason = 'TRIM_NOT_WHOLE_SECOND';
-      }
-      if (reason) {
-        throw new BadRequestException({
-          code,
-          message: getValidationReasonMessageVi(reason),
-          details: { reason },
-        });
-      }
-      throw new BadRequestException({
-        code,
-        message: parsed.error.issues[0]?.message ?? getApiErrorMessageVi(code),
-      });
-    }
-    return this.tasks.createMotionBackground(user.sub, parsed.data);
   }
 
   @Get()

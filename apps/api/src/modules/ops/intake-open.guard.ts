@@ -5,7 +5,7 @@ import {
   Injectable,
   SetMetadata,
 } from '@nestjs/common';
-import { ApiErrorCode, getApiErrorMessageVi } from '@flowvis/contracts';
+import { ApiErrorCode, getApiErrorMessageVi } from '@flowxis/contracts';
 import { SettingsService } from './settings.service.js';
 
 /** Đánh dấu route tạo Task; test CI duyệt route yêu cầu có IntakeOpenGuard đi kèm. */

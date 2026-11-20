@@ -79,7 +79,7 @@ context:
 - Given RunningHub từ chối vì hết tiền ở bất kỳ bước nào, when worker nhận lỗi, then Task `failed` `RH_BUDGET`, RELEASED, hai cờ bật, một cảnh báo.
 - Given cờ bật, when worker nhận job mới, then Task `failed` `RH_BUDGET` trước prepare và không gọi RunningHub.
 - Given job số dư, when đọc và so với ngưỡng, then đúng một cảnh báo theo quy tắc lên/xuống và theo chuỗi 3 lần lỗi.
-- Given `pnpm --filter @flowvis/api test` cùng `lint`, `typecheck`, `build`, when chạy, then pass (trừ 5 test lỗi có sẵn ở Story 2.14 và 5.2).
+- Given `pnpm --filter @flowxis/api test` cùng `lint`, `typecheck`, `build`, when chạy, then pass (trừ 5 test lỗi có sẵn ở Story 2.14 và 5.2).
 
 ## Implementation Notes
 
@@ -115,6 +115,6 @@ context:
 ## Verification
 
 **Commands:**
-- `pnpm --filter @flowvis/api test` -- expected: pass (cần Docker cho PostgreSQL/Redis; chạy với `node --env-file=.env`)
+- `pnpm --filter @flowxis/api test` -- expected: pass (cần Docker cho PostgreSQL/Redis; chạy với `node --env-file=.env`)
 - `pnpm run lint && pnpm run typecheck && pnpm run build` -- expected: pass
 - `pnpm run check:boundaries` -- expected: không có file ngoài `apps/api/`, `deploy/` và `_bmad-output/` do story này thêm

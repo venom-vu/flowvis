@@ -21,7 +21,7 @@ context:
 ## Boundaries & Constraints
 
 **Always:**
-- Nhánh `be/*`: chỉ sửa `apps/api/` (và `deploy/` nếu cần); import schema từ `@flowvis/contracts`, không sửa `packages/contracts`.
+- Nhánh `be/*`: chỉ sửa `apps/api/` (và `deploy/` nếu cần); import schema từ `@flowxis/contracts`, không sửa `packages/contracts`.
 - Migration SQL thô viết tay: bảng `settings` (`key` duy nhất, `value` JSONB, `updated_at`) với các khóa `intake_paused`, `rh_budget_exhausted`, `breaker_reset_at`, `last_breaker_trigger`; chỉ module `ops` ghi; module khác không dùng SQL thô vào bảng này.
 - `ops` không đọc bảng `tasks`; gọi hàm mới của `TasksService` trả số liệu cửa sổ (đã kết thúc, lỗi hệ thống, chuỗi lỗi liên tiếp mới nhất) chỉ tính Task có `finished_at` sau `breaker_reset_at`.
 - Lỗi hệ thống: `failed`/`timed_out` với `reasonCode` thuộc `RH_ERROR`, `RH_TIMEOUT`, `RH_SUBMIT_UNKNOWN`, `PREP_TIMEOUT`, `FFMPEG_ERROR`, `INPUT_FETCH_ERROR`, `OUTPUT_UPLOAD_ERROR`, `OUTPUT_INVALID`, `INTERNAL_ERROR`. Loại khỏi mẫu số và không cắt chuỗi: `NO_POSE`, `NO_FACE`, `CONTENT_BLOCKED`, `USER_CANCEL`, `FREE_WAIT_EXPIRED`, `RH_BUDGET`, `RH_GATE_TIMEOUT`. `succeeded` cắt chuỗi.
@@ -110,6 +110,6 @@ context:
 ## Verification
 
 **Commands:**
-- `pnpm --filter @flowvis/api test` -- expected: pass (cần Docker cho PostgreSQL/Redis)
+- `pnpm --filter @flowxis/api test` -- expected: pass (cần Docker cho PostgreSQL/Redis)
 - `pnpm run lint && pnpm run typecheck && pnpm run build` -- expected: pass
 - `pnpm run check:boundaries` -- expected: không có file ngoài `apps/api/`, `deploy/` và `_bmad-output/` do story này thêm

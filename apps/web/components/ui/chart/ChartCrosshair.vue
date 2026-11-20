@@ -43,7 +43,7 @@ function color(d: unknown, i: number) {
   <VisTooltip
     :horizontal-shift="20"
     :vertical-shift="20"
-    :attributes="{ 'data-flowvis-chart-tooltip': 'true' }"
+    :attributes="{ 'data-flowxis-chart-tooltip': 'true' }"
   />
   <VisCrosshair :template="template" :color="color" />
 </template>

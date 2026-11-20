@@ -18,7 +18,7 @@ import {
   type UploadCreateRequest,
   type ValidationReason,
   type UploadCreateResponse,
-} from '@flowvis/contracts';
+} from '@flowxis/contracts';
 import sharp, { type Metadata, type OutputInfo } from 'sharp';
 import { FORMAT_TO_MIME, displaySize } from './image-utils.js';
 import { MIN_VIDEO_SECONDS, VideoProbeService } from './video-probe.service.js';
@@ -322,6 +322,27 @@ export class UploadsService {
       select: { confirmedKey: true },
     });
     return rows.length === unique.length;
+  }
+
+  /**
+   * Tổng dung lượng (byte, sau xử lý khi xác nhận) của các ảnh `in/` đã xác nhận, còn hạn, của chủ.
+   * Trả null nếu có khóa không thuộc user, chưa xác nhận hoặc đã hết hạn (cùng điều kiện với `areConfirmedKeysOwnedBy`).
+   */
+  async getConfirmedImagesTotalBytes(userId: string, keys: string[]): Promise<number | null> {
+    const unique = [...new Set(keys)];
+    if (unique.length === 0) return null;
+    const rows = await this.prisma.upload.findMany({
+      where: {
+        userId,
+        status: 'confirmed',
+        kind: 'image',
+        confirmedKey: { in: unique },
+        OR: [{ confirmedAt: null }, { confirmedAt: { gte: new Date(Date.now() - CONFIRMED_RETENTION_MS) } }],
+      },
+      select: { confirmedKey: true, sizeBytes: true, declaredBytes: true },
+    });
+    if (new Set(rows.map((r) => r.confirmedKey)).size !== unique.length) return null;
+    return rows.reduce((sum, r) => sum + (r.sizeBytes ?? r.declaredBytes), 0);
   }
 
   /** Độ dài (giây, đã đo bằng ffprobe) của video `in/` đã xác nhận, còn hạn, của chủ; null nếu không hợp lệ. */

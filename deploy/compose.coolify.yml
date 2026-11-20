@@ -1,0 +1,192 @@
+# Compose cho Coolify (Docker Compose build pack).
+# - KHÔNG publish port ra host: chỉ dùng `expose`, Coolify (Traefik) route qua mạng Docker nội bộ.
+# - Biến môi trường khai báo trong tab Environment Variables của Coolify (không dùng file .env).
+#   `${VAR:?}` = bắt buộc phải điền; `${VAR:-giá trị}` = có mặc định.
+# - Cấu hình trong Coolify: Build Pack = Docker Compose, Base Directory = /, Compose Location = /deploy/compose.coolify.yml.
+#   Sau đó gán domain cho `nestjs-api` (cổng 3001) và `nuxt-web` (cổng 3000) trong mục Domains của từng service.
+# - NUXT_PUBLIC_* được nạp lúc build của nuxt-web, đổi giá trị thì phải Redeploy (build lại).
+name: flowxis
+
+services:
+  postgres-16:
+    image: postgres:16-alpine
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: ${POSTGRES_USER:-flowxis_user}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:?}
+      POSTGRES_DB: ${POSTGRES_DB:-flowxis}
+    expose:
+      - "5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    healthcheck:
+      test:
+        [
+          "CMD-SHELL",
+          "pg_isready -U $${POSTGRES_USER} -d $${POSTGRES_DB}",
+        ]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+
+  redis-7:
+    image: redis:7-alpine
+    restart: unless-stopped
+    command:
+      - redis-server
+      - --appendonly
+      - "yes"
+      - --appendfsync
+      - everysec
+      - --maxmemory-policy
+      - noeviction
+    expose:
+      - "6379"
+    volumes:
+      - redis_data:/data
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+
+  nestjs-api:
+    build:
+      context: ..
+      dockerfile: deploy/Dockerfile
+    restart: unless-stopped
+    command:
+      - sh
+      - -c
+      - "./apps/api/node_modules/.bin/prisma migrate deploy --config apps/api/prisma.config.ts && node apps/api/dist/main.js"
+    environment:
+      NODE_ENV: production
+      PORT: "3001"
+      DATABASE_URL: postgresql://${POSTGRES_USER:-flowxis_user}:${POSTGRES_PASSWORD:?}@postgres-16:5432/${POSTGRES_DB:-flowxis}?schema=public
+      REDIS_URL: redis://redis-7:6379
+      JWT_SECRET: ${JWT_SECRET:?}
+      ANTI_ABUSE_SECRET: ${ANTI_ABUSE_SECRET:?}
+      GOOGLE_CLIENT_ID: ${GOOGLE_CLIENT_ID:?}
+      GOOGLE_CLIENT_SECRET: ${GOOGLE_CLIENT_SECRET:?}
+      GOOGLE_CALLBACK_URL: ${GOOGLE_CALLBACK_URL:?}
+      FRONTEND_URL: ${FRONTEND_URL:?}
+      ADMIN_EMAILS: ${ADMIN_EMAILS:-}
+      COOKIE_SECURE: ${COOKIE_SECURE:-true}
+      AUTH_THROTTLE_LIMIT: ${AUTH_THROTTLE_LIMIT:-20}
+      AUTH_THROTTLE_TTL_MS: ${AUTH_THROTTLE_TTL_MS:-60000}
+      # CIDR của proxy Coolify (Traefik) trong mạng Docker, vd 10.0.0.0/8,172.16.0.0/12,192.168.0.0/16.
+      TRUSTED_PROXY_CIDRS: ${TRUSTED_PROXY_CIDRS:-172.16.0.0/12,10.0.0.0/8,192.168.0.0/16}
+      TOPUP_BANK_BIN: ${TOPUP_BANK_BIN:?}
+      TOPUP_BANK_ACCOUNT_NO: ${TOPUP_BANK_ACCOUNT_NO:?}
+      TOPUP_BANK_ACCOUNT_NAME: ${TOPUP_BANK_ACCOUNT_NAME:?}
+      DISCORD_WEBHOOK_URL: ${DISCORD_WEBHOOK_URL:-}
+      R2_ACCOUNT_ID: ${R2_ACCOUNT_ID:-}
+      R2_ACCESS_KEY_ID: ${R2_ACCESS_KEY_ID:-}
+      R2_SECRET_ACCESS_KEY: ${R2_SECRET_ACCESS_KEY:-}
+      R2_BUCKET: ${R2_BUCKET:-}
+      R2_ENDPOINT: ${R2_ENDPOINT:-}
+      RUNNINGHUB_API_KEY: ${RUNNINGHUB_API_KEY:-}
+      RUNNINGHUB_API_HOST: ${RUNNINGHUB_API_HOST:-}
+      RH_BALANCE_ALERT_USD: ${RH_BALANCE_ALERT_USD:-10}
+      RH_BALANCE_ENDPOINT: ${RH_BALANCE_ENDPOINT:-/uc/openapi/accountStatus}
+      ADMIN_ADJUST_MAX: ${ADMIN_ADJUST_MAX:-30000}
+      USD_VND: ${USD_VND:-25000}
+      BENCHMARK_USER_EMAILS: ${BENCHMARK_USER_EMAILS:-}
+      RUNNINGHUB_WORKFLOW_FACESWAP: ${RUNNINGHUB_WORKFLOW_FACESWAP:-}
+      RUNNINGHUB_INSTANCE_FACE_SWAP: ${RUNNINGHUB_INSTANCE_FACE_SWAP:-default}
+      RUNNINGHUB_WORKFLOW_OUTFIT_CHANGE: ${RUNNINGHUB_WORKFLOW_OUTFIT_CHANGE:-}
+      RUNNINGHUB_INSTANCE_OUTFIT_CHANGE: ${RUNNINGHUB_INSTANCE_OUTFIT_CHANGE:-default}
+      RUNNINGHUB_WORKFLOW_BODY_RESHAPE: ${RUNNINGHUB_WORKFLOW_BODY_RESHAPE:-}
+      RUNNINGHUB_INSTANCE_BODY_RETOUCH: ${RUNNINGHUB_INSTANCE_BODY_RETOUCH:-default}
+      RUNNINGHUB_WORKFLOW_MOTION: ${RUNNINGHUB_WORKFLOW_MOTION:-}
+      RUNNINGHUB_INSTANCE_MOTION_CONTROL: ${RUNNINGHUB_INSTANCE_MOTION_CONTROL:-default}
+      RUNNINGHUB_WORKFLOW_MOTION_V2: ${RUNNINGHUB_WORKFLOW_MOTION_V2:-}
+      RUNNINGHUB_INSTANCE_MOTION_CONTROL_V2: ${RUNNINGHUB_INSTANCE_MOTION_CONTROL_V2:-plus}
+    expose:
+      - "3001"
+    depends_on:
+      postgres-16:
+        condition: service_healthy
+      redis-7:
+        condition: service_healthy
+    healthcheck:
+      test:
+        [
+          "CMD",
+          "node",
+          "-e",
+          "fetch('http://127.0.0.1:3001/health').then(r => r.json()).then(b => process.exit(b.status === 'ok' ? 0 : 1)).catch(() => process.exit(1))",
+        ]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  # Worker không mở HTTP công khai, không cần domain.
+  nestjs-worker:
+    build:
+      context: ..
+      dockerfile: deploy/Dockerfile
+    restart: unless-stopped
+    command: ["node", "apps/api/dist/worker.js"]
+    environment:
+      NODE_ENV: production
+      DATABASE_URL: postgresql://${POSTGRES_USER:-flowxis_user}:${POSTGRES_PASSWORD:?}@postgres-16:5432/${POSTGRES_DB:-flowxis}?schema=public
+      REDIS_URL: redis://redis-7:6379
+      RH_MAX_CONCURRENT: ${RH_MAX_CONCURRENT:-85}
+      DB_POOL_MAX: ${DB_POOL_MAX:-30}
+      R2_ACCOUNT_ID: ${R2_ACCOUNT_ID:-}
+      R2_ACCESS_KEY_ID: ${R2_ACCESS_KEY_ID:-}
+      R2_SECRET_ACCESS_KEY: ${R2_SECRET_ACCESS_KEY:-}
+      R2_BUCKET: ${R2_BUCKET:-}
+      R2_ENDPOINT: ${R2_ENDPOINT:-}
+      DISCORD_WEBHOOK_URL: ${DISCORD_WEBHOOK_URL:-}
+      RUNNINGHUB_API_KEY: ${RUNNINGHUB_API_KEY:-}
+      RUNNINGHUB_API_HOST: ${RUNNINGHUB_API_HOST:-}
+      RH_BALANCE_ALERT_USD: ${RH_BALANCE_ALERT_USD:-10}
+      RH_BALANCE_ENDPOINT: ${RH_BALANCE_ENDPOINT:-/uc/openapi/accountStatus}
+      RUNNINGHUB_WORKFLOW_FACESWAP: ${RUNNINGHUB_WORKFLOW_FACESWAP:-}
+      RUNNINGHUB_INSTANCE_FACE_SWAP: ${RUNNINGHUB_INSTANCE_FACE_SWAP:-default}
+      RUNNINGHUB_WORKFLOW_OUTFIT_CHANGE: ${RUNNINGHUB_WORKFLOW_OUTFIT_CHANGE:-}
+      RUNNINGHUB_INSTANCE_OUTFIT_CHANGE: ${RUNNINGHUB_INSTANCE_OUTFIT_CHANGE:-default}
+      RUNNINGHUB_WORKFLOW_BODY_RESHAPE: ${RUNNINGHUB_WORKFLOW_BODY_RESHAPE:-}
+      RUNNINGHUB_INSTANCE_BODY_RETOUCH: ${RUNNINGHUB_INSTANCE_BODY_RETOUCH:-default}
+      RUNNINGHUB_WORKFLOW_MOTION: ${RUNNINGHUB_WORKFLOW_MOTION:-}
+      RUNNINGHUB_INSTANCE_MOTION_CONTROL: ${RUNNINGHUB_INSTANCE_MOTION_CONTROL:-default}
+      RUNNINGHUB_WORKFLOW_MOTION_V2: ${RUNNINGHUB_WORKFLOW_MOTION_V2:-}
+      RUNNINGHUB_INSTANCE_MOTION_CONTROL_V2: ${RUNNINGHUB_INSTANCE_MOTION_CONTROL_V2:-plus}
+    depends_on:
+      postgres-16:
+        condition: service_healthy
+      redis-7:
+        condition: service_healthy
+
+  nuxt-web:
+    build:
+      context: ..
+      dockerfile: deploy/Dockerfile.web
+      args:
+        NUXT_PUBLIC_API_BASE_URL: ${NUXT_PUBLIC_API_BASE_URL:?}
+        NUXT_PUBLIC_REPORT_EMAIL: ${NUXT_PUBLIC_REPORT_EMAIL:?}
+        NUXT_PUBLIC_ZALO_URL: ${NUXT_PUBLIC_ZALO_URL:-}
+    restart: unless-stopped
+    environment:
+      NUXT_PUBLIC_API_BASE_URL: ${NUXT_PUBLIC_API_BASE_URL:?}
+      NUXT_PUBLIC_REPORT_EMAIL: ${NUXT_PUBLIC_REPORT_EMAIL:?}
+      NUXT_PUBLIC_ZALO_URL: ${NUXT_PUBLIC_ZALO_URL:-}
+    expose:
+      - "3000"
+    healthcheck:
+      test:
+        [
+          "CMD",
+          "node",
+          "-e",
+          "fetch('http://127.0.0.1:3000/').then(r => process.exit(r.status < 500 ? 0 : 1)).catch(() => process.exit(1))",
+        ]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+volumes:
+  postgres_data:
+  redis_data:

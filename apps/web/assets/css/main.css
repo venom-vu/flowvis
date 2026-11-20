@@ -104,7 +104,7 @@ body:has([data-testid='layout-admin']) {
 }
 
 /* Ghi đè trực tiếp wrapper Unovis Tooltip (specificity 0,1,1, không nằm trong @layer) để tránh khung trắng kép. */
-html [data-flowvis-chart-tooltip] {
+html [data-flowxis-chart-tooltip] {
   background-color: transparent;
   border-color: transparent;
   border-width: 0;

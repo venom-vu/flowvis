@@ -18,7 +18,7 @@ async function drill(): Promise<{ ok: boolean; checked: number; mismatches: numb
   if (!latest) throw new Error('Không có bản sao lưu trên R2');
   const conn = pgConnectionFromUrl(process.env.DATABASE_URL);
   const tempDb = `restore_drill_${Date.now()}`;
-  const dir = await mkdtemp(path.join(tmpdir(), 'flowvis-drill-'));
+  const dir = await mkdtemp(path.join(tmpdir(), 'flowxis-drill-'));
   const admin = new pg.Client({ connectionString: process.env.DATABASE_URL?.split('?')[0] });
   let created = false;
   try {

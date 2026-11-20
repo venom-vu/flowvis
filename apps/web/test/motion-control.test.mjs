@@ -21,7 +21,7 @@ import {
   MOCK_SHARE_INFO_VIDEO_RESPONSE,
   getReasonCodeMessageVi,
   motionPrice,
-} from '@flowvis/contracts';
+} from '@flowxis/contracts';
 import {
   MotionApiClientError,
   createMotionApiClient,
@@ -94,7 +94,7 @@ function fillValid(mc, { start = 0, end = 5 } = {}) {
   });
 }
 
-describe('@flowvis/web — Story 5.8 Motion Control', () => {
+describe('@flowxis/web — Story 5.8 Motion Control', () => {
   let mod;
   before(async () => {
     mod = await loadComposable();
@@ -504,6 +504,8 @@ describe('@flowvis/web — Story 5.8 Motion Control', () => {
         '~/composables/useMotionControl': 'export const useMotionControl = () => globalThis.__fwd.motion;',
         '~/composables/useVeo3': "import { ref } from 'vue'; export const useVeo3 = () => ({ mode: ref('text_to_video'), prompt: ref(''), aspectRatio: ref('16:9'), resolution: ref('720p'), imageKey: ref(null), firstFrameKey: ref(null), lastFrameKey: ref(null), submitErrorVi: ref(null), isSubmitting: ref(false), insufficientNoteVi: ref(null), intakePaused: ref(false), price: ref(500), hasEnoughBalance: ref(true), canSubmit: ref(false), clearState: () => {}, submit: async () => null });",
         '~/components/Veo3Form.vue': 'export default {};',
+  '~/composables/useMuseVideo': `import { ref } from 'vue'; export const useMuseVideo = () => ({ prompt: ref(''), aspectRatio: ref(null), imageKeys: ref([null]), totalBytes: ref(0), pending: ref(false), submitErrorVi: ref(null), isSubmitting: ref(false), insufficientNoteVi: ref(null), intakePaused: ref(false), price: ref(200), hasEnoughBalance: ref(true), canSubmit: ref(false), clearState: () => {}, submit: async () => null });`,
+  '~/components/MuseVideoForm.vue': `export default {};`,
         '~/utils/api-client': `export { ApiErrorCode, INTENSITY_DEFAULT, INTENSITY_LABEL_ZONES, INTENSITY_MAX, INTENSITY_MIN, IntensitySchema, getIntensityLabelVi, resolveApiErrorMessageVi } from ${JSON.stringify(apiClientUrl)};`,
         '~/utils/catalog': `export { calculateFeatureEstimatedCredits, formatNumberVi } from ${JSON.stringify(catalogUrl)};`,
       });
@@ -638,7 +640,7 @@ describe('@flowvis/web — Story 5.8 Motion Control', () => {
           export const useAsyncData = async (_k, fn, opts) => { let v; try { v = await fn(); } catch (e) { return { data: { value: opts.default() }, error: { value: e } }; } return { data: { value: v }, error: { value: null } }; };
           export const useHead = () => {};
           export const useRequestEvent = () => null;
-          export const useRequestURL = () => ({ origin: 'https://flowvis.test' });
+          export const useRequestURL = () => ({ origin: 'https://flowxis.test' });
           export const useRoute = () => ({ params: { token: 'A'.repeat(43) } });
           export const useRuntimeConfig = () => ({ public: { apiBaseUrl: 'http://api.test' } });`,
         '~/composables/useApiClient': 'export const useApiClient = () => ({ client: globalThis.__sp.client });',

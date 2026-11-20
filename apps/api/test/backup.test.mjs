@@ -9,7 +9,7 @@ import { pgConnectionFromUrl } from '../dist/modules/ops/backup-pg.js';
 const SECRET = 'S3cr3tP@ss';
 // DATABASE_URL thật, lấy trước khi beforeEach ghi đè bằng URL giả (dùng cho test tích hợp pg_dump).
 const REAL_DATABASE_URL = process.env.DATABASE_URL;
-const URL_ = `postgresql://u:${SECRET}@db:5432/flowvis?schema=public`;
+const URL_ = `postgresql://u:${SECRET}@db:5432/flowxis?schema=public`;
 
 function makeSettings() {
   const s = { last: null, okAt: null, stale: { alerted: false, watchSince: null } };
@@ -46,7 +46,7 @@ function okRunner(calls, { dumpFail = false, verifyFail = false, empty = false }
     } else if (verifyFail) throw new Error('bad');
   };
 }
-const tmpDirs = () => readdirSync(tmpdir()).filter((n) => n.startsWith('flowvis-backup-'));
+const tmpDirs = () => readdirSync(tmpdir()).filter((n) => n.startsWith('flowxis-backup-'));
 
 describe('Story 6.7: sao lưu PostgreSQL', () => {
   let prevUrl, prevRole, before;
@@ -169,7 +169,7 @@ describe('Story 6.7: sao lưu PostgreSQL', () => {
 
   it('pgConnectionFromUrl bỏ ?schema= và tách mật khẩu', () => {
     const c = pgConnectionFromUrl(URL_);
-    assert.equal(c.database, 'flowvis');
+    assert.equal(c.database, 'flowxis');
     assert.equal(c.env.PGPASSWORD, SECRET);
     assert.equal(c.env.PGHOST, 'db');
   });
@@ -194,7 +194,7 @@ describe('Story 6.7: sao lưu PostgreSQL', () => {
     const dbUrl = REAL_DATABASE_URL;
     if (!dbUrl) return t.skip('Không có DATABASE_URL');
     const conn = pgConnectionFromUrl(dbUrl);
-    const dir = await mkdtemp(join(tmpdir(), 'flowvis-pgit-'));
+    const dir = await mkdtemp(join(tmpdir(), 'flowxis-pgit-'));
     try {
       const file = join(dir, 'db.dump');
       const env = childEnv(conn.env);

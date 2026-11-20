@@ -21,7 +21,7 @@ const repoRoot = path.resolve(apiRoot, '../..');
 const composePath = path.join(repoRoot, 'deploy', 'compose.yml');
 const DB_URL =
   process.env.DATABASE_URL ||
-  'postgresql://motion_user:change_me_local_password@localhost:5432/flowvis?schema=public';
+  'postgresql://motion_user:change_me_local_password@localhost:5432/flowxis?schema=public';
 const REDIS_URL = process.env.REDIS_URL || 'redis://localhost:6379';
 
 function tcp(host, port) {
@@ -102,7 +102,7 @@ describe('Story 2.2: [BE] Tải ảnh lên R2 an toàn', () => {
   async function newUser() {
     const n = users.length;
     const u = await prisma.user.create({
-      data: { googleId: `up-${runId}-${n}`, email: `up-${runId}-${n}@flowvis.vn`, tosVersion: 't' },
+      data: { googleId: `up-${runId}-${n}`, email: `up-${runId}-${n}@flowxis.vn`, tosVersion: 't' },
     });
     users.push(u.id);
     return { id: u.id, token: jwt.sign({ sub: u.id, email: u.email, role: 'user' }) };
@@ -364,5 +364,38 @@ describe('Story 2.2: [BE] Tải ảnh lên R2 an toàn', () => {
     const up = await createUpload(u, await img(800, 800));
     const rs = await Promise.all([confirm(u, up.key), confirm(u, up.key)]);
     assert.deepEqual(rs.map((r) => r.status).sort(), [200, 409]);
+  });
+
+  it('getConfirmedImagesTotalBytes: tổng sizeBytes ảnh hợp lệ, null khi có khóa không hợp lệ', async () => {
+    const u = await newUser();
+    const other = await newUser();
+    const svc = app.get(UploadsService);
+    const confirmedKey = () => `in/${u.id}/${crypto.randomUUID()}`;
+    async function row(userId, { kind = 'image', status = 'confirmed', size = 1000, expired = false } = {}) {
+      const ck = `in/${userId}/${crypto.randomUUID()}`;
+      await pool.query(
+        `INSERT INTO uploads (user_id, key, confirmed_key, kind, status, mime_type, declared_bytes, size_bytes, confirmed_at)
+         VALUES ($1,$2,$3,$4,$5,'image/jpeg',$6,$6, CASE WHEN $7 THEN now() - interval '3650 days' ELSE now() END)`,
+        [userId, `tmp/${userId}/${crypto.randomUUID()}`, status === 'confirmed' ? ck : null, kind, status, size, expired],
+      );
+      return ck;
+    }
+    const a = await row(u.id, { size: 1500 });
+    const b = await row(u.id, { size: 2500 });
+    assert.equal(await svc.getConfirmedImagesTotalBytes(u.id, [a, b]), 4000);
+    // Khóa trùng chỉ tính một lần.
+    assert.equal(await svc.getConfirmedImagesTotalBytes(u.id, [a, b, a]), 4000);
+    // Khóa của user khác.
+    const foreign = await row(other.id, { size: 10 });
+    assert.equal(await svc.getConfirmedImagesTotalBytes(u.id, [a, foreign]), null);
+    // Chưa xác nhận (pending, không có confirmed_key).
+    assert.equal(await svc.getConfirmedImagesTotalBytes(u.id, [a, confirmedKey()]), null);
+    // Đúng khóa nhưng kind video.
+    const vid = await row(u.id, { kind: 'video', size: 10 });
+    assert.equal(await svc.getConfirmedImagesTotalBytes(u.id, [a, vid]), null);
+    // Đã hết hạn lưu giữ.
+    const old = await row(u.id, { size: 10, expired: true });
+    assert.equal(await svc.getConfirmedImagesTotalBytes(u.id, [a, old]), null);
+    assert.equal(await svc.getConfirmedImagesTotalBytes(u.id, []), null);
   });
 });

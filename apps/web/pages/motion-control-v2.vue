@@ -4,7 +4,7 @@ import { useAuthDialog } from '~/composables/useAuthDialog';
 import { useMotionControl } from '~/composables/useMotionControl';
 
 usePageSeo({
-  title: 'Điều Khiển Chuyển Động v2 (Motion Control v2) — flowvis',
+  title: 'Điều Khiển Chuyển Động v2 (Motion Control v2) — flowxis',
   description:
     'Cho nhân vật trong ảnh chuyển động theo video mẫu. Cắt đoạn video theo từng giây và xem giá credit ngay khi kéo thanh trượt.',
 });

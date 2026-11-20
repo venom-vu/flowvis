@@ -11,7 +11,7 @@ const REPORT_EMAIL = 'abuse@smoke.test';
 const PAGES = ['/', '/terms', '/privacy', '/pricing', '/history'];
 
 describe('Story 6.10 - chân trang trên HTML SSR của bản build', {
-  skip: fs.existsSync(entry) ? false : 'Chưa có .output (chạy pnpm --filter @flowvis/web run build)',
+  skip: fs.existsSync(entry) ? false : 'Chưa có .output (chạy pnpm --filter @flowxis/web run build)',
 }, () => {
   for (const page of PAGES) {
     it(`${page}: có 3 liên kết, mailto đúng địa chỉ cấu hình`, async () => {

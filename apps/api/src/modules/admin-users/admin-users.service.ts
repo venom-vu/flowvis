@@ -10,7 +10,7 @@ import {
   type AdminUserStatsResponse,
   type LedgerEntry,
   type ValidationReason,
-} from '@flowvis/contracts';
+} from '@flowxis/contracts';
 import { PrismaService, type PrismaTransactionClient } from '../../infra/prisma.service.js';
 import type { Prisma } from '../../generated/prisma/client.js';
 import { AuditService } from '../audit/audit.service.js';

@@ -3,7 +3,7 @@ import type {
   PricingConfigResponse,
   TierSnapshot,
   TopupPackId,
-} from '@flowvis/contracts';
+} from '@flowxis/contracts';
 
 /** Ngưỡng tổng credit sở hữu (balance + held) để giữ Tier trả phí. */
 export const TIER_FLOOR_CREDITS = 100;
@@ -16,7 +16,6 @@ export const PRICING_CONFIG: PricingConfigResponse = {
   pipelines: {
     faceSwapCredits: 100,
     outfitChangeCredits: 100,
-    personReplaceCredits: 100,
     bodyRetouchCredits: 100,
     motionControlBaseCredits: 150,
     motionControlCreditsPerSecond: 20,
@@ -25,6 +24,7 @@ export const PRICING_CONFIG: PricingConfigResponse = {
     veo3Credits720p: 500,
     veo3Credits1080p: 700,
     veo3Credits4k: 950,
+    museVideoCredits: 200,
     motionControlMinSeconds: 5,
   },
   tiers: [

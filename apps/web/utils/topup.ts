@@ -5,7 +5,7 @@ import {
   TOPUP_STATUS_LABELS_VI,
   getTopupStatusLabelVi,
   type TopupStatus,
-} from "@flowvis/contracts";
+} from "@flowxis/contracts";
 
 export { TOPUP_STATUS_LABELS_VI, getTopupStatusLabelVi, type TopupStatus };
 

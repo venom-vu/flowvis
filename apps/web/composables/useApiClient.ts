@@ -7,7 +7,7 @@ import {
 import { createMotionApiClient, type MotionApiClient } from '~/utils/api-client';
 
 export { refreshShared };
-export const ME_KEY = 'flowvis-me-profile';
+export const ME_KEY = 'flowxis-me-profile';
 
 const refreshShared = createRefreshCoordinator();
 
@@ -19,11 +19,11 @@ export function useApiClient(): {
   const runtimeConfig = useRuntimeConfig();
   const nuxtApp = useNuxtApp();
   const accessToken = useState<string | null>(
-    'flowvis-access-token',
+    'flowxis-access-token',
     () => null,
   );
   const sessionChecked = useState<boolean>(
-    'flowvis-session-checked',
+    'flowxis-session-checked',
     () => false,
   );
 

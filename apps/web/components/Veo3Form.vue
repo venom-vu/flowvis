@@ -8,7 +8,7 @@ import {
   type Veo3AspectRatio,
   type Veo3Mode,
   type Veo3Resolution,
-} from '@flowvis/contracts';
+} from '@flowxis/contracts';
 import ImageUploader from '~/components/ImageUploader.vue';
 
 /** Các ô nhập của Veo 3; đổi theo chế độ (text-to-video không ảnh, image-to-video 1 ảnh, frames-to-video ảnh đầu + ảnh cuối tùy chọn). */

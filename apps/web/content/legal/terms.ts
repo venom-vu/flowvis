@@ -25,13 +25,13 @@ export const terms: LegalDocument = {
   status: 'final',
   title: 'Điều khoản dịch vụ',
   subtitle:
-    'Những điều bạn cần biết khi sử dụng flowvis: độ tuổi, quyền hình ảnh, credit, thanh toán và hoàn tiền.',
+    'Những điều bạn cần biết khi sử dụng flowxis: độ tuổi, quyền hình ảnh, credit, thanh toán và hoàn tiền.',
   sections: [
     {
       id: 'chap-nhan-dieu-khoan',
       heading: '1. Chấp nhận Điều khoản',
       paragraphs: [
-        'Khi đăng nhập, tải tệp lên, dùng công cụ AI hoặc nạp credit, bạn đồng ý với Điều khoản này và Chính sách quyền riêng tư của flowvis.',
+        'Khi đăng nhập, tải tệp lên, dùng công cụ AI hoặc nạp credit, bạn đồng ý với Điều khoản này và Chính sách quyền riêng tư của flowxis.',
         'Khi Điều khoản có thay đổi quan trọng, bạn có thể được yêu cầu xác nhận lại trước khi tiếp tục sử dụng.',
       ],
     },
@@ -51,7 +51,7 @@ export const terms: LegalDocument = {
       id: 'mo-ta-dich-vu',
       heading: '3. Dịch vụ cung cấp',
       paragraphs: [
-        'flowvis cung cấp các công cụ xử lý ảnh và video bằng AI:',
+        'flowxis cung cấp các công cụ xử lý ảnh và video bằng AI:',
       ],
       bullets: [
         'Ảnh: Hoán đổi khuôn mặt (Face Swap), Đổi trang phục và Nâng ngực AI (Body Retouch).',
@@ -69,14 +69,14 @@ export const terms: LegalDocument = {
       bullets: [
         'Mọi người xuất hiện trong ảnh hoặc video phải đủ 18 tuổi trở lên.',
         'Bạn đã được người trong ảnh hoặc video đồng ý rõ ràng trước khi tải lên.',
-        'Bạn cho phép flowvis xử lý tệp tạm thời chỉ để thực hiện yêu cầu của bạn.',
+        'Bạn cho phép flowxis xử lý tệp tạm thời chỉ để thực hiện yêu cầu của bạn.',
       ],
     },
     {
       id: 'noi-dung-bi-cam',
       heading: '5. Nội dung bị cấm',
       paragraphs: [
-        'Nghiêm cấm dùng flowvis cho các nội dung sau:',
+        'Nghiêm cấm dùng flowxis cho các nội dung sau:',
       ],
       bullets: [
         'Bất kỳ nội dung nào liên quan đến người dưới 18 tuổi.',
@@ -122,14 +122,14 @@ export const terms: LegalDocument = {
         'Mã QR có hiệu lực 15 phút và mỗi tài khoản chỉ được có tối đa 03 đơn nạp đang chờ xử lý cùng lúc. Vui lòng chuyển đúng số tiền và đúng nội dung chuyển khoản hiển thị.',
         'Đơn hợp lệ thường được duyệt trong vòng 15 phút trong khung giờ 08:00 – 23:00 (giờ Việt Nam); đơn ngoài khung giờ được duyệt từ 08:00 sáng hôm sau.',
         'Chuyển sai nội dung, sai số tiền hoặc quá hạn sẽ được xem xét thủ công. Hãy liên hệ hỗ trợ kèm biên lai.',
-        'Sau khi credit đã được cộng, tiền đã thanh toán không được hoàn lại, trừ khi: (i) lỗi từ phía flowvis khiến dịch vụ không dùng được hoặc cộng thiếu credit; (ii) bạn chuyển nhầm, chuyển thừa hoặc chuyển trùng và được xác minh qua sao kê.',
+        'Sau khi credit đã được cộng, tiền đã thanh toán không được hoàn lại, trừ khi: (i) lỗi từ phía flowxis khiến dịch vụ không dùng được hoặc cộng thiếu credit; (ii) bạn chuyển nhầm, chuyển thừa hoặc chuyển trùng và được xác minh qua sao kê.',
       ],
     },
     {
       id: 'kiem-duyet-va-khoa-tai-khoan',
       heading: '9. Xử lý vi phạm',
       paragraphs: [
-        'Khi phát hiện vi phạm, gian lận hoặc nhận được báo cáo hợp lệ, flowvis có quyền áp dụng ngay các biện pháp sau mà không cần báo trước:',
+        'Khi phát hiện vi phạm, gian lận hoặc nhận được báo cáo hợp lệ, flowxis có quyền áp dụng ngay các biện pháp sau mà không cần báo trước:',
       ],
       bullets: [
         'Gỡ nội dung vi phạm và thu hồi các liên kết chia sẻ liên quan;',
@@ -144,8 +144,8 @@ export const terms: LegalDocument = {
       heading: '10. Miễn trừ và giới hạn trách nhiệm',
       paragraphs: [
         'Dịch vụ được cung cấp “nguyên trạng”. Chúng tôi không bảo đảm mọi kết quả AI đều đúng kỳ vọng của bạn hoặc dịch vụ không bao giờ gián đoạn. Khi bảo trì hoặc quá tải, tác vụ không hoàn thành sẽ được hoàn 100% credit.',
-        'Trong phạm vi pháp luật cho phép, flowvis không chịu trách nhiệm về thiệt hại phát sinh từ nội dung bạn tải lên mà không có quyền hợp pháp, việc bạn sử dụng kết quả trái pháp luật, hoặc sự cố từ bên thứ ba như ngân hàng và dịch vụ đăng nhập.',
-        'Mức trách nhiệm tối đa của flowvis không vượt quá tổng số tiền bạn đã nạp trong 03 tháng gần nhất trước thời điểm phát sinh sự việc.',
+        'Trong phạm vi pháp luật cho phép, flowxis không chịu trách nhiệm về thiệt hại phát sinh từ nội dung bạn tải lên mà không có quyền hợp pháp, việc bạn sử dụng kết quả trái pháp luật, hoặc sự cố từ bên thứ ba như ngân hàng và dịch vụ đăng nhập.',
+        'Mức trách nhiệm tối đa của flowxis không vượt quá tổng số tiền bạn đã nạp trong 03 tháng gần nhất trước thời điểm phát sinh sự việc.',
       ],
     },
     {
@@ -153,7 +153,7 @@ export const terms: LegalDocument = {
       heading: '11. Luật áp dụng và thay đổi Điều khoản',
       paragraphs: [
         'Điều khoản này theo pháp luật Việt Nam. Tranh chấp được ưu tiên giải quyết bằng thương lượng; nếu không thành, sẽ do Tòa án có thẩm quyền tại Việt Nam giải quyết.',
-        'flowvis có thể cập nhật Điều khoản; phiên bản mới được đăng công khai kèm ngày hiệu lực.',
+        'flowxis có thể cập nhật Điều khoản; phiên bản mới được đăng công khai kèm ngày hiệu lực.',
       ],
     },
   ],

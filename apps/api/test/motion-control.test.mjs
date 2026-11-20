@@ -13,7 +13,7 @@ import { PrismaPg } from '@prisma/adapter-pg';
 import { PrismaClient } from '../dist/generated/prisma/client.js';
 import { bootstrapApi } from '../dist/main.js';
 import { PipelinesModule, PIPELINE_CONFIGS } from '../dist/modules/pipelines/index.js';
-import { ApiErrorCode, MotionCreateResponseSchema, ValidationDetailsSchema, motionPrice } from '@flowvis/contracts';
+import { ApiErrorCode, MotionCreateResponseSchema, ValidationDetailsSchema, motionPrice } from '@flowxis/contracts';
 import { WalletService } from '../dist/modules/wallet/index.js';
 import { TaskWorkerService, TasksService } from '../dist/modules/tasks/index.js';
 
@@ -23,7 +23,7 @@ const repoRoot = path.resolve(apiRoot, '../..');
 const composePath = path.join(repoRoot, 'deploy', 'compose.yml');
 const DB_URL =
   process.env.DATABASE_URL ||
-  'postgresql://motion_user:change_me_local_password@localhost:5432/flowvis?schema=public';
+  'postgresql://motion_user:change_me_local_password@localhost:5432/flowxis?schema=public';
 const REDIS_URL = process.env.REDIS_URL || 'redis://localhost:6379';
 
 function tcp(host, port) {
@@ -72,7 +72,7 @@ describe('Story 5.3: [BE] Tạo Task Motion Control', () => {
 
   async function newUser({ balance = 5000, locked = false, tierPack = null } = {}) {
     const n = users.length;
-    const u = await prisma.user.create({ data: { googleId: `mc-${runId}-${n}`, email: `mc-${runId}-${n}@flowvis.vn`, tosVersion: 'tos-v7', lockedAt: locked ? new Date() : null, tierPack } });
+    const u = await prisma.user.create({ data: { googleId: `mc-${runId}-${n}`, email: `mc-${runId}-${n}@flowxis.vn`, tosVersion: 'tos-v7', lockedAt: locked ? new Date() : null, tierPack } });
     users.push(u.id);
     if (balance > 0) await prisma.$transaction((t) => new WalletService().grant(t, u.id, balance));
     return { id: u.id, token: jwt.sign({ sub: u.id, email: u.email, role: 'user' }) };
@@ -134,7 +134,7 @@ describe('Story 5.3: [BE] Tạo Task Motion Control', () => {
     const v = await vid(u, 21);
     const c = await img(u);
     for (let s = 5; s <= 20; s++) {
-      await pool.query(`UPDATE tasks SET status='failed', reason_code='GPU_ERROR', finished_at=now() WHERE user_id=$1 AND status IN ('queued','running')`, [u.id]);
+      await pool.query(`UPDATE tasks SET status='cancelled', reason_code='USER_CANCEL', finished_at=now() WHERE user_id=$1 AND status IN ('queued','running')`, [u.id]);
       queueCalls.length = 0;
       const res = await post(u, { characterKey: c, videoKey: v, trimStart: 1, trimEnd: 1 + s });
       assert.equal(res.status, 201, String(s));
@@ -150,7 +150,7 @@ describe('Story 5.3: [BE] Tạo Task Motion Control', () => {
       assert.equal(Number(holds[0].amount), -motionPrice(s));
       assert.equal(queueCalls[0].opts.jobId, t.id);
     }
-    await pool.query(`UPDATE tasks SET status='failed', reason_code='GPU_ERROR', finished_at=now() WHERE user_id=$1 AND status IN ('queued','running')`, [u.id]);
+    await pool.query(`UPDATE tasks SET status='cancelled', reason_code='USER_CANCEL', finished_at=now() WHERE user_id=$1 AND status IN ('queued','running')`, [u.id]);
     const res = await post(u, { characterKey: c, videoKey: v, trimStart: 0, trimEnd: 21 });
     await expectReason(res, 'TRIM_EXCEEDS_CAP', 20);
     const ok20 = await post(u, { characterKey: c, videoKey: v, trimStart: 0, trimEnd: 20 });
@@ -301,7 +301,7 @@ describe('Story 5.3: [BE] Tạo Task Motion Control', () => {
       return (await res.json()).id;
     }
     async function clearGate() {
-      await pool.query(`UPDATE tasks SET status='failed', reason_code='GPU_ERROR', finished_at=now(), rh_orphan_until=NULL WHERE user_id = ANY($1::uuid[]) AND status IN ('queued','running')`, [users]);
+      await pool.query(`UPDATE tasks SET status='cancelled', reason_code='USER_CANCEL', finished_at=now(), rh_orphan_until=NULL WHERE user_id = ANY($1::uuid[]) AND status IN ('queued','running')`, [users]);
       const foreign = await tasksSvc.countGateOccupied();
       process.env.RH_MAX_CONCURRENT = String(foreign + 2);
     }
@@ -360,10 +360,6 @@ describe('Story 5.3: [BE] Tạo Task Motion Control', () => {
       assert.deepEqual(calls.nodes[1], [
         { nodeId: '30', fieldName: 'image', fieldValue: 'f1' },
         { nodeId: '33', fieldName: 'video', fieldValue: 'f2' },
-        { nodeId: '134', fieldName: 'value', fieldValue: '576' },
-        { nodeId: '135', fieldName: 'value', fieldValue: '1024' },
-        { nodeId: '277', fieldName: 'text', fieldValue: '美女跳舞' },
-        { nodeId: '278', fieldName: 'value', fieldValue: '24' },
       ]);
       assert.equal(ingestCalls.length, 1);
       assert.equal(r.status, 'failed');
@@ -427,6 +423,16 @@ describe('Story 5.3: [BE] Tạo Task Motion Control', () => {
   it('migration: CHECK pipeline nhận motion_control', async () => {
     const chk = await pool.query(`SELECT pg_get_constraintdef(oid) def FROM pg_constraint WHERE conname='tasks_pipeline_valid_chk'`);
     assert.match(chk.rows[0].def, /motion_control/);
+  });
+
+  it('migration: CHECK pipeline nhận muse_video', async () => {
+    const chk = await pool.query(`SELECT pg_get_constraintdef(oid) def FROM pg_constraint WHERE conname='tasks_pipeline_valid_chk'`);
+    assert.match(chk.rows[0].def, /muse_video/);
+  });
+
+  it('migration: CHECK pipeline không còn các pipeline đã gỡ', async () => {
+    const chk = await pool.query(`SELECT pg_get_constraintdef(oid) def FROM pg_constraint WHERE conname='tasks_pipeline_valid_chk'`);
+    assert.doesNotMatch(chk.rows[0].def, /person_replace|motion_background|multi_angle_product/);
   });
 
   it('thiếu RUNNINGHUB_WORKFLOW_MOTION => khởi động thất bại, nêu tên biến', async () => {

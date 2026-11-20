@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import { computed, onBeforeUnmount, onMounted, ref, watch } from 'vue';
-import type { Task, TaskResultResponse } from '@flowvis/contracts';
+import type { Task, TaskResultResponse } from '@flowxis/contracts';
 import { useApiClient } from '~/composables/useApiClient';
 import { badgeClass, getTaskStatusBadge } from '~/utils/status-badge';
 import {
@@ -36,7 +36,7 @@ const formattedTime = computed(() => formatTaskTimestampVi(props.task.createdAt)
 const videoInfo = ref<Pick<TaskResultResponse, 'posterUrl' | 'durationSeconds'> | null>(null);
 const imageUrl = ref<string | null>(null);
 const posterFailed = ref(false);
-const isVideoTask = computed(() => props.task.pipeline === 'motion_control' || props.task.pipeline === 'motion_control_v2' || props.task.pipeline === 'motion_background' || props.task.pipeline === 'veo3');
+const isVideoTask = computed(() => props.task.pipeline === 'motion_control' || props.task.pipeline === 'motion_control_v2' || props.task.pipeline === 'veo3' || props.task.pipeline === 'muse_video');
 const showThumb = computed(() => isSucceeded.value && !isExpired.value);
 const thumbUrl = computed(() =>
   posterFailed.value ? null : (videoInfo.value?.posterUrl ?? imageUrl.value),

@@ -13,7 +13,7 @@ import {
 } from "~/utils/tiktok-downloader";
 
 usePageSeo({
-  title: "Tải Video TikTok Không Logo — flowvis",
+  title: "Tải Video TikTok Không Logo — flowxis",
   description:
     "Dán liên kết video TikTok để tải về máy bản MP4 không watermark, chất lượng HD. Miễn phí, xử lý ngay trên trình duyệt, không lưu video của bạn.",
 });

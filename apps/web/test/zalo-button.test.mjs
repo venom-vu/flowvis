@@ -6,7 +6,7 @@ import { fileURLToPath, pathToFileURL } from 'node:url';
 import { compileTemplate, parse } from '@vue/compiler-sfc';
 import { createSSRApp } from 'vue';
 import { renderToString } from '@vue/server-renderer';
-import { MOCK_PRICING_CONFIG_RESPONSE } from '@flowvis/contracts';
+import { MOCK_PRICING_CONFIG_RESPONSE } from '@flowxis/contracts';
 import { resolveZaloJoinUrl } from '../utils/system-status.ts';
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
@@ -16,10 +16,10 @@ const workerEntry = path.join(webRoot, '.output/public/_worker.js/index.js');
 describe('Nút nổi tham gia Zalo ở trang người dùng', () => {
   it('resolveZaloJoinUrl chỉ chấp nhận http(s) hợp lệ và cắt khoảng trắng', () => {
     assert.equal(
-      resolveZaloJoinUrl('  https://zalo.me/g/flowvis123  '),
-      'https://zalo.me/g/flowvis123',
+      resolveZaloJoinUrl('  https://zalo.me/g/flowxis123  '),
+      'https://zalo.me/g/flowxis123',
     );
-    assert.equal(resolveZaloJoinUrl('http://zalo.me/flowvis'), 'http://zalo.me/flowvis');
+    assert.equal(resolveZaloJoinUrl('http://zalo.me/flowxis'), 'http://zalo.me/flowxis');
 
     for (const invalid of [
       undefined,
@@ -27,7 +27,7 @@ describe('Nút nổi tham gia Zalo ở trang người dùng', () => {
       123,
       '',
       '   ',
-      'zalo.me/g/flowvis',
+      'zalo.me/g/flowxis',
       'javascript:alert(1)',
       'data:text/html,<script>alert(1)</script>',
     ]) {
@@ -131,7 +131,7 @@ describe('Nút nổi tham gia Zalo ở trang người dùng', () => {
 });
 
 describe('SSR worker bundle - nút Zalo theo NUXT_PUBLIC_ZALO_URL và phạm vi layout', {
-  skip: fs.existsSync(workerEntry) ? false : 'Chưa có .output (chạy pnpm --filter @flowvis/web run build)',
+  skip: fs.existsSync(workerEntry) ? false : 'Chưa có .output (chạy pnpm --filter @flowxis/web run build)',
 }, () => {
   const makeEnv = (zaloUrl) => ({
     NUXT_PUBLIC_ZALO_URL: zaloUrl,
@@ -159,7 +159,7 @@ describe('SSR worker bundle - nút Zalo theo NUXT_PUBLIC_ZALO_URL và phạm vi 
     try {
       const { default: worker } = await import(pathToFileURL(workerEntry).href);
       const res = await worker.fetch(
-        new Request(`https://flowvis.test${routePath}`),
+        new Request(`https://flowxis.test${routePath}`),
         makeEnv(zaloUrl),
         ctx,
       );
@@ -172,11 +172,11 @@ describe('SSR worker bundle - nút Zalo theo NUXT_PUBLIC_ZALO_URL và phạm vi 
 
   it('hiển thị nút Zalo ở trang người dùng khi có NUXT_PUBLIC_ZALO_URL hợp lệ', async () => {
     for (const page of ['/', '/pricing', '/history']) {
-      const html = await renderRoute(page, 'https://zalo.me/g/flowvis-community');
+      const html = await renderRoute(page, 'https://zalo.me/g/flowxis-community');
       assert.match(html, /data-testid="zalo-join-button"/, `${page} thiếu nút Zalo`);
       assert.match(
         html,
-        /href="https:\/\/zalo\.me\/g\/flowvis-community"/,
+        /href="https:\/\/zalo\.me\/g\/flowxis-community"/,
         `${page} sai href Zalo`,
       );
       assert.match(html, /Nhóm hỗ trợ/, `${page} thiếu nhãn Nhóm hỗ trợ`);
@@ -191,7 +191,7 @@ describe('SSR worker bundle - nút Zalo theo NUXT_PUBLIC_ZALO_URL và phạm vi 
   });
 
   it('không hiển thị nút Zalo ở trang quản trị /admin/topups', async () => {
-    const html = await renderRoute('/admin/topups', 'https://zalo.me/g/flowvis-community');
+    const html = await renderRoute('/admin/topups', 'https://zalo.me/g/flowxis-community');
     assert.doesNotMatch(html, /data-testid="zalo-join-button"/);
   });
 });

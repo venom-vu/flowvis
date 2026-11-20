@@ -48,8 +48,6 @@ import {
   FaceSwapCreateResponseSchema,
   OutfitChangeCreateRequestSchema,
   OutfitChangeCreateResponseSchema,
-  PersonReplaceCreateRequestSchema,
-  PersonReplaceCreateResponseSchema,
   INTENSITY_DEFAULT,
   INTENSITY_LABEL_ZONES,
   INTENSITY_MAX,
@@ -65,8 +63,13 @@ import {
   VEO3_PROMPT_MAX_LENGTH,
   VEO3_PROMPT_MIN_LENGTH,
   veo3Price,
-  MotionBackgroundCreateRequestSchema,
-  MotionBackgroundCreateResponseSchema,
+  MuseVideoCreateRequestSchema,
+  MuseVideoCreateResponseSchema,
+  MUSE_VIDEO_PROMPT_MAX_LENGTH,
+  MUSE_VIDEO_PROMPT_MIN_LENGTH,
+  MUSE_VIDEO_MAX_IMAGES,
+  MUSE_VIDEO_MAX_TOTAL_BYTES,
+  MUSE_VIDEO_PRICE,
   PricingConfigResponseSchema,
   ShareInfoResponseSchema,
   TaskIdParamsSchema,
@@ -136,8 +139,6 @@ import {
   type FaceSwapCreateResponse,
   type OutfitChangeCreateRequest,
   type OutfitChangeCreateResponse,
-  type PersonReplaceCreateRequest,
-  type PersonReplaceCreateResponse,
   type Intensity,
   type MeResponse,
   type MotionCreateRequest,
@@ -145,9 +146,9 @@ import {
   type MotionV2CreateRequest,
   type Veo3CreateRequest,
   type Veo3CreateResponse,
+  type MuseVideoCreateRequest,
+  type MuseVideoCreateResponse,
   type MotionV2CreateResponse,
-  type MotionBackgroundCreateRequest,
-  type MotionBackgroundCreateResponse,
   type PricingConfigResponse,
   type ReasonCode,
   type ShareInfoResponse,
@@ -174,7 +175,7 @@ import {
   type UploadCreateResponse,
   type WalletLedgerQuery,
   type WalletLedgerResponse,
-} from '@flowvis/contracts';
+} from '@flowxis/contracts';
 
 export {
   API_ERROR_MESSAGES_VI,
@@ -200,8 +201,13 @@ export {
   VEO3_PROMPT_MAX_LENGTH,
   VEO3_PROMPT_MIN_LENGTH,
   veo3Price,
-  MotionBackgroundCreateRequestSchema,
-  MotionBackgroundCreateResponseSchema,
+  MuseVideoCreateRequestSchema,
+  MuseVideoCreateResponseSchema,
+  MUSE_VIDEO_PROMPT_MAX_LENGTH,
+  MUSE_VIDEO_PROMPT_MIN_LENGTH,
+  MUSE_VIDEO_MAX_IMAGES,
+  MUSE_VIDEO_MAX_TOTAL_BYTES,
+  MUSE_VIDEO_PRICE,
   ShareInfoResponseSchema,
   type AdminAdjustRequest,
   type AdminAdjustResponse,
@@ -235,6 +241,8 @@ export {
   type MotionV2CreateRequest,
   type Veo3CreateRequest,
   type Veo3CreateResponse,
+  type MuseVideoCreateRequest,
+  type MuseVideoCreateResponse,
   type MotionV2CreateResponse,
   type ShareInfoResponse,
   type BodyRetouchCreateRequest,
@@ -243,8 +251,6 @@ export {
   type FaceSwapCreateResponse,
   type OutfitChangeCreateRequest,
   type OutfitChangeCreateResponse,
-  type PersonReplaceCreateRequest,
-  type PersonReplaceCreateResponse,
   type Intensity,
   type ReasonCode,
   type Task,
@@ -308,7 +314,7 @@ export class MotionApiClientError extends Error {
 
 /**
  * Chuẩn hóa mọi đối tượng lỗi API hoặc mã lỗi sang thông báo tiếng Việt thân thiện
- * thông qua bảng ánh xạ duy nhất `API_ERROR_MESSAGES_VI` của `@flowvis/contracts`.
+ * thông qua bảng ánh xạ duy nhất `API_ERROR_MESSAGES_VI` của `@flowxis/contracts`.
  */
 export function resolveApiErrorMessageVi(errorOrCode: unknown): string {
   if (errorOrCode instanceof MotionApiClientError) {
@@ -758,23 +764,6 @@ export function createMotionApiClient(options: MotionApiClientOptions = {}) {
       );
     },
 
-    async createPersonReplaceTask(
-      rawRequest: PersonReplaceCreateRequest,
-      options?: { signal?: AbortSignal },
-    ): Promise<PersonReplaceCreateResponse> {
-      const data = PersonReplaceCreateRequestSchema.parse(rawRequest);
-      return requestLive(
-        '/tasks/person-replace',
-        {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify(data),
-          signal: options?.signal,
-        },
-        (payload) => PersonReplaceCreateResponseSchema.parse(payload),
-      );
-    },
-
     async createBodyRetouchTask(
       rawRequest: BodyRetouchCreateRequest,
       options?: { signal?: AbortSignal },
@@ -843,20 +832,20 @@ export function createMotionApiClient(options: MotionApiClientOptions = {}) {
       );
     },
 
-    async createMotionBackgroundTask(
-      rawRequest: MotionBackgroundCreateRequest,
+    async createMuseVideoTask(
+      rawRequest: MuseVideoCreateRequest,
       options?: { signal?: AbortSignal },
-    ): Promise<MotionBackgroundCreateResponse> {
-      const data = MotionBackgroundCreateRequestSchema.parse(rawRequest);
+    ): Promise<MuseVideoCreateResponse> {
+      const data = MuseVideoCreateRequestSchema.parse(rawRequest);
       return requestLive(
-        '/tasks/motion-background',
+        '/tasks/muse-video',
         {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify(data),
           signal: options?.signal,
         },
-        (payload) => MotionBackgroundCreateResponseSchema.parse(payload),
+        (payload) => MuseVideoCreateResponseSchema.parse(payload),
       );
     },
 

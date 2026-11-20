@@ -6,7 +6,7 @@ import { useCookie } from '#imports';
  * thay vì nháy UI khách trong lúc đổi refresh token lấy access token.
  */
 export function useSessionHint() {
-  const hint = useCookie<boolean>('flowvis-session-hint', {
+  const hint = useCookie<boolean>('flowxis-session-hint', {
     maxAge: 60 * 60 * 24 * 30,
     sameSite: 'lax',
     path: '/',

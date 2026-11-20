@@ -3,14 +3,14 @@ import { usePageSeo } from '~/composables/usePageSeo';
 import { useSystemStatus } from '~/composables/useSystemStatus';
 import { isPausedError } from '~/utils/system-status';
 import { computed, ref } from 'vue';
-import type { Task } from '@flowvis/contracts';
+import type { Task } from '@flowxis/contracts';
 import { usePricingConfig } from '~/composables/usePricingConfig';
 import { useApiClient } from '~/composables/useApiClient';
 import { useAuthDialog } from '~/composables/useAuthDialog';
 import { resolveApiErrorMessageVi } from '~/utils/api-client';
 
 usePageSeo({
-  title: 'Hoán Đổi Khuôn Mặt (Face Swap) — flowvis',
+  title: 'Hoán Đổi Khuôn Mặt (Face Swap) — flowxis',
   description:
     'Ghép khuôn mặt từ ảnh nguồn vào bất kỳ ảnh đích nào chỉ bằng một lần bấm. Giữ nguyên ánh sáng, góc nghiêng và độ phân giải gốc.',
 });

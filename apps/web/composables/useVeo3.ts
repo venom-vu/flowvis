@@ -6,7 +6,7 @@ import {
   type Veo3CreateRequest,
   type Veo3Mode,
   type Veo3Resolution,
-} from '@flowvis/contracts';
+} from '@flowxis/contracts';
 import { useApiClient } from '~/composables/useApiClient';
 import { usePricingConfig } from '~/composables/usePricingConfig';
 import { useSystemStatus } from '~/composables/useSystemStatus';

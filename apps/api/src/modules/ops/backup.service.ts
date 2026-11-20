@@ -71,7 +71,7 @@ export class BackupService {
     this.running = true;
     let dir: string | undefined;
     try {
-      dir = await mkdtemp(path.join(tmpdir(), 'flowvis-backup-'));
+      dir = await mkdtemp(path.join(tmpdir(), 'flowxis-backup-'));
       return await this.run(dir, now);
     } catch (err) {
       const step: BackupStep = err instanceof StepError ? err.step : 'dump';

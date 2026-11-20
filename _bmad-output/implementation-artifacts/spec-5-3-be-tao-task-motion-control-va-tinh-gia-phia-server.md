@@ -106,5 +106,5 @@ context:
 ## Verification
 
 **Commands:**
-- `pnpm --filter @flowvis/api test` -- expected: pass (cần Postgres/Redis local; đặt `DATABASE_URL` khớp container)
+- `pnpm --filter @flowxis/api test` -- expected: pass (cần Postgres/Redis local; đặt `DATABASE_URL` khớp container)
 - `pnpm run lint && pnpm run typecheck && pnpm run build` -- expected: pass

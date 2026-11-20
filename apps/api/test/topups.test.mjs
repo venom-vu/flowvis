@@ -6,7 +6,7 @@ import net from 'node:net';
 import path from 'node:path';
 import { after, before, describe, it } from 'node:test';
 import { fileURLToPath } from 'node:url';
-import { ApiErrorCode, TopupListResponseSchema, TopupSchema } from '@flowvis/contracts';
+import { ApiErrorCode, TopupListResponseSchema, TopupSchema } from '@flowxis/contracts';
 import { JwtService } from '@nestjs/jwt';
 import pg from 'pg';
 import { Redis } from 'ioredis';
@@ -25,7 +25,7 @@ const repoRoot = path.resolve(apiRoot, '../..');
 const composePath = path.join(repoRoot, 'deploy', 'compose.yml');
 const DB_URL =
   process.env.DATABASE_URL ||
-  'postgresql://motion_user:change_me_local_password@localhost:5432/flowvis?schema=public';
+  'postgresql://motion_user:change_me_local_password@localhost:5432/flowxis?schema=public';
 const REDIS_URL = process.env.REDIS_URL || 'redis://localhost:6379';
 
 function tcp(host, port) {
@@ -137,7 +137,7 @@ describe('Story 3.2: [BE] Tạo đơn nạp và mã VietQR', () => {
     const n = users.length;
     const u = await prisma.user.create({
       data: {
-        googleId: `tp-${runId}-${n}`, email: `tp-${runId}-${n}@flowvis.vn`,
+        googleId: `tp-${runId}-${n}`, email: `tp-${runId}-${n}@flowxis.vn`,
         tosVersion: 'tos-v7', lockedAt: locked ? new Date() : null,
       },
     });
@@ -160,7 +160,7 @@ describe('Story 3.2: [BE] Tạo đơn nạp và mã VietQR', () => {
     process.env.FRONTEND_URL = 'http://localhost:3000';
     process.env.TOPUP_BANK_BIN = '970422';
     process.env.TOPUP_BANK_ACCOUNT_NO = '0123456789';
-    process.env.TOPUP_BANK_ACCOUNT_NAME = 'CONG TY FLOWVIS';
+    process.env.TOPUP_BANK_ACCOUNT_NAME = 'CONG TY FLOWXIS';
     process.env.TOPUP_THROTTLE_LIMIT = '1000';
     await ensureInfra();
     // Khối rate-limit của lần chạy trước có thể còn khóa (cùng IP, TTL 60s).
@@ -371,7 +371,7 @@ describe('Story 3.2: rate limit POST /topups', () => {
     const baseUrl = `http://127.0.0.1:${app.getHttpServer().address().port}`;
     const jwt = app.get(JwtService);
     const u = await prisma.user.create({
-      data: { googleId: `tpr-${crypto.randomBytes(4).toString('hex')}`, email: `tpr-${crypto.randomBytes(4).toString('hex')}@flowvis.vn`, tosVersion: 'tos-v7' },
+      data: { googleId: `tpr-${crypto.randomBytes(4).toString('hex')}`, email: `tpr-${crypto.randomBytes(4).toString('hex')}@flowxis.vn`, tosVersion: 'tos-v7' },
     });
     try {
       const token = jwt.sign({ sub: u.id, email: u.email, role: 'user' });
@@ -421,7 +421,7 @@ describe('Story 3.2: rate limit POST /topups theo người dùng', () => {
     const jwt = app.get(JwtService);
     const mk = async () => {
       const tag = crypto.randomBytes(4).toString('hex');
-      const u = await prisma.user.create({ data: { googleId: `tpu-${tag}`, email: `tpu-${tag}@flowvis.vn`, tosVersion: 'tos-v7' } });
+      const u = await prisma.user.create({ data: { googleId: `tpu-${tag}`, email: `tpu-${tag}@flowxis.vn`, tosVersion: 'tos-v7' } });
       return { u, token: jwt.sign({ sub: u.id, email: u.email, role: 'user' }) };
     };
     const a = await mk();
@@ -474,7 +474,7 @@ describe('Story 3.2: bộ đếm tạo đơn và xác nhận chuyển khoản t�
     const baseUrl = `http://127.0.0.1:${app.getHttpServer().address().port}`;
     const jwt = app.get(JwtService);
     const tag = crypto.randomBytes(4).toString('hex');
-    const u = await prisma.user.create({ data: { googleId: `tpc-${tag}`, email: `tpc-${tag}@flowvis.vn`, tosVersion: 'tos-v7' } });
+    const u = await prisma.user.create({ data: { googleId: `tpc-${tag}`, email: `tpc-${tag}@flowxis.vn`, tosVersion: 'tos-v7' } });
     const token = jwt.sign({ sub: u.id, email: u.email, role: 'user' });
     const headers = { Authorization: `Bearer ${token}`, 'Content-Type': 'application/json' };
     try {
@@ -512,7 +512,7 @@ describe('Story 3.3: [BE] Xác nhận chuyển khoản, hạn QR và hạn duy�
     const n = users.length;
     const r = await pool.query(
       `INSERT INTO users (id,google_id,email,tos_version,updated_at) VALUES (gen_random_uuid(),$1,$2,'tos-v7',now()) RETURNING id,email`,
-      [`tc-${runId}-${n}`, `tc-${runId}-${n}@flowvis.vn`],
+      [`tc-${runId}-${n}`, `tc-${runId}-${n}@flowxis.vn`],
     );
     users.push(r.rows[0].id);
     return { id: r.rows[0].id, token: jwt.sign({ sub: r.rows[0].id, email: r.rows[0].email, role: 'user' }) };
@@ -540,7 +540,7 @@ describe('Story 3.3: [BE] Xác nhận chuyển khoản, hạn QR và hạn duy�
     process.env.FRONTEND_URL = 'http://localhost:3000';
     process.env.TOPUP_BANK_BIN = '970422';
     process.env.TOPUP_BANK_ACCOUNT_NO = '0123456789';
-    process.env.TOPUP_BANK_ACCOUNT_NAME = 'CONG TY FLOWVIS';
+    process.env.TOPUP_BANK_ACCOUNT_NAME = 'CONG TY FLOWXIS';
     process.env.TOPUP_THROTTLE_LIMIT = '1000';
     await ensureInfra();
     const rd0 = new Redis(REDIS_URL);
@@ -755,7 +755,7 @@ describe('Story 3.4: [BE] Thông báo Discord cho Admin', () => {
     const n = users.length;
     const r = await pool.query(
       `INSERT INTO users (id,google_id,email,tos_version,updated_at) VALUES (gen_random_uuid(),$1,$2,'tos-v7',now()) RETURNING id,email`,
-      [`td-${runId}-${n}`, `td-${runId}-${n}@flowvis.vn`],
+      [`td-${runId}-${n}`, `td-${runId}-${n}@flowxis.vn`],
     );
     users.push(r.rows[0].id);
     return { id: r.rows[0].id, email: r.rows[0].email, token: jwt.sign({ sub: r.rows[0].id, email: r.rows[0].email, role: 'user' }) };
@@ -803,7 +803,7 @@ describe('Story 3.4: [BE] Thông báo Discord cho Admin', () => {
     process.env.FRONTEND_URL = 'http://localhost:3000';
     process.env.TOPUP_BANK_BIN = '970422';
     process.env.TOPUP_BANK_ACCOUNT_NO = '0123456789';
-    process.env.TOPUP_BANK_ACCOUNT_NAME = 'CONG TY FLOWVIS';
+    process.env.TOPUP_BANK_ACCOUNT_NAME = 'CONG TY FLOWXIS';
     process.env.TOPUP_THROTTLE_LIMIT = '1000';
     fake = http.createServer((req, res) => {
       const chunks = [];
@@ -860,7 +860,7 @@ describe('Story 3.4: [BE] Thông báo Discord cho Admin', () => {
     for (const needle of [code, '99.000đ', 'pro', 'giờ VN']) assert.ok(text.includes(needle), needle);
     assert.ok(!text.includes('{'), 'không còn dòng JSON');
     assert.ok(!/\dT\d{2}:\d{2}.*Z/.test(text), 'không dùng giờ UTC dạng ISO');
-    for (const bad of [u.email, 'jwt', u.token, '0123456789', 'CONG TY FLOWVIS', 'secret-token-xyz', 'Bearer'])
+    for (const bad of [u.email, 'jwt', u.token, '0123456789', 'CONG TY FLOWXIS', 'secret-token-xyz', 'Bearer'])
       assert.ok(!reqs[0].body.includes(bad), bad);
   });
 

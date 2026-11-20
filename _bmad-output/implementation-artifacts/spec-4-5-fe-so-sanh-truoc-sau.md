@@ -46,7 +46,7 @@ context:
 | Điều khiển thanh trượt bằng bàn phím | Focus núm trượt, bấm ArrowLeft/Right/Up/Down, Home, End | Vị trí trượt tăng/giảm theo bước 5%, Home về 0%, End về 100%, cập nhật `aria-valuenow` và `aria-valuetext` | Chặn sự kiện mặc định để không cuộn trang |
 | Ảnh gốc quá hạn lưu 7 ngày hoặc `sourceUrl` rỗng | `status: 'succeeded'`, `sourceUrl` là `null` hoặc chuỗi rỗng | Hiển thị 1 ảnh kết quả duy nhất kèm nhãn "Kết Quả AI" và thông báo "Ảnh gốc đã hết hạn lưu", không hiển thị thanh kéo | N/A |
 | Link ký ảnh gốc hoặc kết quả hết hạn (lỗi tải ảnh) | Thẻ `<img>` kích hoạt sự kiện `@error` | Phát emit `imageError`, trang tự động refresh URL ký mới; watcher reset `sourceLoadFailed` khi có URL mới; nếu vẫn lỗi thì hiện banner kèm nút "Lấy lại link mới" | Ngăn lặp vô hạn (tối đa 1 lần auto-retry trước khi cần người dùng bấm) |
-| Bấm "Tải Ảnh HD" | Click nút "Tải Ảnh HD (Không Watermark)" | Tải file PNG kết quả với tên `flowvis-body_retouch-<id8>.png`; nếu link hết hạn tự refresh link và tải lại | Hiển thị thông báo lỗi nếu tải thất bại |
+| Bấm "Tải Ảnh HD" | Click nút "Tải Ảnh HD (Không Watermark)" | Tải file PNG kết quả với tên `flowxis-body_retouch-<id8>.png`; nếu link hết hạn tự refresh link và tải lại | Hiển thị thông báo lỗi nếu tải thất bại |
 | Tác vụ Body Retouch hết hạn lưu 30 ngày | Task quá 30 ngày kể từ `createdAt` | Hiển thị màn hình thông báo "Kết Quả Đã Hết Hạn Lưu Trữ" và nút dẫn về `/body-retouch` ("Tạo tác vụ Chỉnh sửa vóc dáng mới") | N/A |
 | Tác vụ Body Retouch đang chờ/xử lý/lỗi | Task `queued`, `running`, `failed`, `timed_out`, `cancelled` | `TaskProgressCard` nhận đúng nhãn "Chỉnh sửa vóc dáng", không bị hiển thị nhầm "Hoán đổi khuôn mặt" | N/A |
 
@@ -120,7 +120,7 @@ context:
 ## Verification
 
 **Commands:**
-- `pnpm --filter @flowvis/web test` -- expected: toàn bộ test cũ và `test/body-retouch-compare.test.mjs` mới đều pass
+- `pnpm --filter @flowxis/web test` -- expected: toàn bộ test cũ và `test/body-retouch-compare.test.mjs` mới đều pass
 - `pnpm run lint && pnpm run typecheck && pnpm run build` -- expected: pass không lỗi trên toàn monorepo
 - `pnpm run check:boundaries --base=fe/story-4-4-trang-body-retouch-va-thanh-muc-dieu-chinh` -- expected: chỉ sửa các tệp trong `apps/web/**`
 

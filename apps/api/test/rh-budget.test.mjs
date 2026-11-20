@@ -17,7 +17,7 @@ import { UnconfiguredRunningHubAdapter } from '../dist/modules/tasks/runninghub-
 
 const DB_URL =
   process.env.DATABASE_URL ||
-  'postgresql://motion_user:change_me_local_password@localhost:5432/flowvis?schema=public';
+  'postgresql://motion_user:change_me_local_password@localhost:5432/flowxis?schema=public';
 const REDIS_URL = process.env.REDIS_URL || 'redis://localhost:6379';
 
 process.env.RUNNINGHUB_WORKFLOW_BODY_RESHAPE ??= 'wf-body';
@@ -82,7 +82,7 @@ describe('Story 6.3: [BE] Hết ngân sách RunningHub và cảnh báo số dư'
     };
     worker.storage = { getObject: async () => Buffer.from('img') };
     balance.rh = { getBalance: async () => balanceImpl() };
-    const u = await prisma.user.create({ data: { googleId: `b-${runId}`, email: `b-${runId}@flowvis.vn`, tosVersion: 'tos-v7' } });
+    const u = await prisma.user.create({ data: { googleId: `b-${runId}`, email: `b-${runId}@flowxis.vn`, tosVersion: 'tos-v7' } });
     users.push(u.id);
     await reset();
   });

@@ -1,6 +1,6 @@
 import { execFile } from 'node:child_process';
 import { Injectable } from '@nestjs/common';
-import { MOTION_MIN_TRIM_SECONDS, type ValidationReason } from '@flowvis/contracts';
+import { MOTION_MIN_TRIM_SECONDS, type ValidationReason } from '@flowxis/contracts';
 
 export const FFPROBE_TIMEOUT_MS = 10_000;
 export const FFPROBE_MAX_CONCURRENCY = 2;

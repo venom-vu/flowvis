@@ -72,7 +72,7 @@ context:
 **Acceptance Criteria:**
 - Given admin khóa user, when user gọi route ghi bằng JWT cũ, then 403 `ACCOUNT_LOCKED`, refresh bị từ chối, Task đang chạy vẫn kết thúc đúng.
 - Given hai lần `adjust` cùng `requestId` (kể cả đồng thời), when xong, then đúng một bút toán `ADJUST` và cùng kết quả.
-- Given `pnpm --filter @flowvis/api test`, `lint`, `typecheck`, `build`, `check:boundaries`, when chạy, then pass (trừ các test lỗi có sẵn ở Story 2.14 và 5.2).
+- Given `pnpm --filter @flowxis/api test`, `lint`, `typecheck`, `build`, `check:boundaries`, when chạy, then pass (trừ các test lỗi có sẵn ở Story 2.14 và 5.2).
 
 ## Implementation Notes
 
@@ -111,6 +111,6 @@ Idempotency theo `admin_audit.request_id` (đúng AC của epic) nên không th�
 ## Verification
 
 **Commands:**
-- `pnpm --filter @flowvis/api test` -- expected: pass (cần Docker; chạy với `node --env-file=.env`)
+- `pnpm --filter @flowxis/api test` -- expected: pass (cần Docker; chạy với `node --env-file=.env`)
 - `pnpm run lint && pnpm run typecheck && pnpm run build` -- expected: pass
 - `pnpm run check:boundaries` -- expected: chỉ `apps/api/`, `deploy/`, `_bmad-output/`

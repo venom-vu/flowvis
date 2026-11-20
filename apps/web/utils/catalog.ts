@@ -2,8 +2,8 @@ import type {
   AccountTier,
   PricingConfigResponse,
   TierConfig,
-} from "@flowvis/contracts";
-import { MOTION_PRICING, motionCapSeconds } from "@flowvis/contracts";
+} from "@flowxis/contracts";
+import { motionCapSeconds } from "@flowxis/contracts";
 
 export type FeatureCategoryId = "all" | "image" | "video";
 
@@ -22,18 +22,14 @@ export const FEATURE_CATEGORIES: readonly FeatureCategoryOption[] = [
 export type FeaturePipelineId =
   | "face-swap"
   | "outfit-change"
-  | "person-replace"
   | "body-retouch"
   | "motion-control"
   | "motion-control-v2"
-  | "motion-background"
-  | "veo-3";
+  | "veo-3"
+  | "muse-video";
 
 /** Chức năng tạm ẩn khỏi kho công cụ, sitemap và trang riêng (backend giữ nguyên); xóa id khỏi đây để bật lại. */
-export const HIDDEN_FEATURE_IDS: readonly FeaturePipelineId[] = [
-  "person-replace",
-  "motion-background",
-];
+export const HIDDEN_FEATURE_IDS: readonly FeaturePipelineId[] = [];
 
 export interface AiFeatureTool {
   id: FeaturePipelineId;
@@ -115,17 +111,16 @@ export function buildAiFeatureCatalog(
   const tierCapSeconds = activeTierConfig.maxVideoSeconds;
   const motionV1Cap = motionCapSeconds("motion_control", tierCapSeconds);
   const motionV2Cap = motionCapSeconds("motion_control_v2", tierCapSeconds);
-  const motionBgCap = motionCapSeconds("motion_background", tierCapSeconds);
   const {
     faceSwapCredits,
     outfitChangeCredits,
-    personReplaceCredits,
     bodyRetouchCredits,
     motionControlBaseCredits,
     motionControlCreditsPerSecond,
     motionControlV2BaseCredits,
     motionControlV2CreditsPerSecond,
     veo3Credits720p,
+    museVideoCredits,
   } = pricing.pipelines;
 
   const all: AiFeatureTool[] = [
@@ -174,30 +169,6 @@ export function buildAiFeatureCatalog(
       bannerType: "image",
       accentGradient: "from-cyan-500/25 via-slate-900 to-violet-600/25",
       inputRequirementVi: "1 ảnh người mẫu rõ dáng + 1 ảnh trang phục cần mặc",
-      outputFormatVi:
-        "Ảnh PNG/JPEG chất lượng cao (kèm nhãn EXIF AI Generator)",
-    },
-    {
-      id: "person-replace",
-      slug: "person-replace",
-      titleVi: "Đổi Người Trong Ảnh",
-      descriptionVi:
-        "Tải ảnh gốc và ảnh nhân vật mới, AI thay người trong ảnh bằng nhân vật đó. Giữ nguyên bối cảnh và bố cục.",
-      category: "image",
-      categoryLabelVi: "Xử lý ảnh AI",
-      badgeVi: "Mới",
-      icon: "lucide:user-round-cog",
-      billingMode: "per_run",
-      unitCredits: personReplaceCredits,
-      priceBadgeVi: `${formatNumberVi(personReplaceCredits)} CR / lượt`,
-      tierCapSeconds: null,
-      tierCapLabelVi: null,
-      beforeLabelVi: "Ảnh gốc",
-      afterLabelVi: "Ảnh đã đổi người",
-      bannerUrl: "/banner/change-person.png",
-      bannerType: "image",
-      accentGradient: "from-violet-600/25 via-slate-900 to-cyan-500/25",
-      inputRequirementVi: "1 ảnh gốc + 1 ảnh nhân vật mới rõ nét",
       outputFormatVi:
         "Ảnh PNG/JPEG chất lượng cao (kèm nhãn EXIF AI Generator)",
     },
@@ -297,28 +268,27 @@ export function buildAiFeatureCatalog(
       outputFormatVi: "Video MP4 H.264 kèm âm thanh",
     },
     {
-      id: "motion-background",
-      slug: "motion-background",
-      titleVi: "Motion Control Nền Video",
+      id: "muse-video",
+      slug: "muse-video",
+      titleVi: "Muse Video",
       descriptionVi:
-        "Cho nhân vật trong ảnh chuyển động theo video mẫu, tạo ra video mới có nền. Cắt đoạn cần dùng theo giây, tối đa 20 giây.",
+        "Tạo video khoảng 10 giây, 720p, có âm thanh từ 1 đến 9 ảnh tham chiếu và mô tả. Chọn tỉ lệ khung hoặc để AI theo tỉ lệ ảnh.",
       category: "video",
       categoryLabelVi: "Chuyển động video AI",
-      badgeVi: "Motion nền",
-      icon: "lucide:clapperboard",
-      billingMode: "per_second",
-      baseCredits: MOTION_PRICING.motion_background.baseCredits,
-      unitCredits: MOTION_PRICING.motion_background.creditsPerSecond,
-      priceBadgeVi: `${formatNumberVi(MOTION_PRICING.motion_background.creditsPerSecond)} CR / giây`,
-      tierCapSeconds: motionBgCap,
-      tierCapLabelVi: `${formatNumberVi(motionBgCap)} giây`,
-      beforeLabelVi: "Ảnh nhân vật + Video mẫu",
-      afterLabelVi: "Video chuyển động đồng bộ",
-      bannerUrl: "/banner/motion-control-v2.mp4",
-      bannerType: "video",
-      accentGradient: "from-violet-600/35 via-indigo-950 to-cyan-500/30",
-      inputRequirementVi: "1 ảnh nhân vật rõ dáng + 1 video chuyển động mẫu",
-      outputFormatVi: "Video MP4 H.264",
+      badgeVi: "Mới",
+      icon: "lucide:images",
+      billingMode: "per_run",
+      unitCredits: museVideoCredits,
+      priceBadgeVi: `${formatNumberVi(museVideoCredits)} CR / video`,
+      tierCapSeconds: null,
+      tierCapLabelVi: null,
+      beforeLabelVi: "1-9 ảnh tham chiếu + mô tả",
+      afterLabelVi: "Video 10 giây có âm thanh",
+      bannerUrl: "/banner/muse-video.png",
+      bannerType: "image",
+      accentGradient: "from-violet-600/30 via-indigo-950 to-cyan-500/30",
+      inputRequirementVi: "Mô tả video và 1-9 ảnh tham chiếu (tổng ≤ 11 MB)",
+      outputFormatVi: "Video MP4 H.264 kèm âm thanh",
     },
   ];
   // Chức năng video lên đầu; sort ổn định nên thứ tự trong từng nhóm giữ nguyên.

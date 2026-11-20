@@ -170,13 +170,13 @@ const posterUrl = computed(() =>
 
 const pageTitle = computed(() => {
   if (isRateLimited.value) {
-    return 'Hệ thống đang bận — flowvis';
+    return 'Hệ thống đang bận — flowxis';
   }
   return isNotFound.value
-    ? 'Liên kết không còn tồn tại — flowvis'
+    ? 'Liên kết không còn tồn tại — flowxis'
     : isVideo.value
-      ? 'Video tạo bằng AI — flowvis'
-      : 'Kết quả tạo ảnh AI — flowvis';
+      ? 'Video tạo bằng AI — flowxis'
+      : 'Kết quả tạo ảnh AI — flowxis';
 });
 
 const pageDescription = computed(() => {
@@ -185,7 +185,7 @@ const pageDescription = computed(() => {
   }
   return isNotFound.value
     ? 'Đường dẫn chia sẻ này không tồn tại, đã bị thu hồi hoặc đã hết hạn.'
-    : 'Xem tác phẩm AI được tạo trên flowvis. Thử tạo ảnh hoặc video AI miễn phí!';
+    : 'Xem tác phẩm AI được tạo trên flowxis. Thử tạo ảnh hoặc video AI miễn phí!';
 });
 
 const ogImageUrl = computed(() => {
@@ -207,7 +207,7 @@ const currentOrigin = computed(() => {
   if (import.meta.client && typeof window !== 'undefined') {
     return window.location.origin;
   }
-  return requestUrl?.origin || 'https://flowvis.vn';
+  return requestUrl?.origin || 'https://flowxis.vn';
 });
 
 const ogUrl = computed(() => {
@@ -217,7 +217,7 @@ const ogUrl = computed(() => {
 useHead({
   title: pageTitle,
   meta: [
-    { property: 'og:site_name', content: 'flowvis' },
+    { property: 'og:site_name', content: 'flowxis' },
     { property: 'og:type', content: () => (isVideo.value ? 'video.other' : 'website') },
     { property: 'og:video', content: () => ogVideoUrl.value ?? undefined },
     { property: 'og:video:type', content: () => (ogVideoUrl.value ? 'video/mp4' : undefined) },
@@ -270,7 +270,7 @@ async function handleDownload(): Promise<void> {
     const blobUrl = URL.createObjectURL(blob);
     const a = document.createElement('a');
     a.href = blobUrl;
-    a.download = `flowvis-shared-${token.value.slice(0, 10)}${isVideo.value ? '.mp4' : '.png'}`;
+    a.download = `flowxis-shared-${token.value.slice(0, 10)}${isVideo.value ? '.mp4' : '.png'}`;
     document.body.appendChild(a);
     a.click();
     document.body.removeChild(a);
@@ -291,8 +291,8 @@ async function handleShareLink(): Promise<void> {
   if (typeof navigator !== 'undefined' && typeof navigator.share === 'function') {
     try {
       await navigator.share({
-        title: 'Kết quả tạo ảnh AI — flowvis',
-        text: 'Xem tác phẩm AI được tạo trên flowvis:',
+        title: 'Kết quả tạo ảnh AI — flowxis',
+        text: 'Xem tác phẩm AI được tạo trên flowxis:',
         url,
       });
       showToast('Đã mở bảng chia sẻ thành công!');
@@ -358,7 +358,7 @@ async function handleShareLink(): Promise<void> {
           data-testid="back-home-button"
         >
           <Icon name="lucide:arrow-left" class="h-4 w-4" aria-hidden="true" />
-          <span>Về trang chủ flowvis</span>
+          <span>Về trang chủ flowxis</span>
         </NuxtLink>
       </div>
     </div>
@@ -391,7 +391,7 @@ async function handleShareLink(): Promise<void> {
           data-testid="back-home-button"
         >
           <Icon name="lucide:arrow-left" class="h-4 w-4" aria-hidden="true" />
-          <span>Về trang chủ flowvis</span>
+          <span>Về trang chủ flowxis</span>
         </NuxtLink>
       </div>
     </div>
@@ -418,7 +418,7 @@ async function handleShareLink(): Promise<void> {
               <Icon name="lucide:sparkles" class="h-4 w-4" aria-hidden="true" />
             </span>
             <span class="text-xs font-medium text-cyber-text sm:text-sm">
-              Tác phẩm AI từ flowvis
+              Tác phẩm AI từ flowxis
             </span>
           </div>
 
@@ -448,7 +448,7 @@ async function handleShareLink(): Promise<void> {
           <img
             v-else-if="currentImageUrl"
             :src="currentImageUrl"
-            alt="Kết quả tạo ảnh AI — flowvis"
+            alt="Kết quả tạo ảnh AI — flowxis"
             class="max-h-[75vh] w-full max-w-full rounded-xl object-contain shadow-md"
             data-testid="share-result-image"
             @error="handleImageError"
@@ -489,7 +489,7 @@ async function handleShareLink(): Promise<void> {
         <NuxtLink
           to="/"
           class="touch-target flex min-h-[48px] flex-1 items-center justify-center gap-2 rounded-xl bg-cyber-cyan px-6 py-3.5 text-center text-sm font-semibold text-zinc-950 shadow-lg shadow-cyber-cyan/20 transition hover:opacity-90 hover:shadow-cyber-cyan/30"
-          data-testid="try-flowvis-button"
+          data-testid="try-flowxis-button"
         >
           <Icon name="lucide:sparkles" class="h-4 w-4" aria-hidden="true" />
           <span>Thử tạo ảnh tương tự miễn phí</span>

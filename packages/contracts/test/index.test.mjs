@@ -153,7 +153,7 @@ import {
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 
-describe('@flowvis/contracts', () => {
+describe('@flowxis/contracts', () => {
   it('exports package version constant', () => {
     assert.equal(CONTRACTS_PACKAGE_VERSION, '0.1.0');
   });
@@ -543,6 +543,7 @@ describe('@flowvis/contracts', () => {
       [MOCK_PRICING_CONFIG_RESPONSE.pipelines.veo3Credits720p, MOCK_PRICING_CONFIG_RESPONSE.pipelines.veo3Credits1080p, MOCK_PRICING_CONFIG_RESPONSE.pipelines.veo3Credits4k],
       [500, 700, 950],
     );
+      assert.equal(MOCK_PRICING_CONFIG_RESPONSE.pipelines.museVideoCredits, 200);
       assert.equal(MOCK_PRICING_CONFIG_RESPONSE.pipelines.motionControlMinSeconds, 5);
 
       const tiersByKey = Object.fromEntries(
@@ -933,7 +934,7 @@ describe('@flowvis/contracts', () => {
     const KEY = 'in/10000000-0000-4000-8000-000000000001/60000000-0000-4000-8000-000000000001';
 
     it('exports pipelines and intensity constants', () => {
-      assert.deepEqual([...TASK_PIPELINES], ['face_swap', 'body_retouch', 'motion_control', 'outfit_change', 'person_replace', 'motion_control_v2', 'motion_background', 'veo3']);
+      assert.deepEqual([...TASK_PIPELINES], ['face_swap', 'body_retouch', 'motion_control', 'outfit_change', 'motion_control_v2', 'veo3', 'muse_video']);
       assert.deepEqual([INTENSITY_MIN, INTENSITY_MAX, INTENSITY_DEFAULT], [1, 10, 5]);
     });
 
@@ -1134,7 +1135,6 @@ describe('@flowvis/contracts', () => {
       assert.equal(motionPrice(20), 550);
       assert.equal(motionPrice(5, 'motion_control_v2'), 475);
       assert.equal(motionPrice(10, 'motion_control_v2'), 800);
-      assert.equal(motionPrice(10, 'motion_background'), 500);
       for (const bad of [0, -1, 1.5, NaN]) assert.throws(() => motionPrice(bad));
       assert.ok(TASK_PIPELINES.includes('motion_control'));
     });

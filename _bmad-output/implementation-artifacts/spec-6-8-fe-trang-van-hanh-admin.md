@@ -21,7 +21,7 @@ context:
 ## Boundaries & Constraints
 
 **Always:**
-- Chỉ sửa `apps/web/**` (nhánh `fe/*`); dùng schema/mock từ `@flowvis/contracts`, parse mọi phản hồi qua Zod; phong cách Vercel của layout admin, icon Lucide, không emoji, vùng chạm 48px, dùng được ở 360px.
+- Chỉ sửa `apps/web/**` (nhánh `fe/*`); dùng schema/mock từ `@flowxis/contracts`, parse mọi phản hồi qua Zod; phong cách Vercel của layout admin, icon Lucide, không emoji, vùng chạm 48px, dùng được ở 360px.
 - Chặn truy cập như `/admin/topups`: chưa đăng nhập hoặc `role !== 'admin'` thấy 403, không gọi API ops nào.
 - Trạng thái làm mới định kỳ; thẻ có `readAt`/`at` quá cũ thì có nhãn cảnh báo.
 - "Mở lại nhận Task" chỉ bật khi `intakePaused || rhBudgetExhausted`; hộp xác nhận nêu rủi ro Task thất bại nhanh và số dư lần đọc cuối; chỉ sau xác nhận mới `POST /admin/ops/resume`.
@@ -84,7 +84,7 @@ context:
 ## Verification
 
 **Commands:**
-- `pnpm run lint && pnpm run typecheck && pnpm --filter @flowvis/web test` -- expected: pass
+- `pnpm run lint && pnpm run typecheck && pnpm --filter @flowxis/web test` -- expected: pass
 - `pnpm run check:boundaries` -- expected: pass
 
 ## Review Triage Log

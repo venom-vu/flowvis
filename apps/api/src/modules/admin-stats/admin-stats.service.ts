@@ -9,7 +9,7 @@ import {
   type AdminStatsQuery,
   type AdminStatsResponse,
   type TaskPipeline,
-} from "@flowvis/contracts";
+} from "@flowxis/contracts";
 import { AuthService } from "../auth/auth.service.js";
 import {
   TasksService,
@@ -115,8 +115,7 @@ export class AdminStatsService {
       if (r.ok_cost_n === 0) continue;
       const isMotion =
         pipeline === "motion_control" ||
-        pipeline === "motion_control_v2" ||
-        pipeline === "motion_background";
+        pipeline === "motion_control_v2";
       let unitUsd: number;
       let unitCredits: number;
       if (isMotion) {
@@ -130,8 +129,8 @@ export class AdminStatsService {
           q.motionPricePerSecond !== undefined
             ? q.motionPricePerSecond * avgSeconds
             : baseCredits + creditsPerSecond * avgSeconds;
-      } else if (pipeline === "veo3") {
-        // Giá theo độ phân giải: doanh thu là credit thực thu (hold_amount) trung bình, không phải một mức cố định.
+      } else if (pipeline === "veo3" || pipeline === "muse_video") {
+        // Pipeline tính theo lượt có giá riêng: doanh thu là credit thực thu (hold_amount) trung bình, không lấy giá hiện hành.
         unitUsd = okCost / r.ok_cost_n;
         unitCredits = (r.ok_credits_costed ?? 0) / r.ok_cost_n;
       } else {
@@ -142,9 +141,7 @@ export class AdminStatsService {
             ? PRICING_CONFIG.pipelines.faceSwapCredits
             : pipeline === "outfit_change"
               ? PRICING_CONFIG.pipelines.outfitChangeCredits
-              : pipeline === "person_replace"
-                ? PRICING_CONFIG.pipelines.personReplaceCredits
-                : PRICING_CONFIG.pipelines.bodyRetouchCredits);
+              : PRICING_CONFIG.pipelines.bodyRetouchCredits);
       }
       const costVnd = unitUsd * usdVnd;
       for (const pack of PRICING_CONFIG.topupPacks) {

@@ -4,7 +4,7 @@ import type {
   Task,
   TaskResultResponse,
   TaskShareResponse,
-} from '@flowvis/contracts';
+} from '@flowxis/contracts';
 import BeforeAfterSplitSlider from '~/components/BeforeAfterSplitSlider.vue';
 import { useApiClient } from '~/composables/useApiClient';
 import {
@@ -35,6 +35,8 @@ const props = withDefaults(
     showRetry?: boolean;
     /** Bỏ khung card bao ngoài khi đặt bên trong card cha (ví dụ card Kết quả). */
     embedded?: boolean;
+    /** Đầu ra của công cụ là video (ẩn thanh kéo Trước/Sau ngay từ trạng thái chờ). */
+    videoOutput?: boolean;
   }>(),
   {
     submitting: false,
@@ -45,6 +47,7 @@ const props = withDefaults(
     outputFormatVi: '',
     showRetry: true,
     embedded: false,
+    videoOutput: false,
   },
 );
 
@@ -84,11 +87,12 @@ const isWorking = computed<boolean>(
 );
 const isVideo = computed<boolean>(
   () =>
+    props.videoOutput ||
     result.value?.mediaType === 'video' ||
     localTask.value?.pipeline === 'motion_control' ||
     localTask.value?.pipeline === 'motion_control_v2' ||
-    localTask.value?.pipeline === 'motion_background' ||
-    localTask.value?.pipeline === 'veo3',
+    localTask.value?.pipeline === 'veo3' ||
+    localTask.value?.pipeline === 'muse_video',
 );
 const isExpired = computed<boolean>(() =>
   localTask.value ? isTaskRetentionExpired(localTask.value.createdAt) : false,
@@ -270,7 +274,7 @@ async function handleDownload(): Promise<void> {
     const blobUrl = URL.createObjectURL(blob);
     const a = document.createElement('a');
     a.href = blobUrl;
-    a.download = `flowvis-${localTask.value.pipeline}-${localTask.value.id.slice(0, 8)}${ext}`;
+    a.download = `flowxis-${localTask.value.pipeline}-${localTask.value.id.slice(0, 8)}${ext}`;
     document.body.appendChild(a);
     a.click();
     document.body.removeChild(a);
@@ -378,11 +382,11 @@ const sliderPercent = ref<number>(50);
           class="flex items-center gap-2 text-sm font-semibold text-cyber-text"
         >
           <Icon
-            name="lucide:split-square-horizontal"
+            :name="isVideo ? 'lucide:film' : 'lucide:split-square-horizontal'"
             class="h-4 w-4 text-cyber-violet"
           />
           <span>{{
-            isSucceeded && isVideo ? "Video kết quả" : "So sánh Trước / Sau AI"
+            isVideo ? "Video kết quả" : "So sánh Trước / Sau AI"
           }}</span>
         </span>
       </slot>
@@ -403,7 +407,7 @@ const sliderPercent = ref<number>(50);
         <span>Hoàn tất</span>
       </span>
       <span
-        v-else-if="!isWorking && !isFailed"
+        v-else-if="!isWorking && !isFailed && !isVideo"
         class="font-mono text-xs text-cyber-cyan"
       >
         {{ sliderPercent }}%
@@ -695,7 +699,35 @@ const sliderPercent = ref<number>(50);
       </template>
     </div>
 
-    <!-- 4. Chưa có Task: placeholder minh họa -->
+    <!-- 4. Chưa có Task: khung chờ cho video (không có thanh kéo Trước/Sau), hoặc slider minh họa cho ảnh -->
+    <div
+      v-else-if="isVideo"
+      data-testid="video-idle-state"
+      class="space-y-3"
+    >
+      <div
+        data-testid="video-idle-frame"
+        class="relative flex h-64 flex-col items-center justify-center gap-3 overflow-hidden rounded-xl border border-cyber-border bg-gradient-to-br from-slate-900 via-indigo-950 to-slate-900 px-6 text-center sm:h-72"
+      >
+        <span
+          class="flex h-14 w-14 items-center justify-center rounded-2xl border border-cyber-violet/40 bg-cyber-violet/15 text-cyber-violet"
+        >
+          <Icon name="lucide:film" class="h-7 w-7" />
+        </span>
+        <div class="max-w-xs space-y-1">
+          <p class="font-display text-sm font-bold text-cyber-text">
+            {{ afterLabelVi || "Khung hiển thị video kết quả" }}
+          </p>
+          <p class="text-xs text-cyber-muted">
+            Thiết lập thông số bên trái và bấm Tạo Tác Vụ AI để bắt đầu xử lý.
+          </p>
+        </div>
+      </div>
+      <p v-if="outputFormatVi" class="text-xs text-cyber-muted">
+        Đầu ra: {{ outputFormatVi }}
+      </p>
+    </div>
+
     <div v-else class="space-y-3">
       <div
         class="relative h-48 overflow-hidden rounded-xl border border-cyber-border bg-gradient-to-r from-slate-900 via-indigo-950 to-slate-900"

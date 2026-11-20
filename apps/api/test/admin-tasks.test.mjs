@@ -5,7 +5,7 @@ import net from 'node:net';
 import path from 'node:path';
 import { after, before, describe, it } from 'node:test';
 import { fileURLToPath } from 'node:url';
-import { AdminTaskLookupResponseSchema, ApiErrorCode, CONTENT_REMOVED_MESSAGE_VI } from '@flowvis/contracts';
+import { AdminTaskLookupResponseSchema, ApiErrorCode, CONTENT_REMOVED_MESSAGE_VI } from '@flowxis/contracts';
 import { JwtService } from '@nestjs/jwt';
 import pg from 'pg';
 import { Redis } from 'ioredis';
@@ -22,7 +22,7 @@ const repoRoot = path.resolve(apiRoot, '../..');
 const composePath = path.join(repoRoot, 'deploy', 'compose.yml');
 const DB_URL =
   process.env.DATABASE_URL ||
-  'postgresql://motion_user:change_me_local_password@localhost:5432/flowvis?schema=public';
+  'postgresql://motion_user:change_me_local_password@localhost:5432/flowxis?schema=public';
 const REDIS_URL = process.env.REDIS_URL || 'redis://localhost:6379';
 
 function tcp(host, port) {
@@ -75,7 +75,7 @@ describe('Story 6.5: [BE] Gỡ bỏ nội dung khẩn cấp', () => {
 
   async function mkUser(role = 'user') {
     const n = userIds.length;
-    const u = await prisma.user.create({ data: { googleId: `at-${runId}-${n}`, email: `at-${runId}-${n}@flowvis.vn`, tosVersion: 'tos-v7', role } });
+    const u = await prisma.user.create({ data: { googleId: `at-${runId}-${n}`, email: `at-${runId}-${n}@flowxis.vn`, tosVersion: 'tos-v7', role } });
     userIds.push(u.id);
     return { id: u.id, email: u.email, token: jwt.sign({ sub: u.id, email: u.email, role }) };
   }

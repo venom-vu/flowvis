@@ -31,7 +31,7 @@ import {
   TaskShareResponseSchema,
   TopupSchema,
   WalletLedgerResponseSchema,
-} from '@flowvis/contracts';
+} from '@flowxis/contracts';
 import {
   PORTS,
   close,
@@ -73,7 +73,7 @@ describe('Smoke vận hành trên stack Compose (Story 6.10)', {
       ? false
       : 'Đặt RUN_COMPOSE_E2E=1 để chạy (cần Docker, build image, dựng cả stack bốn container)',
 }, () => {
-  const project = 'flowvis-smoke-ops';
+  const project = 'flowxis-smoke-ops';
   const apiPort = '3107';
   const base = `http://127.0.0.1:${apiPort}`;
   const env = {
@@ -115,7 +115,7 @@ describe('Smoke vận hành trên stack Compose (Story 6.10)', {
     submitBodies: [],
     uploads: [],
   };
-  const tmp = fs.mkdtempSync(path.join(os.tmpdir(), 'flowvis-smoke-ops-'));
+  const tmp = fs.mkdtempSync(path.join(os.tmpdir(), 'flowxis-smoke-ops-'));
 
   const discordCount = (kind) => discord.filter((m) => m.includes(kind)).length;
   const isDone = (t) => t.status !== 'queued' && t.status !== 'running';

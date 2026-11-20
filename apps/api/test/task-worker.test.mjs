@@ -23,7 +23,7 @@ const repoRoot = path.resolve(apiRoot, '../..');
 const composePath = path.join(repoRoot, 'deploy', 'compose.yml');
 const DB_URL =
   process.env.DATABASE_URL ||
-  'postgresql://motion_user:change_me_local_password@localhost:5432/flowvis?schema=public';
+  'postgresql://motion_user:change_me_local_password@localhost:5432/flowxis?schema=public';
 const REDIS_URL = process.env.REDIS_URL || 'redis://localhost:6379';
 
 function tcp(host, port) {
@@ -82,7 +82,7 @@ describe('Story 2.5: [BE] Worker xử lý Task qua RunningHub', () => {
 
   async function newUser(balance = 5000, tierPack = null) {
     const n = users.length;
-    const u = await prisma.user.create({ data: { googleId: `w-${runId}-${n}`, email: `w-${runId}-${n}@flowvis.vn`, tosVersion: 'tos-v7' } });
+    const u = await prisma.user.create({ data: { googleId: `w-${runId}-${n}`, email: `w-${runId}-${n}@flowxis.vn`, tosVersion: 'tos-v7' } });
     users.push(u.id);
     await prisma.$transaction((t) => new WalletService().grant(t, u.id, balance));
     if (tierPack) await pool.query('UPDATE users SET tier_pack=$1 WHERE id=$2', [tierPack, u.id]);

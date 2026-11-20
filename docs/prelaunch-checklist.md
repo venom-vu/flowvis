@@ -4,7 +4,7 @@ Không bật cổng nạp tiền VietQR thương mại khi còn bất kỳ dòng
 
 ## Chuẩn bị
 
-- Build trên máy chạy script: `pnpm install && pnpm --filter @flowvis/contracts run build && pnpm --filter @flowvis/api run build` (hoặc dùng image đã build trên VPS, các CLI nằm ở `apps/api/dist/scripts/`).
+- Build trên máy chạy script: `pnpm install && pnpm --filter @flowxis/contracts run build && pnpm --filter @flowxis/api run build` (hoặc dùng image đã build trên VPS, các CLI nằm ở `apps/api/dist/scripts/`).
 - Bí mật chỉ đặt qua biến môi trường của phiên shell hoặc `deploy/.env` trên VPS, không commit (xem phần "Cổng trước khi bật VietQR" trong `deploy/.env.example`).
 - Ảnh/video mẫu và ảnh nhạy cảm để **ngoài repo**; manifest benchmark chép từ `scripts/prelaunch/benchmark-manifest.example.json` ra ngoài repo rồi sửa đường dẫn.
 - Mọi script in một dòng JSON ở stdout để dán vào báo cáo. Mã thoát: `0` đạt, `1` không đạt, `2` lỗi chạy (thiếu biến, thiếu file, docker lỗi, lỗi HTTP của bộ chạy). Riêng bước 4 `--sensitive` chỉ ghi nhận: thoát `0`, hoặc `2` khi lỗi chạy.

@@ -2,7 +2,7 @@ import { ref } from 'vue';
 import type {
   UploadCreateRequest,
   UploadCreateResponse,
-} from '@flowvis/contracts';
+} from '@flowxis/contracts';
 import { resolveApiErrorMessageVi, uploadPresignedFile } from '../utils/api-client.ts';
 
 export interface UploadFlowClient {

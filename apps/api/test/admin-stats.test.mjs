@@ -5,7 +5,7 @@ import net from 'node:net';
 import path from 'node:path';
 import { after, before, describe, it } from 'node:test';
 import { fileURLToPath } from 'node:url';
-import { AdminAuditResponseSchema, AdminStatsResponseSchema, ApiErrorCode, TASK_PIPELINES } from '@flowvis/contracts';
+import { AdminAuditResponseSchema, AdminStatsResponseSchema, ApiErrorCode, TASK_PIPELINES } from '@flowxis/contracts';
 import { JwtService } from '@nestjs/jwt';
 import pg from 'pg';
 import { Redis } from 'ioredis';
@@ -19,7 +19,7 @@ const repoRoot = path.resolve(apiRoot, '../..');
 const composePath = path.join(repoRoot, 'deploy', 'compose.yml');
 const DB_URL =
   process.env.DATABASE_URL ||
-  'postgresql://motion_user:change_me_local_password@localhost:5432/flowvis?schema=public';
+  'postgresql://motion_user:change_me_local_password@localhost:5432/flowxis?schema=public';
 const REDIS_URL = process.env.REDIS_URL || 'redis://localhost:6379';
 
 process.env.RUNNINGHUB_WORKFLOW_BODY_RESHAPE ??= 'wf-body';
@@ -64,7 +64,7 @@ describe('Story 6.6: [BE] Thống kê vận hành và nhật ký Admin', () => {
   async function mkUser(role = 'user', createdAt = at) {
     const n = userIds.length;
     const u = await prisma.user.create({
-      data: { googleId: `st-${runId}-${n}`, email: `st-${runId}-${n}@flowvis.vn`, tosVersion: 'tos-v7', role, createdAt: new Date(createdAt) },
+      data: { googleId: `st-${runId}-${n}`, email: `st-${runId}-${n}@flowxis.vn`, tosVersion: 'tos-v7', role, createdAt: new Date(createdAt) },
     });
     userIds.push(u.id);
     return { id: u.id, email: u.email, token: jwt.sign({ sub: u.id, email: u.email, role }) };
@@ -113,7 +113,7 @@ describe('Story 6.6: [BE] Thống kê vận hành và nhật ký Admin', () => {
     pool = new pg.Pool({ connectionString: DB_URL });
     prisma = new PrismaClient({ adapter: new PrismaPg(pool) });
     // Khoảng 2030 chưa có dữ liệu thật; dọn dữ liệu sót của lần chạy trước.
-    await pool.query(`DELETE FROM tasks WHERE created_at >= $1 AND created_at <= $2 AND user_id IN (SELECT id FROM users WHERE email LIKE 'st-%@flowvis.vn')`, [FROM, TO]);
+    await pool.query(`DELETE FROM tasks WHERE created_at >= $1 AND created_at <= $2 AND user_id IN (SELECT id FROM users WHERE email LIKE 'st-%@flowxis.vn')`, [FROM, TO]);
     app = await bootstrapApi();
     baseUrl = `http://127.0.0.1:${app.getHttpServer().address().port}`;
     jwt = app.get(JwtService);
@@ -177,6 +177,20 @@ describe('Story 6.6: [BE] Thống kê vận hành và nhật ký Admin', () => {
     const avgCredits = (500 + 700 + 950) / 3;
     assert.ok(Math.abs(m.revenueVnd - (49000 / 5000) * avgCredits) < 1e-6, `revenueVnd=${m.revenueVnd}`);
     // Dọn Task để không làm lệch tổng chi phí GPU của các test dùng chung khoảng thời gian.
+    await pool.query('DELETE FROM tasks WHERE user_id = $1::uuid', [u.id]);
+  });
+
+  it('biên gộp Muse Video tính theo credit thực thu, không theo giá hiện hành', async () => {
+    const u = await mkUser('user', '2029-12-01T00:00:00.000Z');
+    // Giá thực thu khác giá hiện hành (200) để chứng minh không đọc PRICING_CONFIG.
+    await mkTask(u.id, 'muse_video', 'succeeded', { cost: 0.1, inst: 'default', hold: 180 });
+    await mkTask(u.id, 'muse_video', 'succeeded', { cost: 0.12, inst: 'default', hold: 200 });
+    await mkTask(u.id, 'muse_video', 'succeeded', { hold: 500 }); // chưa có chi phí: không tính
+    const real = await stats();
+    const m = real.margins.find((x) => x.pipeline === 'muse_video' && x.pack === 'starter');
+    assert.ok(m, 'có dòng biên cho muse_video');
+    const avgCredits = (180 + 200) / 2;
+    assert.ok(Math.abs(m.revenueVnd - (49000 / 5000) * avgCredits) < 1e-6, `revenueVnd=${m.revenueVnd}`);
     await pool.query('DELETE FROM tasks WHERE user_id = $1::uuid', [u.id]);
   });
 

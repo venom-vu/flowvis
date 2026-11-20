@@ -7,7 +7,7 @@ import {
   type AdminTaskLookupResponse,
   type AdminTaskTakedownResponse,
   type TaskStatus,
-} from '@flowvis/contracts';
+} from '@flowxis/contracts';
 import { PrismaService } from '../../infra/prisma.service.js';
 import { STORAGE_PORT, type StoragePort } from '../../ports/index.js';
 import { AuditService } from '../audit/audit.service.js';

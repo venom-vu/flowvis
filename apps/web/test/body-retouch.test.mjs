@@ -19,7 +19,7 @@ import {
   MOCK_BODY_RETOUCH_TASK_TIMED_OUT,
   MOCK_ME_RESPONSE,
   MOCK_PRICING_CONFIG_RESPONSE,
-} from '@flowvis/contracts';
+} from '@flowxis/contracts';
 import {
   BodyRetouchCreateRequestSchema,
   BodyRetouchCreateResponseSchema,
@@ -74,7 +74,7 @@ async function loadSetup(rel, stubs, dir) {
   }
 }
 
-describe('@flowvis/web — Story 4.4 Trang Body Retouch và thanh mức điều chỉnh', () => {
+describe('@flowxis/web — Story 4.4 Trang Body Retouch và thanh mức điều chỉnh', () => {
   describe('1. Hợp đồng API client (createBodyRetouchTask & intensity helpers)', () => {
     it('re-export đầy đủ hằng số, schema intensity và ánh xạ đúng nhãn 3 vùng tiếng Việt', () => {
       assert.equal(INTENSITY_MIN, 1);
@@ -722,6 +722,8 @@ describe('@flowvis/web — Story 4.4 Trang Body Retouch và thanh mức điều 
           '~/composables/usePricingConfig': `export const usePricingConfig = () => ({ refreshAll: async () => { globalThis.__brDialog.calls.push(['refreshAll']); } });`,
           '~/composables/useVeo3': `import { ref } from 'vue'; export const useVeo3 = () => ({ mode: ref('text_to_video'), prompt: ref(''), aspectRatio: ref('16:9'), resolution: ref('720p'), imageKey: ref(null), firstFrameKey: ref(null), lastFrameKey: ref(null), submitErrorVi: ref(null), isSubmitting: ref(false), insufficientNoteVi: ref(null), intakePaused: ref(false), price: ref(500), hasEnoughBalance: ref(true), canSubmit: ref(false), clearState: () => {}, submit: async () => null });`,
           '~/components/Veo3Form.vue': `export default {};`,
+  '~/composables/useMuseVideo': `import { ref } from 'vue'; export const useMuseVideo = () => ({ prompt: ref(''), aspectRatio: ref(null), imageKeys: ref([null]), totalBytes: ref(0), pending: ref(false), submitErrorVi: ref(null), isSubmitting: ref(false), insufficientNoteVi: ref(null), intakePaused: ref(false), price: ref(200), hasEnoughBalance: ref(true), canSubmit: ref(false), clearState: () => {}, submit: async () => null });`,
+  '~/components/MuseVideoForm.vue': `export default {};`,
           '~/composables/useMotionControl': `import { ref } from 'vue'; export const useMotionControl = () => ({ variant: ref('v1'), isAuthenticated: ref(true), isSubmitting: ref(false), reset: () => {}, clearState: () => {}, characterKey: ref(null), capSeconds: ref(null), seconds: ref(0), price: ref(null), hasEnoughBalance: ref(true), canSubmit: ref(false), insufficientNoteVi: ref(null), submitErrorVi: ref(null), onTrimChange: () => {}, submit: async () => null });`,
           '~/utils/api-client': `export {
             ApiErrorCode,

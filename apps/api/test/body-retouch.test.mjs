@@ -13,7 +13,7 @@ import { PrismaPg } from '@prisma/adapter-pg';
 import { PrismaClient } from '../dist/generated/prisma/client.js';
 import { bootstrapApi } from '../dist/main.js';
 import { PipelinesModule } from '../dist/modules/pipelines/index.js';
-import { ApiErrorCode, TaskSchema } from '@flowvis/contracts';
+import { ApiErrorCode, TaskSchema } from '@flowxis/contracts';
 import { WalletService } from '../dist/modules/wallet/index.js';
 import { TasksService, TaskWorkerService, WORKER_CONCURRENCY } from '../dist/modules/tasks/index.js';
 
@@ -23,7 +23,7 @@ const repoRoot = path.resolve(apiRoot, '../..');
 const composePath = path.join(repoRoot, 'deploy', 'compose.yml');
 const DB_URL =
   process.env.DATABASE_URL ||
-  'postgresql://motion_user:change_me_local_password@localhost:5432/flowvis?schema=public';
+  'postgresql://motion_user:change_me_local_password@localhost:5432/flowxis?schema=public';
 const REDIS_URL = process.env.REDIS_URL || 'redis://localhost:6379';
 
 function tcp(host, port) {
@@ -73,7 +73,7 @@ describe('Story 4.2: [BE] Tạo Task Body Retouch', () => {
 
   async function newUser({ balance = 500, locked = false, tierPack = null } = {}) {
     const n = users.length;
-    const u = await prisma.user.create({ data: { googleId: `br-${runId}-${n}`, email: `br-${runId}-${n}@flowvis.vn`, tosVersion: 'tos-v7', lockedAt: locked ? new Date() : null } });
+    const u = await prisma.user.create({ data: { googleId: `br-${runId}-${n}`, email: `br-${runId}-${n}@flowxis.vn`, tosVersion: 'tos-v7', lockedAt: locked ? new Date() : null } });
     users.push(u.id);
     if (balance > 0) await prisma.$transaction((t) => new WalletService().grant(t, u.id, balance));
     if (tierPack) await pool.query('UPDATE users SET tier_pack=$1 WHERE id=$2', [tierPack, u.id]);

@@ -24,7 +24,7 @@ context:
 - Gói Creator/Starter lấy bằng `POST /topups` + `confirm-transfer` + Admin `approve` (`admin@smoke.test` nằm trong `ADMIN_EMAILS` của compose smoke), không sửa DB trực tiếp.
 - Video mẫu: test tự sinh bằng `ffmpeg -f lavfi` (H.264, 24 FPS, 720x1280, vài giây), cần `ffmpeg` trên máy chạy test. Video kết quả giả cũng sinh cùng cách với độ dài 10 s, 5 s, 10,4 s, 10,6 s.
 - "Đồng hồ tăng tốc" cho 360 giây: dùng `RH_DEADLINE_MS` đã có (chỉ có tác dụng khi `NODE_ENV=test`), không thêm biến mới. Thời gian ffmpeg không bị tính vì `deadline_at` đặt từ lúc bắt đầu tải input lên RunningHub.
-- "Không còn thư mục tạm": kiểm bằng `docker compose exec nestjs-worker` liệt kê `$TMPDIR/flowvis-trim` và thư mục video kết quả, kỳ vọng rỗng.
+- "Không còn thư mục tạm": kiểm bằng `docker compose exec nestjs-worker` liệt kê `$TMPDIR/flowxis-trim` và thư mục video kết quả, kỳ vọng rỗng.
 - Không sửa logic ví, máy trạng thái, bộ quét, pipeline-config. Nếu smoke lộ lỗi thật ở BE thì sửa nhỏ nhất kèm ghi chú, hoặc dừng và hỏi.
 
 ## Boundaries & Constraints
@@ -32,7 +32,7 @@ context:
 **Always:**
 - Nhánh `shared/*` được sửa toàn repo; schema `packages/contracts` là nguồn sự thật.
 - Smoke mặc định bị bỏ qua, chỉ chạy khi `RUN_COMPOSE_E2E=1`.
-- Project/cổng riêng, không trùng smoke khác: project `flowvis-smoke-mt`, api `3106`, Postgres `15437`, Redis `16384`; RH giả `3197`, S3 giả `3198`, Google giả `3199`.
+- Project/cổng riêng, không trùng smoke khác: project `flowxis-smoke-mt`, api `3106`, Postgres `15437`, Redis `16384`; RH giả `3197`, S3 giả `3198`, Google giả `3199`.
 - `ffmpeg`/`ffprobe` gọi bằng mảng đối số (`execFileSync`), không qua shell.
 
 **Never:**
@@ -63,7 +63,7 @@ context:
 - `apps/api/test/smoke-motion-control.test.mjs` (mới) -- các kịch bản trên; fake RH nhận `/upload` video và ảnh, trả MP4 theo `state.resultVideo`, ghi `submitBodies`.
 - `apps/api/src/modules/pipelines/pipeline-config.ts:68` -- node `1/image`, `2/video`, `deadlineMs` 360 000 (khẳng định payload).
 - `apps/api/src/modules/tasks/result-ingestor.ts:42` -- `evaluateIngestProbe` (dung sai 0,5 s, H.264, 24 FPS, cạnh ngắn 720), `OUTPUT_INVALID`, thư mục tạm `VIDEO_DIR_NAME`.
-- `apps/api/src/modules/tasks/video-trim.service.ts:13` -- `flowvis-trim`, `FifoLock` một ffmpeg mỗi lúc.
+- `apps/api/src/modules/tasks/video-trim.service.ts:13` -- `flowxis-trim`, `FifoLock` một ffmpeg mỗi lúc.
 - `apps/api/src/modules/storage/share.controller.ts`, `tasks.service.ts:351` -- `/s/:token`, `/info`, `/poster`, `getResult` video.
 - `packages/contracts/src/tasks.ts:241`, `mocks.ts:501` -- `MotionCreateRequestSchema`, `MotionCreateResponseSchema`, mock Motion; không sửa schema.
 - `deploy/compose.smoke.yml` -- đã có `RUNNINGHUB_WORKFLOW_MOTION`; kiểm tra, chỉ sửa nếu thiếu.
@@ -117,5 +117,5 @@ context:
 **Commands:**
 - `pnpm run typecheck` -- expected: không lỗi
 - `pnpm run lint` -- expected: không lỗi
-- `RUN_COMPOSE_E2E=1 pnpm --filter @flowvis/api test` -- expected: smoke Motion Control và các smoke khác pass (Docker và ffmpeg có sẵn)
+- `RUN_COMPOSE_E2E=1 pnpm --filter @flowxis/api test` -- expected: smoke Motion Control và các smoke khác pass (Docker và ffmpeg có sẵn)
 - `pnpm test` -- expected: pass, smoke Docker bị bỏ qua

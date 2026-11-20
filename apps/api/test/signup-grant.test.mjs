@@ -5,7 +5,7 @@ import net from 'node:net';
 import path from 'node:path';
 import { after, before, describe, it } from 'node:test';
 import { fileURLToPath } from 'node:url';
-import { ApiErrorCode, getApiErrorMessageVi, TOS_VERSION } from '@flowvis/contracts';
+import { ApiErrorCode, getApiErrorMessageVi, TOS_VERSION } from '@flowxis/contracts';
 import pg from 'pg';
 import { PrismaPg } from '@prisma/adapter-pg';
 import { PrismaClient } from '../dist/generated/prisma/client.js';
@@ -32,7 +32,7 @@ const composePath = path.join(repoRoot, 'deploy', 'compose.yml');
 
 const DEFAULT_DATABASE_URL =
   process.env.DATABASE_URL ||
-  'postgresql://motion_user:change_me_local_password@localhost:5432/flowvis?schema=public';
+  'postgresql://motion_user:change_me_local_password@localhost:5432/flowxis?schema=public';
 const DEFAULT_REDIS_URL = process.env.REDIS_URL || 'redis://localhost:6379';
 
 function checkTcpPort(host, port, timeoutMs = 1000) {
@@ -108,7 +108,7 @@ describe('Story 1.8: [BE] Tặng 250 credit và chống lạm dụng', () => {
     process.env.PORT = '0';
     process.env.JWT_SECRET = 'test-jwt-secret-at-least-32-chars-long-ok';
     process.env.ANTI_ABUSE_SECRET = 'test-anti-abuse-secret-at-least-32-chars-long-ok';
-    process.env.ADMIN_EMAILS = 'admin@flowvis.vn';
+    process.env.ADMIN_EMAILS = 'admin@flowxis.vn';
     process.env.FRONTEND_URL = 'http://localhost:3000';
     process.env.COOKIE_SECURE = 'true';
     process.env.TRUSTED_PROXY_CIDRS = '127.0.0.1/32,::1/128';
@@ -522,7 +522,7 @@ describe('Story 1.8: [BE] Tặng 250 credit và chống lạm dụng', () => {
   // =========================================================================
   describe('Nghiệp vụ tặng 250 credit và quy tắc chống lạm dụng', () => {
     it('Thiết bị và IP mới: tặng đúng 250 credit, ghi 1 bút toán GRANT và 1 dòng signup_grants', async () => {
-      const email = `newuser-${crypto.randomBytes(4).toString('hex')}@flowvis.vn`;
+      const email = `newuser-${crypto.randomBytes(4).toString('hex')}@flowxis.vn`;
       const googleId = `gid-${crypto.randomBytes(4).toString('hex')}`;
       const deviceId = `dev-${crypto.randomBytes(6).toString('hex')}`;
       const clientIp = `192.0.2.${Math.floor(Math.random() * 200) + 1}`;
@@ -561,7 +561,7 @@ describe('Story 1.8: [BE] Tặng 250 credit và chống lạm dụng', () => {
       const ip2 = `198.51.100.2`;
 
       // 1. Tài khoản thứ nhất nhận 250 credit
-      const email1 = `u1-${crypto.randomBytes(4).toString('hex')}@flowvis.vn`;
+      const email1 = `u1-${crypto.randomBytes(4).toString('hex')}@flowxis.vn`;
       const gid1 = `gid-1-${crypto.randomBytes(4).toString('hex')}`;
       const res1 = await registerViaApi({
         email: email1,
@@ -580,7 +580,7 @@ describe('Story 1.8: [BE] Tặng 250 credit và chống lạm dụng', () => {
       assert.equal(user1.ledgerEntries.length, 1);
 
       // 2. Tài khoản thứ hai cùng deviceId (khác IP, khác email)
-      const email2 = `u2-${crypto.randomBytes(4).toString('hex')}@flowvis.vn`;
+      const email2 = `u2-${crypto.randomBytes(4).toString('hex')}@flowxis.vn`;
       const gid2 = `gid-2-${crypto.randomBytes(4).toString('hex')}`;
       const res2 = await registerViaApi({
         email: email2,
@@ -610,7 +610,7 @@ describe('Story 1.8: [BE] Tặng 250 credit và chống lạm dụng', () => {
 
       // Tạo 3 tài khoản đầu tiên cùng IP nhưng khác thiết bị -> cả 3 nhận 250
       for (let i = 1; i <= SIGNUP_GRANT_MAX_PER_IP; i++) {
-        const email = `ip3-${i}-${crypto.randomBytes(3).toString('hex')}@flowvis.vn`;
+        const email = `ip3-${i}-${crypto.randomBytes(3).toString('hex')}@flowxis.vn`;
         const gid = `gid-ip3-${i}-${crypto.randomBytes(3).toString('hex')}`;
         const deviceId = `dev-ip3-${i}-${crypto.randomBytes(5).toString('hex')}`;
         const res = await registerViaApi({ email, googleId: gid, deviceId, clientIp: fixedIp });
@@ -625,7 +625,7 @@ describe('Story 1.8: [BE] Tặng 250 credit và chống lạm dụng', () => {
       }
 
       // Tài khoản thứ 4 cùng IP (thiết bị mới)
-      const email4 = `ip3-4-${crypto.randomBytes(3).toString('hex')}@flowvis.vn`;
+      const email4 = `ip3-4-${crypto.randomBytes(3).toString('hex')}@flowxis.vn`;
       const gid4 = `gid-ip3-4-${crypto.randomBytes(3).toString('hex')}`;
       const deviceId4 = `dev-ip3-4-${crypto.randomBytes(5).toString('hex')}`;
       const res4 = await registerViaApi({ email: email4, googleId: gid4, deviceId: deviceId4, clientIp: fixedIp });
@@ -650,7 +650,7 @@ describe('Story 1.8: [BE] Tặng 250 credit và chống lạm dụng', () => {
       // Tạo 3 tài khoản ban đầu trên IP này
       const usersToAge = [];
       for (let i = 1; i <= 3; i++) {
-        const email = `aged-${i}-${crypto.randomBytes(3).toString('hex')}@flowvis.vn`;
+        const email = `aged-${i}-${crypto.randomBytes(3).toString('hex')}@flowxis.vn`;
         const gid = `gid-aged-${i}-${crypto.randomBytes(3).toString('hex')}`;
         const deviceId = `dev-aged-${i}-${crypto.randomBytes(5).toString('hex')}`;
         const res = await registerViaApi({ email, googleId: gid, deviceId, clientIp: agedIp });
@@ -669,7 +669,7 @@ describe('Story 1.8: [BE] Tặng 250 credit và chống lạm dụng', () => {
       );
 
       // Tạo tài khoản thứ 4 trên IP này (thiết bị mới) -> vì 3 grant trước đã quá 24h, phải nhận 250!
-      const email4 = `aged-4-${crypto.randomBytes(3).toString('hex')}@flowvis.vn`;
+      const email4 = `aged-4-${crypto.randomBytes(3).toString('hex')}@flowxis.vn`;
       const gid4 = `gid-aged-4-${crypto.randomBytes(3).toString('hex')}`;
       const deviceId4 = `dev-aged-4-${crypto.randomBytes(5).toString('hex')}`;
       const res4 = await registerViaApi({ email: email4, googleId: gid4, deviceId: deviceId4, clientIp: agedIp });
@@ -688,7 +688,7 @@ describe('Story 1.8: [BE] Tặng 250 credit và chống lạm dụng', () => {
     });
 
     it('User đã tồn tại đăng nhập lại: không tặng thêm credit và không ghi thêm signup_grants', async () => {
-      const email = `relogin-${crypto.randomBytes(4).toString('hex')}@flowvis.vn`;
+      const email = `relogin-${crypto.randomBytes(4).toString('hex')}@flowxis.vn`;
       const googleId = `gid-relogin-${crypto.randomBytes(4).toString('hex')}`;
       const deviceId = `dev-relogin-${crypto.randomBytes(4).toString('hex')}`;
       const clientIp = `192.0.2.77`;
@@ -727,7 +727,7 @@ describe('Story 1.8: [BE] Tặng 250 credit và chống lạm dụng', () => {
 
     it('Không có giới hạn trần tổng: nhiều tài khoản khác nhau hoàn toàn đều nhận 250 credit', async () => {
       for (let i = 0; i < 5; i++) {
-        const email = `scale-${i}-${crypto.randomBytes(3).toString('hex')}@flowvis.vn`;
+        const email = `scale-${i}-${crypto.randomBytes(3).toString('hex')}@flowxis.vn`;
         const gid = `gid-scale-${i}-${crypto.randomBytes(3).toString('hex')}`;
         const deviceId = `dev-scale-${i}-${crypto.randomBytes(5).toString('hex')}`;
         const clientIp = `198.51.100.${100 + i}`;
@@ -750,7 +750,7 @@ describe('Story 1.8: [BE] Tặng 250 credit và chống lạm dụng', () => {
       const promises = [];
 
       for (let i = 0; i < 5; i++) {
-        const email = `conc-ip-${i}-${crypto.randomBytes(3).toString('hex')}@flowvis.vn`;
+        const email = `conc-ip-${i}-${crypto.randomBytes(3).toString('hex')}@flowxis.vn`;
         const gid = `gid-conc-ip-${i}-${crypto.randomBytes(3).toString('hex')}`;
         const deviceId = `dev-conc-ip-${i}-${crypto.randomBytes(5).toString('hex')}`;
         promises.push(
@@ -794,7 +794,7 @@ describe('Story 1.8: [BE] Tặng 250 credit và chống lạm dụng', () => {
       const promises = [];
 
       for (let i = 0; i < 5; i++) {
-        const email = `conc-dev-${i}-${crypto.randomBytes(3).toString('hex')}@flowvis.vn`;
+        const email = `conc-dev-${i}-${crypto.randomBytes(3).toString('hex')}@flowxis.vn`;
         const gid = `gid-conc-dev-${i}-${crypto.randomBytes(3).toString('hex')}`;
         const clientIp = `192.0.2.${150 + i}`;
         promises.push(
@@ -838,7 +838,7 @@ describe('Story 1.8: [BE] Tặng 250 credit và chống lạm dụng', () => {
   // =========================================================================
   describe('Rollback nguyên tử và connection pool', () => {
     it('khi walletService.grant ném lỗi: rollback toàn bộ, không sót user/grant, pool dùng lại bình thường', async () => {
-      const email = `rollback-${crypto.randomBytes(4).toString('hex')}@flowvis.vn`;
+      const email = `rollback-${crypto.randomBytes(4).toString('hex')}@flowxis.vn`;
       const googleId = `gid-rollback-${crypto.randomBytes(4).toString('hex')}`;
       const deviceId = `dev-rollback-${crypto.randomBytes(4).toString('hex')}`;
       const clientIp = `192.0.2.222`;
@@ -963,7 +963,7 @@ describe('Story 1.8: [BE] Tặng 250 credit và chống lạm dụng', () => {
 
   describe('Bổ sung sau review: email trùng, signup đồng thời, throttler Redis, cảnh báo proxy', () => {
     it('email đã gắn googleId khác: 409 EMAIL_LINKED_TO_OTHER_ACCOUNT và không ghi đè googleId', async () => {
-      const email = `link-${crypto.randomBytes(4).toString('hex')}@flowvis.vn`;
+      const email = `link-${crypto.randomBytes(4).toString('hex')}@flowxis.vn`;
       const gid1 = `gid-link-1-${crypto.randomBytes(4).toString('hex')}`;
       const gid2 = `gid-link-2-${crypto.randomBytes(4).toString('hex')}`;
 
@@ -992,7 +992,7 @@ describe('Story 1.8: [BE] Tặng 250 credit và chống lạm dụng', () => {
     });
 
     it('5 callback đồng thời của cùng một tài khoản: không có 250, đúng 1 user và 1 lần tặng', async () => {
-      const email = `same-${crypto.randomBytes(4).toString('hex')}@flowvis.vn`;
+      const email = `same-${crypto.randomBytes(4).toString('hex')}@flowxis.vn`;
       const gid = `gid-same-${crypto.randomBytes(4).toString('hex')}`;
       const deviceId = `dev-same-${crypto.randomBytes(4).toString('hex')}`;
       await warmDevice(deviceId);

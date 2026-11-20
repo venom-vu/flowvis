@@ -1,6 +1,6 @@
 import assert from 'node:assert/strict';
 import { describe, it } from 'node:test';
-import { ApiErrorCode, MOCK_SYSTEM_STATUS_PAUSED } from '@flowvis/contracts';
+import { ApiErrorCode, MOCK_SYSTEM_STATUS_PAUSED } from '@flowxis/contracts';
 import { MotionApiClientError, createMotionApiClient } from '../utils/api-client.ts';
 import { isPausedError, resolveIntakePaused } from '../utils/system-status.ts';
 

@@ -13,7 +13,7 @@ import {
   type AdminUser,
   type AdminUserLedgerResponse,
   type AdminUserStatsResponse,
-} from '@flowvis/contracts';
+} from '@flowxis/contracts';
 import { CurrentUser } from '../auth/decorators/current-user.decorator.js';
 import { Roles } from '../auth/decorators/roles.decorator.js';
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard.js';

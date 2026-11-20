@@ -3,7 +3,7 @@ import { computed, nextTick, onBeforeUnmount, ref, watch } from 'vue';
 import {
   type ImageMeta,
   type UploadConfirmResponse,
-} from '@flowvis/contracts';
+} from '@flowxis/contracts';
 import { useApiClient } from '~/composables/useApiClient';
 import { useUploadFlow } from '~/composables/useUploadFlow';
 import {
@@ -44,6 +44,8 @@ const emit = defineEmits<{
     },
   ];
   error: [messageVi: string];
+  /** true khi đang kiểm tra/tải ảnh; false khi ready/error/idle. */
+  busy: [isBusy: boolean];
 }>();
 
 const { client } = useApiClient();
@@ -61,6 +63,11 @@ let activeCameraStream: MediaStream | null = null;
 
 type UploadStatus = 'idle' | 'validating' | 'uploading' | 'ready' | 'error';
 const status = ref<UploadStatus>(props.modelValue ? 'ready' : 'idle');
+watch(
+  () => status.value === 'validating' || status.value === 'uploading',
+  (isBusy) => emit('busy', isBusy),
+  { flush: 'sync' },
+);
 
 const currentFile = ref<File | null>(null);
 const currentMeta = ref<ImageMeta | null>(null);
@@ -278,7 +285,7 @@ async function handleFileSelect(file: File): Promise<void> {
   });
   errorMessageVi.value = null;
 
-  // 1. Kiểm tra tính hợp lệ phía client bằng schema @flowvis/contracts
+  // 1. Kiểm tra tính hợp lệ phía client bằng schema @flowxis/contracts
   status.value = 'validating';
   const validation = await validateImageFile(file);
   if (!validation.valid) {
