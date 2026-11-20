@@ -19,9 +19,9 @@ const key = (n) => `in/11111111-1111-4111-8111-111111111111/${String(n).padStart
 const KEYS = Array.from({ length: 10 }, (_, i) => key(i + 1));
 
 describe('Muse Video: giá và hằng số hợp đồng', () => {
-  it('giá cố định 200 credit, khớp cấu hình server', () => {
-    assert.equal(MUSE_VIDEO_PRICE, 200);
-    assert.equal(PRICING_CONFIG.pipelines.museVideoCredits, 200);
+  it('giá cố định 250 credit, khớp cấu hình server', () => {
+    assert.equal(MUSE_VIDEO_PRICE, 250);
+    assert.equal(PRICING_CONFIG.pipelines.museVideoCredits, 250);
     assert.ok(TASK_PIPELINES.includes('muse_video'));
     assert.equal(MUSE_VIDEO_MAX_IMAGES, 9);
     assert.equal(MUSE_VIDEO_MAX_TOTAL_BYTES, 11 * 1024 * 1024);
@@ -73,8 +73,8 @@ describe('Muse Video: schema request', () => {
       status: 'queued',
       reasonCode: null,
       queuePosition: 1,
-      creditCost: 200,
-      price: 200,
+      creditCost: 250,
+      price: 250,
       createdAt: '2026-11-19T00:00:00.000Z',
       updatedAt: '2026-11-19T00:00:00.000Z',
     };
@@ -85,7 +85,7 @@ describe('Muse Video: schema request', () => {
 });
 
 describe('Muse Video: dựng request RunningHub', () => {
-  const params = { prompt: 'cinematic close-up', imageCount: 2, resolution: '720p', seconds: 10, price: 200 };
+  const params = { prompt: 'cinematic close-up', imageCount: 2, resolution: '720p', seconds: 10, price: 250 };
   const urls = { imageKey0: 'https://rh/a.png', imageKey1: 'https://rh/b.png' };
 
   it('cấu hình pipeline dùng chế độ model, không cần node', () => {
@@ -172,13 +172,13 @@ describe('Muse Video: tạo Task kiểm tra ảnh trước khi HOLD', async () =
     assert.ok(!calls.some((c) => c[0] === 'create'));
   });
 
-  it('hợp lệ: giữ thứ tự ảnh qua imageKey0..N, giá 200, đánh dấu đã kiểm tra khóa', async () => {
+  it('hợp lệ: giữ thứ tự ảnh qua imageKey0..N, giá 250, đánh dấu đã kiểm tra khóa', async () => {
     const { svc, calls } = make(MUSE_VIDEO_MAX_TOTAL_BYTES);
     const res = await svc.createMuseVideo('u1', req);
-    assert.equal(res.price, 200);
+    assert.equal(res.price, 250);
     assert.equal(res.pipeline, 'muse_video');
     const [, , spec] = calls.find((c) => c[0] === 'create');
-    assert.equal(spec.amount, 200);
+    assert.equal(spec.amount, 250);
     assert.equal(spec.keysVerified, true);
     assert.deepEqual(spec.inputKeys, { imageKey0: KEYS[0], imageKey1: KEYS[1] });
     assert.equal(spec.params.imageCount, 2);
@@ -205,19 +205,19 @@ describe('Muse Video: TasksService.createMuseVideo', () => {
   }
   const req = { prompt: 'cinematic', imageKeys: [KEYS[2], KEYS[0], KEYS[1]] };
 
-  it('ảnh hợp lệ: giữ thứ tự imageKey0..n, giá 200, seconds = 10, không có aspectRatio khi theo ảnh', async () => {
+  it('ảnh hợp lệ: giữ thứ tự imageKey0..n, giá 250, seconds = 10, không có aspectRatio khi theo ảnh', async () => {
     const { svc, calls } = makeService(5 * 1024 * 1024);
     const res = await svc.createMuseVideo('u1', req);
     assert.equal(calls.specs.length, 1);
     const spec = calls.specs[0];
     assert.equal(spec.pipeline, 'muse_video');
-    assert.equal(spec.amount, 200);
+    assert.equal(spec.amount, 250);
     assert.equal(spec.keysVerified, true);
     assert.deepEqual(spec.inputKeys, { imageKey0: KEYS[2], imageKey1: KEYS[0], imageKey2: KEYS[1] });
     assert.equal(spec.params.seconds, 10);
     assert.equal(spec.params.imageCount, 3);
     assert.ok(!('aspectRatio' in spec.params));
-    assert.equal(res.price, 200);
+    assert.equal(res.price, 250);
     assert.deepEqual(calls.bytes[0], { userId: 'u1', keys: req.imageKeys });
   });
 

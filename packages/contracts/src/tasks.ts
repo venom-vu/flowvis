@@ -16,8 +16,8 @@ export type MotionPipeline = keyof typeof MOTION_MAX_SECONDS;
  * Giá Motion theo chức năng: phí cố định + đơn giá mỗi giây (credit); nơi duy nhất giữ các hằng này phía mã nguồn.
  */
 export const MOTION_PRICING = {
-  motion_control: { baseCredits: 150, creditsPerSecond: 20 },
-  motion_control_v2: { baseCredits: 150, creditsPerSecond: 65 },
+  motion_control: { baseCredits: 150, creditsPerSecond: 15 },
+  motion_control_v2: { baseCredits: 150, creditsPerSecond: 60 },
 } as const;
 
 /** Giá một Task Motion = phí cố định + đơn giá mỗi giây × số giây (mặc định tính theo `motion_control`). */
@@ -422,7 +422,7 @@ export const MUSE_VIDEO_MAX_TOTAL_BYTES = 11 * 1024 * 1024;
 export const MUSE_VIDEO_DURATION_SECONDS = 10;
 export const MUSE_VIDEO_RESOLUTION = '720p';
 /** Giá cố định mỗi video (credit). */
-export const MUSE_VIDEO_PRICE = 200;
+export const MUSE_VIDEO_PRICE = 250;
 export const MUSE_VIDEO_ASPECT_RATIOS = ['16:9', '9:16', '1:1', '4:3', '3:4', '3:2', '2:3'] as const;
 export type MuseVideoAspectRatio = (typeof MUSE_VIDEO_ASPECT_RATIOS)[number];
 export const MuseVideoAspectRatioSchema = z.enum(MUSE_VIDEO_ASPECT_RATIOS);

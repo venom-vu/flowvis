@@ -535,15 +535,15 @@ describe('@flowxis/contracts', () => {
       );
       assert.equal(
         MOCK_PRICING_CONFIG_RESPONSE.pipelines.motionControlCreditsPerSecond,
-        20,
+        15,
       );
       assert.equal(MOCK_PRICING_CONFIG_RESPONSE.pipelines.motionControlBaseCredits, 150);
-      assert.equal(MOCK_PRICING_CONFIG_RESPONSE.pipelines.motionControlV2CreditsPerSecond, 65);
+      assert.equal(MOCK_PRICING_CONFIG_RESPONSE.pipelines.motionControlV2CreditsPerSecond, 60);
     assert.deepEqual(
       [MOCK_PRICING_CONFIG_RESPONSE.pipelines.veo3Credits720p, MOCK_PRICING_CONFIG_RESPONSE.pipelines.veo3Credits1080p, MOCK_PRICING_CONFIG_RESPONSE.pipelines.veo3Credits4k],
       [500, 700, 950],
     );
-      assert.equal(MOCK_PRICING_CONFIG_RESPONSE.pipelines.museVideoCredits, 200);
+      assert.equal(MOCK_PRICING_CONFIG_RESPONSE.pipelines.museVideoCredits, 250);
       assert.equal(MOCK_PRICING_CONFIG_RESPONSE.pipelines.motionControlMinSeconds, 5);
 
       const tiersByKey = Object.fromEntries(
@@ -1129,12 +1129,12 @@ describe('@flowxis/contracts', () => {
   describe('Epic 5 contracts', () => {
     const K = MOCK_MOTION_CREATE_REQUEST;
 
-    it('prices motion: v1 = 150 + 20/giây, v2 = 150 + 65/giây, background giữ 50/giây', () => {
-      assert.equal(motionPrice(5), 250);
-      assert.equal(motionPrice(10), 350);
-      assert.equal(motionPrice(20), 550);
-      assert.equal(motionPrice(5, 'motion_control_v2'), 475);
-      assert.equal(motionPrice(10, 'motion_control_v2'), 800);
+    it('prices motion: v1 = 150 + 15/giây, v2 = 150 + 60/giây, background giữ 50/giây', () => {
+      assert.equal(motionPrice(5), 225);
+      assert.equal(motionPrice(10), 300);
+      assert.equal(motionPrice(20), 450);
+      assert.equal(motionPrice(5, 'motion_control_v2'), 450);
+      assert.equal(motionPrice(10, 'motion_control_v2'), 750);
       for (const bad of [0, -1, 1.5, NaN]) assert.throws(() => motionPrice(bad));
       assert.ok(TASK_PIPELINES.includes('motion_control'));
     });

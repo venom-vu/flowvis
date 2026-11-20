@@ -172,13 +172,13 @@ describe('@flowxis/web — Story 5.8 Motion Control', () => {
   });
 
   describe('useMotionControl — giá trực tiếp và điều kiện nút Tạo', () => {
-    it('kéo 3 -> 8 giây: giá = motionPrice(5) = 150 + 20 × 5 = 250 và số dư còn lại cập nhật', () => {
+    it('kéo 3 -> 8 giây: giá = motionPrice(5) = 150 + 15 × 5 = 225 và số dư còn lại cập nhật', () => {
       setup();
       const mc = mod.useMotionControl();
       fillValid(mc, { start: 3, end: 8 });
       assert.equal(mc.price.value, motionPrice(5));
-      assert.equal(mc.price.value, 250);
-      assert.equal(mc.remainingBalance.value, MOCK_ME_RESPONSE.balance - 250);
+      assert.equal(mc.price.value, 225);
+      assert.equal(mc.remainingBalance.value, MOCK_ME_RESPONSE.balance - 225);
       mc.onTrimChange({
         videoKey: MOCK_MOTION_CREATE_REQUEST.videoKey,
         trimStart: 3,
@@ -186,8 +186,8 @@ describe('@flowxis/web — Story 5.8 Motion Control', () => {
         durationSeconds: 15,
       });
       assert.equal(mc.price.value, motionPrice(10));
-      assert.equal(mc.price.value, 350);
-      assert.equal(mc.remainingBalance.value, MOCK_ME_RESPONSE.balance - 350);
+      assert.equal(mc.price.value, 300);
+      assert.equal(mc.remainingBalance.value, MOCK_ME_RESPONSE.balance - 300);
     });
 
     it('đủ điều kiện: nút bật; bấm 2 lần chỉ gửi 1 POST', async () => {
@@ -244,7 +244,7 @@ describe('@flowxis/web — Story 5.8 Motion Control', () => {
       assert.equal(mc.canSubmit.value, false);
       assert.match(
         mc.insufficientNoteVi.value,
-        /Bạn đang có 100 credit \(cần 250 cr để tạo đoạn 5s\)/,
+        /Bạn đang có 100 credit \(cần 225 cr để tạo đoạn 5s\)/,
       );
       await mc.submit();
       assert.equal(calls.create.length, 0);
@@ -517,7 +517,7 @@ describe('@flowxis/web — Story 5.8 Motion Control', () => {
         characterKey: ref(MOCK_MOTION_CREATE_REQUEST.characterKey),
         capSeconds: ref(10),
         seconds: ref(5),
-        price: ref(250),
+        price: ref(225),
         hasEnoughBalance: ref(true),
         canSubmit: ref(true),
         insufficientNoteVi: ref(null),
@@ -571,7 +571,7 @@ describe('@flowxis/web — Story 5.8 Motion Control', () => {
       assert.deepEqual(evt[1], {
         featureId: 'motion-control',
         seconds: 5,
-        estimatedCredits: 250,
+        estimatedCredits: 225,
         uploadedKey: MOCK_MOTION_CREATE_REQUEST.characterKey,
       });
       delete globalThis.__fwd;

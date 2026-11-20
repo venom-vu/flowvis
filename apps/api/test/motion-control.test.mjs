@@ -129,7 +129,7 @@ describe('Story 5.3: [BE] Tạo Task Motion Control', () => {
     await app?.close();
   });
 
-  it('giá mọi độ dài 5..20 giây (Creator): HOLD = motionPrice (150 + 20/giây), params khớp, jobId = taskId', async () => {
+  it('giá mọi độ dài 5..20 giây (Creator): HOLD = motionPrice (150 + 15/giây), params khớp, jobId = taskId', async () => {
     const u = await newUser({ balance: 100000, tierPack: 'creator' });
     const v = await vid(u, 21);
     const c = await img(u);
@@ -188,14 +188,14 @@ describe('Story 5.3: [BE] Tạo Task Motion Control', () => {
     await expectReason(await post(u, { characterKey: c, videoKey: v, trimStart: 0, trimEnd: 8 }), 'TRIM_EXCEEDS_CAP', 5);
   });
 
-  it('Motion v2: cap 10 giây theo chức năng (gói trả phí, giá 150 + 65/giây), FREE cap 5 giây', async () => {
+  it('Motion v2: cap 10 giây theo chức năng (gói trả phí, giá 150 + 60/giây), FREE cap 5 giây', async () => {
     const postV2 = (user, body) => fetch(`${baseUrl}/tasks/motion-v2`, { method: 'POST', headers: { Authorization: `Bearer ${user.token}`, 'Content-Type': 'application/json' }, body: JSON.stringify(body) });
     const cr = await newUser({ tierPack: 'creator' });
     let res = await postV2(cr, { characterKey: await img(cr), videoKey: await vid(cr, 20), trimStart: 0, trimEnd: 11 });
     await expectReason(res, 'TRIM_EXCEEDS_CAP', 10);
     res = await postV2(cr, { characterKey: await img(cr), videoKey: await vid(cr, 20), trimStart: 0, trimEnd: 10 });
     assert.equal(res.status, 201);
-    assert.equal((await res.json()).price, 800);
+    assert.equal((await res.json()).price, 750);
     const free = await newUser({ balance: 1000 });
     res = await postV2(free, { characterKey: await img(free), videoKey: await vid(free, 20), trimStart: 0, trimEnd: 6 });
     await expectReason(res, 'TRIM_EXCEEDS_CAP', 5);

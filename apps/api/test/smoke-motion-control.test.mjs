@@ -567,7 +567,7 @@ describe('Smoke Motion Control FE-BE trên stack Compose (Story 5.9)', () => {
     assert.equal(MOCK_MOTION_RESULT_RESPONSE.mediaType, 'video');
     assert.equal(MOCK_MOTION_RESULT_RESPONSE.sourceUrl, null);
     ShareInfoResponseSchema.parse(MOCK_SHARE_INFO_VIDEO_RESPONSE);
-    assert.equal(motionPrice(10), 350);
+    assert.equal(motionPrice(10), 300);
     assert.equal(
       getReasonCodeMessageVi('NO_POSE', 'motion_control'),
       'Không nhận diện được chuyển động cơ thể trong video mẫu',

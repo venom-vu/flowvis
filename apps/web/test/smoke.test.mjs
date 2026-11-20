@@ -272,10 +272,10 @@ describe('@flowxis/web — Story 1.4 Nuxt 4 mobile-first & API client', () => {
     );
     assert.equal(motionControlFree.baseCredits, pricing.pipelines.motionControlBaseCredits);
     assert.equal(motionControlFree.tierCapSeconds, 5);
-    // Giá = phí cố định + đơn giá × giây: v1 5 giây = 150 + 20 × 5 = 250 (đúng số credit tặng của FREE)
-    assert.equal(calculateFeatureEstimatedCredits(motionControlFree, 5), 250);
+    // Giá = phí cố định + đơn giá × giây: v1 5 giây = 150 + 15 × 5 = 225 (nằm trong 250 credit tặng của FREE)
+    assert.equal(calculateFeatureEstimatedCredits(motionControlFree, 5), 225);
     // Clamped ở trần 5 giây của FREE
-    assert.equal(calculateFeatureEstimatedCredits(motionControlFree, 12), 250);
+    assert.equal(calculateFeatureEstimatedCredits(motionControlFree, 12), 225);
 
     const creatorCatalog = buildAiFeatureCatalog(pricing, 'Creator');
     const motionControlCreator = creatorCatalog.find(
@@ -291,8 +291,8 @@ describe('@flowxis/web — Story 1.4 Nuxt 4 mobile-first & API client', () => {
     const motionV2Creator = creatorCatalog.find((f) => f.id === 'motion-control-v2');
     assert.ok(motionV2Creator);
     assert.equal(motionV2Creator.tierCapSeconds, 10);
-    // v2: 150 + 65 × giây (10 giây = 800 credit)
-    assert.equal(calculateFeatureEstimatedCredits(motionV2Creator, 10), 800);
+    // v2: 150 + 60 × giây (10 giây = 750 credit)
+    assert.equal(calculateFeatureEstimatedCredits(motionV2Creator, 10), 750);
 
     assert.equal(FEATURE_CATEGORIES.length, 3);
   });

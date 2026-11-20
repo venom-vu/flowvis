@@ -395,16 +395,16 @@ export const PipelinePricingSchema = z.object({
   bodyRetouchCredits: z.literal(100),
   /** Motion Control v1: giá một Task = phí cố định + đơn giá mỗi giây × số giây (`motionPrice`). */
   motionControlBaseCredits: z.literal(150),
-  motionControlCreditsPerSecond: z.literal(20),
+  motionControlCreditsPerSecond: z.literal(15),
   /** Motion Control v2: cùng công thức, đơn giá riêng. */
   motionControlV2BaseCredits: z.literal(150),
-  motionControlV2CreditsPerSecond: z.literal(65),
+  motionControlV2CreditsPerSecond: z.literal(60),
   /** Veo 3: giá mỗi video 8 giây theo độ phân giải. */
   veo3Credits720p: z.literal(500),
   veo3Credits1080p: z.literal(700),
   veo3Credits4k: z.literal(950),
   /** Muse Video: giá cố định mỗi video ~10 giây. */
-  museVideoCredits: z.literal(200),
+  museVideoCredits: z.literal(250),
   /** Số giây Trim tối thiểu của Motion Control (tùy chọn để BE Epic 2–4 chưa trả vẫn hợp lệ; BE 5.3 phải trả 5). */
   motionControlMinSeconds: z.literal(5).optional(),
 });
